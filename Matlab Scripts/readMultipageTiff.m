@@ -1,5 +1,5 @@
-function [image_] = readMultipageTiff(filename)
-% [image_] = readMultipageTiff(filename)
+function [image_] = ReadMultipageTiff(filename)
+% [image_] = ReadMultipageTiff(filename)
 % read a TIFF file and return a struct with subimages, corresponding
 % metadata and the TIFF imageInfo
 % Ziyi. Feb, 2020.

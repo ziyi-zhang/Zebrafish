@@ -1,14 +1,14 @@
-function [] = imshowTiff(image, index, enhanced)
-% [] = imshowTiff(image, index, enhanced)
-% [] = imshowTiff(mat)
-% 'image' should be a struct created by 'readMultipageTiff.m'
+function [] = ImshowTiff(image, index, enhanced)
+% [] = ImshowTiff(image[, index][, enhanced])
+% [] = ImshowTiff(mat)
+% 'image' should be a struct with meta data created by 'readMultipageTiff.m'
 % 'image.image' is a 3D matrix of size [length*width*stacks] eg:
 % [1024*1024*1558 uint16]
-% 'index' should be an array containing the desired indexes
-% 'enhanced' is a flag indicating whether the output be shown with enhanced
-% contrast
-% 'mat' is a 2D/3D matrix. The image will be auto enhanced. If the input is
-% 3D, the third dimension will be summed.
+% 'index' is an array containing the desired indexes of subimages
+% 'enhanced' is a flag indicating whether the output should be shown with 
+% enhanced contrast
+% 'mat' is a 2D/3D matrix. The contrast will be auto enhanced. If the input
+% is 3D, the third dimension will be summed
 % Ziyi. Feb, 2020.
 
     figure
@@ -25,8 +25,8 @@ function [] = imshowTiff(image, index, enhanced)
         return;
     end
     
-    if nargin<2||isempty(index), index = 1:size(image.image, 3);end
     if nargin<3, enhanced = false;end
+    if nargin<2 || isempty(index), index = 1:size(image.image, 3);end
     N = length(index);
     ncol = ceil(sqrt(16/9*N));
     nrow = ceil(N / ncol);

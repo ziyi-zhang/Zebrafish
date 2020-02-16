@@ -1,5 +1,5 @@
-function [image] = selectTiff(image, channel, slice, frame, indexStart, indexEnd)
-% [image] = selectTiff(image, channel, slice, frame, indexStart, indexEnd)
+function [image] = SelectTiff(image, channel, slice, frame, indexStart, indexEnd)
+% [image] = SelectTiff(image[, channel][, slice][, frame][, indexStart][, indexEnd])
 % select a subset of subimages from 'image' with five constraints
 % 'channel', 'slice', 'frame', 'indexStart' and 'indexEnd'
 % Example Use:
@@ -8,7 +8,6 @@ function [image] = selectTiff(image, channel, slice, frame, indexStart, indexEnd
 % selectTiff(image, 1, 1:5:41, [], 1, 300) % select from first 300
 % subimages with a fixed interval 5
 % Ziyi. Feb, 2020.
-
 
     % process input
     if nargin < 6 || isempty(indexEnd)
