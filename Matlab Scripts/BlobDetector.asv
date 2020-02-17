@@ -33,21 +33,14 @@ function [res] = BlobDetector(image_log, showImage, visBlob)
             allCenters = cat(1, allCenters, res{1, i});
         end
         allCenters = allCenters';
-
         for i = 1:size(image, 1)
             for j = 1:size(image, 2)
-                image(j, i) = nnz(vecnorm(allCenters - [i; j]) < 3);
+
+                image(j, i) = nnz(vecnorm(allCenters - [i; j]) < 4);
             end
         end
-
-        %{
-        for i = 1:size(allCenters, 2)
-            r = round(allCenters(2, i));
-            c = round(allCenters(1, i));
-            image(r, c) = image(r, c) + 1;
-        end
-        %}
-        mask = image < 1;
+        
+        mask = image < 3;
         image(mask) = 0;
         
         figure

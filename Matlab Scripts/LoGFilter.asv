@@ -1,17 +1,22 @@
-function [image] = LoGFilter(image, hsize, sigma, showImage)
-%
+function [image_log] = LoGFilter(image, hsize, sigma, showImage)
+% [image_log] = LoGFilter(image, hsize, sigma, showImage)
+% Apply LoG (Laplacian of Gaussian) filter on image.
+% 
+% Ziyi. Feb, 2020.
 
     if nargin<4, showImage=false;end
     if nargin<3 || isempty(sigma), sigma = 2;end
-    if nargin<2 || isempty(hsize), hsize = 8;end
+    if nargin<2 || isempty(hsize), hsize = 12;end
 
     h = fspecial('log', hsize, sigma);
-    image = imfilter(image, h);
+    image_log = zeros(size(image));
+    for i = 1:size()
+    image_log = imfilter(image, h);
     if showImage
         figure
-        imshow(image_, [min(image_, [], 'all'), max(image_, [], 'all')]);
-       colormap bone
-       titleStr = "l:" + hsize + " s:" + sigma;
-       title(titleStr);
+        imshow(image_log, [min(image_log, [], 'all'), max(image_log, [], 'all')]);
+        colormap bone
+        titleStr = "l:" + hsize + " s:" + sigma;
+        title(titleStr);
     end
 end

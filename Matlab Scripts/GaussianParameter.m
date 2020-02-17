@@ -1,13 +1,13 @@
-function [] = LoGParameter(image, hsizeArr, sigmaArr, zoomIn)
-% [] = LoGParameter(image[, hsizeArr][, sigmaArr][, zoomIn])
-% This function is used to visualize the effect of LoG (Laplacian of
-% Gaussian) filter size and sigma.
+function [] = GaussianParameter(image, hsizeArr, sigmaArr, zoomIn)
+% [] = GaussianParameter(image[, hsizeArr][, sigmaArr][, zoomIn])
+% This function is used to visualize the effect of Gaussian filter size and
+% sigma.
 % 'image' is a 2D matrix of a grayscale image
 % 'hsizeArr' is the candidate filter size/length array
 % 'sigmaArr' is the candidate Gaussian sigma array
 % 'zoomIn' is the ratio of zoom in and appies on all subplots
 % Example Use:
-% LoGParameter(image, [], [], 2.5)
+% GaussianParameter(image, [], [], 2.5)
 % Ziyi. Feb, 2020.
 
    if nargin<4, zoomIn = 1;end
@@ -30,7 +30,7 @@ function [] = LoGParameter(image, hsizeArr, sigmaArr, zoomIn)
        
            count = count + 1;
            axes(ha(count)); %#ok
-           h = fspecial('log', hsize, sigma);
+           h = fspecial('gaussian', hsize, sigma);
            image_ = imfilter(image, h);
 
            image_ = image_(xzoomIn(1):xzoomIn(2), yzoomIn(1):yzoomIn(2)); % zoom in

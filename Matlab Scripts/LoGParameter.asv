@@ -6,11 +6,12 @@ function [] = LoGParameter(image, hsizeArr, sigmaArr, zoomIn)
 % 'hsizeArr' is the candidate filter size/length array
 % 'sigmaArr' is the candidate Guassian sigma array
 % 'zoomIn' is the ratio of zoom in and appies on all subplots
-% Exampe Us
+% Example Use:
+% LoGParameter(image, [], [], 2.5)
 % Ziyi. Feb, 2020.
 
    if nargin<4, zoomIn = 1;end
-   if nargin<3 || isempty(sigmaArr), sigmaArr = 1:0.5:2.5;end
+   if nargin<3 || isempty(sigmaArr), sigmaArr = 1:2.5;end
    if nargin<2 || isempty(hsizeArr), hsizeArr = 6:12;end
 
    % zoom in calculation
