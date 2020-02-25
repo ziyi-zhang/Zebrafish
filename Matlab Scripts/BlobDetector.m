@@ -1,4 +1,4 @@
-function [res] = BlobDetector(image_log, showImage, visBlob)
+function [res, image] = BlobDetector(image_log, showImage, visBlob)
 
     BW_threshold = 0.993;
     radii_min = 2.5;
@@ -47,11 +47,13 @@ function [res] = BlobDetector(image_log, showImage, visBlob)
             image(r, c) = image(r, c) + 1;
         end
         %}
+        %{
         mask = image < 1;
         image(mask) = 0;
         
         figure
         imshow(image, [min(image, [], 'all'), max(image, [], 'all')]);
         colormap pink
+        %}
     end
 end
