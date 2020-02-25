@@ -59,7 +59,9 @@ function [] = ImshowTiff(image, index, enhanced, zoomIn)
             imshow(image.image(xzoomIn(1):xzoomIn(2), yzoomIn(1):yzoomIn(2), index(i)));
         end
         colormap(pink);
-        titleStr = "C:" + image.meta(1, index(i)) + " S:" + image.meta(2, index(i)) + " F:" + image.meta(3, index(i));
-        title(titleStr);
+        if (isfield(image, 'meta'))
+            titleStr = "C:" + image.meta(1, index(i)) + " S:" + image.meta(2, index(i)) + " F:" + image.meta(3, index(i));
+            title(titleStr);
+        end
     end
 end
