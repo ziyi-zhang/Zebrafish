@@ -85,5 +85,6 @@ function [resCyl, resPeri] = SampleCylinder(cyl, n, mat, visualize)
         scatter3(resCyl(2, :), resCyl(1, :), resCyl(3, :));
         scatter3(resPeri(2, :), resPeri(1, :), resPeri(3, :));
         axis tight
+        view(3)
     end
 end
