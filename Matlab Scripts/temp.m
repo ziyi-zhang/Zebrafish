@@ -1,0 +1,1 @@
+fminsearch(@(arr)fun(testMat, arr), [214, 281, 3, 15, 15])

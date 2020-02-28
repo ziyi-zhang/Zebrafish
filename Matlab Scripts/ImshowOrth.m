@@ -1,4 +1,5 @@
 function [] = ImshowOrth(mat)
+% 'mat' is a vertical slice of a 3D TIFF image
 
     mat = squeeze(mat);
     if size(mat, 1)>size(mat, 2), mat=mat';end
