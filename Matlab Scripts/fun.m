@@ -5,6 +5,6 @@ function [res] = fun(mat, cylArray)
     cyl.z = cylArray(3);
     cyl.r = cylArray(4);
     cyl.h = cylArray(5);
-    [sampleCyl, samplePeri] = SampleCylinder(cyl, 8, mat);
+    [sampleCyl, samplePeri] = SampleCylinder(cyl, mat);
     res = EvaluateCylinder(mat, sampleCyl, samplePeri);
 end

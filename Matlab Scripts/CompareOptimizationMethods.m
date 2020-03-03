@@ -1,7 +1,7 @@
 %% fminsearch simplex
 options = optimset('Display', 'iter');
 [x, fval, exitflag, output] = fminsearch(f_realDot, [20, 20, 15, 4, 7], options);
-imshowTiff(realDot); hold on; viscircles([x(2) x(1)], x(4));
+imshowTiff(realDot); hold on; viscircles([x(2) x(1)], x(4));colormap pink;
 
 %  Iteration   Func-count     min f(x)         Procedure
 %      0            1      2.48175e+06         
