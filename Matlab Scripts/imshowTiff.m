@@ -62,6 +62,8 @@ function [] = ImshowTiff(image, index, enhanced, zoomIn)
         if (isfield(image, 'meta'))
             titleStr = "C:" + image.meta(1, index(i)) + " S:" + image.meta(2, index(i)) + " F:" + image.meta(3, index(i));
             title(titleStr);
-        end
+        else 
+            title(i);
+        end 
     end
 end

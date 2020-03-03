@@ -5,7 +5,7 @@ function [testMat] = GenerateTestCylinder(visualize)
     if nargin<1, visualize=false;end
     testMat = ones(1024, 1024, 41);
     
-    % 1
+    % 1 perfect cylinder
     cyl.x=200; cyl.y=300; cyl.z=5; cyl.r=20; cyl.h=10;
     for i = cyl.x-cyl.r:cyl.x+cyl.r
         for j = cyl.y-cyl.r:cyl.y+cyl.r
@@ -14,6 +14,19 @@ function [testMat] = GenerateTestCylinder(visualize)
             end
         end
     end
+    
+    % 2 truncated cone
+    cyl.x=200; cyl.y=500; cyl.z=5; cyl.r=20; cyl.h=10;
+    for i = cyl.x-cyl.r:cyl.x+cyl.r
+        for j = cyl.y-cyl.r:cyl.y+cyl.r
+            for k = cyl.z:cyl.z+cyl.h
+                if norm([i, j]-[cyl.x, cyl.y])<cyl.r-(k-cyl.z)
+                    testMat(i, j, k) = 0;
+                end
+            end
+        end
+    end
+    
     
     % visualize
     if visualize
