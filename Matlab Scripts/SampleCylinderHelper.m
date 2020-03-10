@@ -1,42 +1,68 @@
-function [xyCyl, xyPeri] = SampleCylinderHelper(n, e, visualization)
-% [xyCyl, xyPeri] = SampleCylinderHelper(n, e, visualization)
-% Helper function to generate equadistant sample points for 'SampleCylinder'
+function [xyCyl, xyPeri, weightCyl, weightPeri] = SampleCylinderHelper(method, n, e, visualization)
+% [xyCyl, xyPeri, weight] = SampleCylinderHelper(method, n, e, visualization)
+% Helper function to generate equadistant/gaussin sample points for 'SampleCylinder'
+% This helper function is only used by method 'equadistant' and 'gaussian'.
+% 'method' should be 'equadistant' or 'gaussian'
 % 'n' interior layers, excluding the origin
 % 'e' exterior layers
 % 'visualization' is a flag default as false
 
-    if nargin<3, visualization=false;end
+    if nargin<4, visualization=false;end
 
-    xyCyl = [0, 0];
-    for i = 1:n
-    
-        theta = 1/i;
-        m = ceil(2*pi/theta);
-        theta = 2*pi/m;
-        for j = 0:m-1
-            xyCyl = [xyCyl; i*cos(theta*j), i*sin(theta*j)]; %#ok
-        end
+    %% gaussian
+    if strcmp(method, 'gaussian')
+        % cools_kim_1 (2000, degree=17)
+        points = [0,0.886967660000000,-0.886967660000000,0,0,0.424633900000000,-0.424633900000000,0,0,0.694469020000000,-0.694469020000000,0,0,0.687853540000000,-0.687853540000000,0.687853540000000,-0.687853540000000,0.596647680000000,-0.596647680000000,0.596647680000000,-0.596647680000000,0.235622520000000,-0.235622520000000,0.235622520000000,-0.235622520000000,0.312947550000000,-0.312947550000000,0.312947550000000,-0.312947550000000,0.548940260000000,-0.548940260000000,0.548940260000000,-0.548940260000000,0.961212290000000,-0.961212290000000,0.961212290000000,-0.961212290000000,0.173857450000000,-0.173857450000000,0.173857450000000,-0.173857450000000,0.305387320000000,-0.305387320000000,0.305387320000000,-0.305387320000000,0.790354880000000,-0.790354880000000,0.790354880000000,-0.790354880000000,0.849372900000000,-0.849372900000000,0.849372900000000,-0.849372900000000,0.462700570000000,-0.462700570000000,0.462700570000000,-0.462700570000000;0,0,0,0.886967660000000,-0.886967660000000,0,0,0.424633900000000,-0.424633900000000,0,0,0.694469020000000,-0.694469020000000,0.687853540000000,0.687853540000000,-0.687853540000000,-0.687853540000000,0.596647680000000,0.596647680000000,-0.596647680000000,-0.596647680000000,0.235622520000000,0.235622520000000,-0.235622520000000,-0.235622520000000,0.548940260000000,0.548940260000000,-0.548940260000000,-0.548940260000000,0.312947550000000,0.312947550000000,-0.312947550000000,-0.312947550000000,0.173857450000000,0.173857450000000,-0.173857450000000,-0.173857450000000,0.961212290000000,0.961212290000000,-0.961212290000000,-0.961212290000000,0.790354880000000,0.790354880000000,-0.790354880000000,-0.790354880000000,0.305387320000000,0.305387320000000,-0.305387320000000,-0.305387320000000,0.462700570000000,0.462700570000000,-0.462700570000000,-0.462700570000000,0.849372900000000,0.849372900000000,-0.849372900000000,-0.849372900000000];
+        weight = [0.114983340000000,0.0426662800000000,0.0426662800000000,0.0426662800000000,0.0426662800000000,0.0879383300000000,0.0879383300000000,0.0879383300000000,0.0879383300000000,0.0762065700000000,0.0762065700000000,0.0762065700000000,0.0762065700000000,0.0191565200000000,0.0191565200000000,0.0191565200000000,0.0191565200000000,0.0620857200000000,0.0620857200000000,0.0620857200000000,0.0620857200000000,0.0956649600000000,0.0956649600000000,0.0956649600000000,0.0956649600000000,0.0851625300000000,0.0851625300000000,0.0851625300000000,0.0851625300000000,0.0851625300000000,0.0851625300000000,0.0851625300000000,0.0851625300000000,0.0202012400000000,0.0202012400000000,0.0202012400000000,0.0202012400000000,0.0202012400000000,0.0202012400000000,0.0202012400000000,0.0202012400000000,0.0568345700000000,0.0568345700000000,0.0568345700000000,0.0568345700000000,0.0568345700000000,0.0568345700000000,0.0568345700000000,0.0568345700000000,0.0242686300000000,0.0242686300000000,0.0242686300000000,0.0242686300000000,0.0242686300000000,0.0242686300000000,0.0242686300000000,0.0242686300000000];
+        mask = (points(1, :).^2 + points(2, :).^2)<0.8^2;
+        points = points.*1.3; % buggy
+        xyCyl = points(:, mask);
+        weightCyl = weight(mask);
+        xyPeri = points(:, ~mask);
+        weightPeri = weight(~mask);
     end
-    xyCyl = xyCyl .* (2) ./ (2*n+1);
-    xyCyl = transpose(xyCyl);
-    xyPeri = [];
-    for i = n+1:n+e
-    
-        theta = 1/i;
-        m = ceil(2*pi/theta);
-        theta = 2*pi/m;
-        for j = 0:m-1
-            xyPeri = [xyPeri; i*cos(theta*j), i*sin(theta*j)]; %#ok
-        end
-    end
-    xyPeri = xyPeri .* (2) ./ (2*n+1);
-    xyPeri = transpose(xyPeri);
 
+    %% equadistant
+    if strcmp(method, 'equadistant')
+        xyCyl = [0, 0];
+        for i = 1:n
+
+            theta = 1/i;
+            m = ceil(2*pi/theta);
+            theta = 2*pi/m;
+            for j = 0:m-1
+                xyCyl = [xyCyl; i*cos(theta*j), i*sin(theta*j)]; %#ok
+            end
+        end
+        xyCyl = xyCyl .* (2) ./ (2*n+1);
+        xyCyl = transpose(xyCyl);
+        xyPeri = [];
+        for i = n+1:n+e
+
+            theta = 1/i;
+            m = ceil(2*pi/theta);
+            theta = 2*pi/m;
+            for j = 0:m-1
+                xyPeri = [xyPeri; i*cos(theta*j), i*sin(theta*j)]; %#ok
+            end
+        end
+        xyPeri = xyPeri .* (2) ./ (2*n+1);
+        xyPeri = transpose(xyPeri);
+        weightCyl = [];
+        weightPeri = [];
+    end
+
+    %% debug
     if visualization
         figure
-        scatter(xyCyl(1, :), xyCyl(2, :));
         hold on
-        scatter(xyPeri(1, :), xyPeri(2, :));
+        viscircles([0, 0], 1, 'Color', 'k');
+        viscircles([0, 0], 1.3, 'Color', '#0072BD');
+        scatter(xyCyl(1, :), xyCyl(2, :), '.');
+        if strcmp(method, 'gaussian'), viscircles(xyCyl', weightCyl.^0.5.*0.5, 'Color', '#0072BD', 'LineStyle', '-', 'LineWidth', 1);end
+        scatter(xyPeri(1, :), xyPeri(2, :), '.');
+        if strcmp(method, 'gaussian'), viscircles(xyPeri', weightPeri.^0.5.*0.5, 'Color', '#EDB120', 'LineStyle', '-', 'LineWidth', 1);end
+        legend('Area stands for weight');
         axis equal
     end
 end

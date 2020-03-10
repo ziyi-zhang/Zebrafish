@@ -2,15 +2,16 @@ function [resCyl, resPeri] = SampleCylinder(cyl, mat, visualize, method)
 % [resCyl, resPeri] = SampleCylinder(cyl, mat, visualize, method)
 % 'cyl' is a struct representing a cylinder
 % 'mat' is the 3D matrix of image. It will only be used to do boundary
-% check and can be omitted.
+% check and is optional.
 % 'visualize' is a debug flag of whether to plot the sample points
 % 'resCyl' is of size [3 by n^3] representing n^3 points in cylinder
 % 'resPeri' is of size [3 by n^3] representing n^3 peripheral points
 % Sample cylinder:
-% cyl.x = 30; cyl.y = 40; cyl.z = 10; cyl.r = 4; cyl.h = 10;
+% cyl.x = 10; cyl.y = 20; cyl.z = 30; cyl.r = 5; cyl.h = 10;
+
 
     persistent xyArray
-    if nargin<4, method='equadistant';end
+    if nargin<4, method='gaussian';end
     if nargin<3, visualize=false;end
     if nargin<2, mat=[];end
 
@@ -20,6 +21,11 @@ function [resCyl, resPeri] = SampleCylinder(cyl, mat, visualize, method)
     r = cyl.r;
     h = cyl.h;
 
+    %% Gaussian Quadrature
+    if strcmp(method, 'gaussian')
+        
+    end
+    
     %% equadistant
     if strcmp(method, 'equadistant')
         if isempty(xyArray), xyArray = cell(50);end
@@ -48,7 +54,7 @@ function [resCyl, resPeri] = SampleCylinder(cyl, mat, visualize, method)
 
         % xy (rc) array
         if isempty(xyArray{R})
-            [xyArray{R}.cyl, xyArray{R}.peri] = SampleCylinderHelper(R, E);
+            [xyArray{R}.cyl, xyArray{R}.peri] = SampleCylinderHelper('equadistant', R, E);
         end
         xyCylArray = xyArray{R}.cyl .* r;
         xyCylArray = xyCylArray + repmat([x; y], 1, size(xyCylArray, 2));
