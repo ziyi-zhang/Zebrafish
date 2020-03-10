@@ -1,11 +1,12 @@
-function [resCyl, resPeri] = SampleCylinder(cyl, mat, visualize, method)
-% [resCyl, resPeri] = SampleCylinder(cyl, mat, visualize, method)
+function [resCyl, resPeri, weight] = SampleCylinder(cyl, mat, visualize, method)
+% [resCyl, resPeri, weightCyl, weightPeri] = SampleCylinder(cyl, mat, visualize, method)
 % 'cyl' is a struct representing a cylinder
 % 'mat' is the 3D matrix of image. It will only be used to do boundary
 % check and is optional.
 % 'visualize' is a debug flag of whether to plot the sample points
 % 'resCyl' is of size [3 by n^3] representing n^3 points in cylinder
 % 'resPeri' is of size [3 by n^3] representing n^3 peripheral points
+% 'weight' is the weight used by Gaussian Quadrature
 % Sample cylinder:
 % cyl.x = 10; cyl.y = 20; cyl.z = 30; cyl.r = 5; cyl.h = 10;
 
@@ -23,9 +24,51 @@ function [resCyl, resPeri] = SampleCylinder(cyl, mat, visualize, method)
 
     %% Gaussian Quadrature
     if strcmp(method, 'gaussian')
+        H = ceil(h) + 1; % desired height layers
         
+        % range check
+        if ~isempty(mat)
+            if x < 1 || x > size(mat, 1) || ...
+               y < 1 || y > size(mat, 2) || ...
+               z < 1 || z > size(mat, 3) || ...
+               r < 0 || r > size(mat, 1)/2 || ...
+               h < 0 || z+h > size(mat, 3)
+
+                resCyl = [];
+                resPeri = [];
+                weight = [];
+                return;
+            end
+        end
+        
+        % depth array
+        pad = h / H / 2;
+        zArray = linspace(z-pad, z+h+pad, H+2);
+        zArray = zArray(2:end-1);
+        
+        % xy (rc) array
+        if isempty(xyArray)
+            [xyArray.cyl, xyArray.peri, xyArray.weight, ~] = SampleCylinderHelper('gaussian');
+        end
+        xyCylArray = xyArray.cyl .* r;
+        xyCylArray = xyCylArray + repmat([x; y], 1, size(xyCylArray, 2));
+        xyPeriArray = xyArray.peri .* r;
+        xyPeriArray = xyPeriArray + repmat([x; y], 1, size(xyPeriArray, 2));
+        
+        % res
+        zCylArray = repmat(zArray, 1, size(xyCylArray, 2));
+        zCylArray = transpose(zCylArray(:));
+        resCyl = repmat(xyCylArray, 1, length(zArray));
+        resCyl = [resCyl; zCylArray];
+        zPeriArray = repmat(zArray, 1, size(xyPeriArray, 2));
+        zPeriArray = transpose(zPeriArray(:));
+        resPeri = repmat(xyPeriArray, 1, length(zArray));
+        resPeri = [resPeri; zPeriArray];
+        weight = repmat(xyArray.weight, 1, length(zArray));
+        %weight = weight .* (r^2);  % Note: r square is multiplied here
+        weight = weight ./ H;
     end
-    
+
     %% equadistant
     if strcmp(method, 'equadistant')
         if isempty(xyArray), xyArray = cell(50);end
