@@ -11,8 +11,8 @@ function [res] = EvaluateCylinder(mat, sampleCyl, samplePeri)
         return;
     end
 
-    evalCyl = interp3(mat, sampleCyl(2, :), sampleCyl(1, :), sampleCyl(3, :), 'linear');
-    evalPeri = interp3(mat, samplePeri(2, :), samplePeri(1, :), samplePeri(3, :), 'linear');
+    evalCyl = interp3(mat, sampleCyl(2, :), sampleCyl(1, :), sampleCyl(3, :), 'spline');
+    evalPeri = interp3(mat, samplePeri(2, :), samplePeri(1, :), samplePeri(3, :), 'spline');
 
     res = sum(evalCyl) - sum(evalPeri) * (length(sampleCyl) / length(samplePeri));
 end
