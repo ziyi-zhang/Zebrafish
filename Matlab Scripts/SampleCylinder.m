@@ -11,8 +11,8 @@ function [resCyl, resPeri, weight] = SampleCylinder(cyl, mat, visualize, method)
 % cyl.x = 10; cyl.y = 20; cyl.z = 30; cyl.r = 5; cyl.h = 10;
 
 
-    persistent xyArray
-    if nargin<4, method='gaussian';end
+    persistent xyArray xyArraySigma subtractionArray 
+    if nargin<4, method='gaussiansigma';end
     if nargin<3, visualize=false;end
     if nargin<2, mat=[];end
 
@@ -22,17 +22,17 @@ function [resCyl, resPeri, weight] = SampleCylinder(cyl, mat, visualize, method)
     r = cyl.r;
     h = cyl.h;
 
-    %% Gaussian Quadrature
-    if strcmp(method, 'gaussian')
-        H = ceil(h) + 1; % desired height layers
+    %% Quassian Quadrature with subtraction function sigma
+    if strcmp(method, 'gaussiansigma')
+        H = 10; % desired height layers
         
         % range check
         if ~isempty(mat)
-            if x < 1 || x > size(mat, 1) || ...
-               y < 1 || y > size(mat, 2) || ...
-               z < 1 || z > size(mat, 3) || ...
-               r < 0 || r > size(mat, 1)/2 || ...
-               h < 0 || z+h > size(mat, 3)
+            if x < r || x > size(mat, 1)-r || ...
+               y < r || y > size(mat, 2)-r || ...
+               z < 1 || z > size(mat, 3)-1 || ...
+               r < 1 || r > 19 || ...
+               h < 1 || z+h > size(mat, 3)
 
                 resCyl = [];
                 resPeri = [];
@@ -41,6 +41,55 @@ function [resCyl, resPeri, weight] = SampleCylinder(cyl, mat, visualize, method)
             end
         end
         
+        % depth array
+        pad = h / H / 2;
+        zArray = linspace(z-pad, z+h+pad, H+2);
+        zArray = zArray(2:end-1);
+        
+        % xy (rc) array
+        if isempty(xyArraySigma)
+            [xyArraySigma.cyl, ~, xyArraySigma.weight, ~] = SampleCylinderHelper('gaussiansigma');
+        end
+        if isempty(subtractionArray)
+            subtractionArray = SubtractionSigma(xyArraySigma.cyl);
+        end
+        xyCylArray = xyArraySigma.cyl .* r;
+        xyCylArray = xyCylArray + repmat([x; y], 1, size(xyCylArray, 2));
+        
+        % res
+        zCylArray = repmat(zArray, size(xyCylArray, 2), 1);
+        zCylArray = transpose(zCylArray(:));
+        resCyl = repmat(xyCylArray, 1, length(zArray));
+        resCyl = [resCyl; zCylArray];
+        weight = repmat(xyArraySigma.weight, 1, length(zArray));
+        % weight = weight .* (r^2) .* h;  % Note: The constants are multipied here
+        weight = weight .* repmat(subtractionArray, 1, length(zArray)); % subtraction array multiplied here
+        weight = weight .* (h ./ H);  % equadistant 1D integral (z-dim)
+        weight = weight .* 2 .* r^2;  % gaussian disk jocabian for extended circle (not density jacobian)
+        weight = weight ./ (r^2*h*pi);  % Vperi
+        resPeri = [];
+    end
+
+    %% Gaussian Quadrature (does not use smooth subtraction)
+    if strcmp(method, 'gaussian')
+        H = 10;
+        % H = ceil(h) + 1; % desired height layers
+        
+        % range check
+        if ~isempty(mat)
+            if x < r || x > size(mat, 1)-r || ...
+               y < r || y > size(mat, 2)-r || ...
+               z < 1 || z > size(mat, 3)-1 || ...
+               r < 1 || r > 19 || ...
+               h < 1 || z+h > size(mat, 3)
+
+                resCyl = [];
+                resPeri = [];
+                weight = [];
+                return;
+            end
+        end
+
         % depth array
         pad = h / H / 2;
         zArray = linspace(z-pad, z+h+pad, H+2);
@@ -56,25 +105,27 @@ function [resCyl, resPeri, weight] = SampleCylinder(cyl, mat, visualize, method)
         xyPeriArray = xyPeriArray + repmat([x; y], 1, size(xyPeriArray, 2));
         
         % res
-        zCylArray = repmat(zArray, 1, size(xyCylArray, 2));
+        zCylArray = repmat(zArray, size(xyCylArray, 2), 1);
         zCylArray = transpose(zCylArray(:));
         resCyl = repmat(xyCylArray, 1, length(zArray));
         resCyl = [resCyl; zCylArray];
-        zPeriArray = repmat(zArray, 1, size(xyPeriArray, 2));
+        zPeriArray = repmat(zArray, size(xyPeriArray, 2), 1);
         zPeriArray = transpose(zPeriArray(:));
         resPeri = repmat(xyPeriArray, 1, length(zArray));
         resPeri = [resPeri; zPeriArray];
         weight = repmat(xyArray.weight, 1, length(zArray));
-        %weight = weight .* (r^2);  % Note: r square is multiplied here
-        weight = weight ./ H;
+        weight = weight * (h ./ H);  % equadistant 1D integral (z-dim)
+        weight = weight .* 2 .* (r^2);  % gaussian disk jocabian for extended circle (not density jacobian)
+        weight = weight ./ (r^2*h*pi);  % Vperi
+        % weight = weight ./ h;
     end
 
     %% equadistant
     if strcmp(method, 'equadistant')
         if isempty(xyArray), xyArray = cell(50);end
-        R = ceil(r) + 1; % desired interior layers
+        R = 10; % desired interior layers
         H = ceil(h) + 1; % desired height layers
-        E = 2; % layer of exterior sample points
+        E = 4; % layer of exterior sample points
 
         % range check
         if ~isempty(mat)
@@ -105,7 +156,7 @@ function [resCyl, resPeri, weight] = SampleCylinder(cyl, mat, visualize, method)
         xyPeriArray = xyPeriArray + repmat([x; y], 1, size(xyPeriArray, 2));
 
         % res
-        zCylArray = repmat(zArray, 1, size(xyCylArray, 2));
+        zCylArray = repmat(zArray, size(xyCylArray, 2), 1);
         zCylArray = transpose(zCylArray(:));
         resCyl = repmat(xyCylArray, 1, length(zArray));
         resCyl = [resCyl; zCylArray];
@@ -113,6 +164,7 @@ function [resCyl, resPeri, weight] = SampleCylinder(cyl, mat, visualize, method)
         zPeriArray = transpose(zPeriArray(:));
         resPeri = repmat(xyPeriArray, 1, length(zArray));
         resPeri = [resPeri; zPeriArray];
+        weight = [];
     end
 
     %% polar
@@ -175,12 +227,17 @@ function [resCyl, resPeri, weight] = SampleCylinder(cyl, mat, visualize, method)
         resCyl = [resCyl; zArray];
         resPeri = repmat(xyPeriArray, 1, zNumber);
         resPeri = [resPeri; zArrayPeri];
+        weight = [];
     end
 
     %% debug
     if visualize
         figure
         hold on
+        colorTable = [0.8, 0.8, 0.2; 0.8, 0.2, 0.8];
+        filter = weight > 0;
+        absWeight = abs(weight);
+        %scatter3(resCyl(2, :), resCyl(1, :), resCyl(3, :), ceil(absWeight*200), colorTable(filter+1, :));
         scatter3(resCyl(2, :), resCyl(1, :), resCyl(3, :));
         scatter3(resPeri(2, :), resPeri(1, :), resPeri(3, :));
         axis tight

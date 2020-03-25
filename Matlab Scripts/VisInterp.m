@@ -24,7 +24,7 @@ function [] = VisInterp(mat, dim, l, supersample)
             end
         end
     end
-    
+
     figure
     subplot(1, 2, 1);
     if dim==1
@@ -43,8 +43,8 @@ function [] = VisInterp(mat, dim, l, supersample)
     titleStr = sprintf("Original Image z=%d", l);
     title(titleStr)
     subplot(1, 2, 2);
-    %imshow(res, [quantile(res(:), 0.05), quantile(res(:), 0.95)]);
-    imshow(res, [0.7e4, 2.4e4]);
+    imshow(res, [quantile(res(:), 0.05), quantile(res(:), 0.95)]);
+    %imshow(res, [0.7e4, 2.4e4]);
     %imshow(res, [min(res, [], 'all'), max(res, [], 'all')])
     %imagesc(res)
     colormap('jet');
