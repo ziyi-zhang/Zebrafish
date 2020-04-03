@@ -8,9 +8,10 @@ function [] = TestMatScript(testMat)
     testMat = double(testMat);
     f_testMat = @(arr)fun(testMat, arr);
     fsigma_testMat = @(arr)GaussianSigmaFun(testMat, arr);
-    % correct cylinder attri
-    % cyl.x=16; cyl.y=16; cyl.z=5; cyl.r=8; cyl.h=10; % for test image
-    cyl.x=17; cyl.y=17; cyl.z=17; cyl.r=4; cyl.h=7;
+    %% correct cylinder attri
+    % cyl.x=16; cyl.y=16; cyl.z=5; cyl.r=8; cyl.h=10;  % for test image
+    % cyl.x=17; cyl.y=17; cyl.z=17; cyl.r=4; cyl.h=7;
+    cyl.x=45; cyl.y=31; cyl.z=21; cyl.r=4; cyl.h=3; % for 9-marker pt
     
     %% f_testMat
     tic
@@ -48,7 +49,7 @@ function [] = TestMatScript(testMat)
     title('Energy vs cyl.z');
     % r
     f1(3) = subplot(2, 2, 3);
-    range = 1:0.2:cyl.r+6;
+    range = 1:0.2:cyl.r+3;
     res = zeros(size(range));
     count = 1;
     for i = range
@@ -116,7 +117,7 @@ function [] = TestMatScript(testMat)
     title('Energy vs cyl.z');
     % r
     f2(3) = subplot(2, 2, 3);
-    range = 1:0.2:cyl.r+6;
+    range = 1:0.2:cyl.r+3;
     res = zeros(size(range));
     count = 1;
     for i = range

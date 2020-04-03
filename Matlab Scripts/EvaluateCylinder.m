@@ -8,12 +8,12 @@ function [res] = EvaluateCylinder(mat, sampleCyl, samplePeri, weight)
 
     if isempty(sampleCyl)
         % perhaps the cylinder parameters are invalid
-        res = double(1e30);
+        res = double(10);
         return;
     end
 
-    evalCyl = interp3(mat, sampleCyl(2, :), sampleCyl(1, :), sampleCyl(3, :), 'spline');
-    evalPeri = interp3(mat, samplePeri(2, :), samplePeri(1, :), samplePeri(3, :), 'spline');
+    evalCyl = interp3(mat, sampleCyl(1, :), sampleCyl(2, :), sampleCyl(3, :), 'spline');
+    evalPeri = interp3(mat, samplePeri(1, :), samplePeri(2, :), samplePeri(3, :), 'spline');
 
     if ~isempty(weight) % 'weight' is only used by Gaussian
         inner = sum(evalCyl .* weight) ./ 2;  % weight here is designed for extended circle, so divide by 2
