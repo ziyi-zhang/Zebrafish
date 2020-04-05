@@ -8,7 +8,7 @@ function [res] = EvaluateCylinder(mat, sampleCyl, samplePeri, weight)
 
     if isempty(sampleCyl)
         % perhaps the cylinder parameters are invalid
-        res = double(10);
+        res = double(1);
         return;
     end
 

@@ -29,12 +29,12 @@ function [res] = GlobalImage(testMat)
     testMat = double(testMat);
     %% Search
     tic
-    parfor count = 1:ttlNum
+    for count = 1:ttlNum
         x = xArray(count);
         y = yArray(count);
         z = zArray(count);
         % sub-image
-        halfLength = 15;
+        halfLength = 50;
         xmin = max(1, x-halfLength); xmax = min(size(testMat, 2), x+halfLength);
         ymin = max(1, y-halfLength); ymax = min(size(testMat, 1), y+halfLength);
         tempMat = testMat(ymin:ymax, xmin:xmax, :);
@@ -52,7 +52,7 @@ function [res] = GlobalImage(testMat)
         fprintf('%d/%d: fval = %6.3f\n', count, ttlNum, fval);
     end
     toc
-    
+
     %% make debugHist a struct
     res.x = xHist(:, 1);
     res.y = xHist(:, 2);

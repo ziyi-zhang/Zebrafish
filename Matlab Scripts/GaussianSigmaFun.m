@@ -14,11 +14,20 @@ function [res] = GaussianSigmaFun(mat, cylArray, z)
     % evaluate cylinder
     if isempty(sample)
         % perhaps the cylinder parameters are invalid
-        res = double(10);
+        res = double(1);
         return;
     end
+    % Create small matrix for interpolation
+    padLength = 2;
+    xMin = max(1           , floor(min(sample(1, :)))-padLength);
+    xMax = min(size(mat, 2), ceil(max(sample(1, :)))+padLength);
+    yMin = max(1           , floor(min(sample(2, :)))-padLength);
+    yMax = min(size(mat, 1), ceil(max(sample(2, :)))+padLength);
+    mat = mat(yMin:yMax, xMin:xMax, :);
+    sample(1, :) = sample(1, :) - xMin + 1;
+    sample(2, :) = sample(2, :) - yMin + 1;
     evalRes = interp3(mat, sample(1, :), sample(2, :), sample(3, :), 'spline');
     
     % res
-    res = sum(evalRes .* weight); % Note: The weight here is QaussianWeight*constants*SubtractionSigma
+    res = sum(evalRes .* weight);  % Note: The weight here is QaussianWeight*constants*SubtractionSigma
 end
