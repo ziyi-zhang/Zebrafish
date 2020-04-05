@@ -20,9 +20,7 @@ function [resCyl, resPeri, weight] = SampleCylinder(cyl, mat, visualize, method)
     y = cyl.y;
     z = cyl.z;
     r = cyl.r;
-    % h = cyl.h;
-    % fix height as 3
-    h = 4;
+    h = cyl.h;
 
     %% Quassian Quadrature with subtraction function sigma
     if strcmp(method, 'gaussiansigma')

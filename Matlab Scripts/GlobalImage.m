@@ -1,14 +1,17 @@
-function [xHist, fvalHist, flagHist, debugHist] = GlobalImage(testMat)
+function [res] = GlobalImage(testMat)
 % Apply grid search on global 'testMat'
     
     options = optimoptions(@fminunc,'Display','none','Algorithm','quasi-newton',...
-                            'MaxIterations',20,'MaxFunctionEvaluations',800);
-                        
+                            'MaxIterations',10,'MaxFunctionEvaluations',800);
+
+    %% Pre-process
+    testMat = double(testMat);
+    testMat = testMat ./ max(testMat, [], 'all');  % normalize to 0-1   
     %% Search area
-    xRange = 5:3:size(testMat, 2);
-    yRange = 5:3:size(testMat, 1);
-    % zRange = 16:3:24;
-    zRange = 19:3:38;
+    xRange = 2:3:size(testMat, 2);
+    yRange = 2:3:size(testMat, 1);
+    % zRange = 16:1:24;
+    zRange = 19:1:38; % for pt1
     [xArray, yArray, zArray] = meshgrid(xRange, yRange, zRange);
     xArray = xArray(:);
     yArray = yArray(:);
@@ -19,10 +22,10 @@ function [xHist, fvalHist, flagHist, debugHist] = GlobalImage(testMat)
     fprintf('Z (z) search range %d to %d\n', zRange(1), zRange(end));
     %% Results
     ttlNum = length(xRange) * length(yRange) * length(zRange);
-    xHist = zeros(ttlNum, 4);
+    xHist = zeros(ttlNum, 3);
     fvalHist = zeros(ttlNum, 1);
     flagHist = zeros(ttlNum, 1);
-    debugHist = zeros(ttlNum, 3);
+    startHist = zeros(ttlNum, 3);
     testMat = double(testMat);
     %% Search
     tic
@@ -35,18 +38,28 @@ function [xHist, fvalHist, flagHist, debugHist] = GlobalImage(testMat)
         xmin = max(1, x-halfLength); xmax = min(size(testMat, 2), x+halfLength);
         ymin = max(1, y-halfLength); ymax = min(size(testMat, 1), y+halfLength);
         tempMat = testMat(ymin:ymax, xmin:xmax, :);
-        fsigma = @(arr)GaussianSigmaFun(tempMat, arr);
+        fsigma = @(arr)GaussianSigmaFun(tempMat, arr, z);
         % quasi-newton
-        [res, fval, exitflag, ~] = fminunc(fsigma, [x-xmin+1, y-ymin+1, z, 4], options);
+        [xRes, fval, exitflag, ~] = fminunc(fsigma, [x-xmin+1, y-ymin+1, 4], options);
         % store result
-        res(1) = res(1) + xmin - 1;
-        res(2) = res(2) + ymin - 1;
-        xHist(count, :) = res;
+        xRes(1) = xRes(1) + xmin - 1;
+        xRes(2) = xRes(2) + ymin - 1;
+        xHist(count, :) = xRes;
         fvalHist(count) = fval;
         flagHist(count) = exitflag;
-        debugHist(count, :) = [x, y, z];
+        startHist(count, :) = [x, y, z];
 
         fprintf('%d/%d: fval = %6.3f\n', count, ttlNum, fval);
     end
     toc
+    
+    %% make debugHist a struct
+    res.x = xHist(:, 1);
+    res.y = xHist(:, 2);
+    res.z = startHist(:, 3);
+    res.r = xHist(:, 3);
+    res.fval = fvalHist;
+    res.flag = flagHist;
+    res.startingX = startHist(1, :);
+    res.startingY = startHist(2, :);
 end
