@@ -53,13 +53,13 @@ function [res] = GlobalImage(testMat)
     end
     toc
 
-    %% make debugHist a struct
+    %% make a struct
     res.x = xHist(:, 1);
     res.y = xHist(:, 2);
     res.z = startHist(:, 3);
     res.r = xHist(:, 3);
     res.fval = fvalHist;
     res.flag = flagHist;
-    res.startingX = startHist(1, :);
-    res.startingY = startHist(2, :);
+    res.startingX = startHist(:, 1);
+    res.startingY = startHist(:, 2);
 end
