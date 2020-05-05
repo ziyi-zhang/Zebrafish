@@ -15,7 +15,7 @@ function [res, score_] = ScorePoints(inStruct, visPlot, pt1)
     startingY = inStruct.startingY;
     
     % want fval < -0.05
-    mask = fval < -0.05;
+    mask = fval < -0.1;
     Filter(mask);
     
     % want radius <= 7
@@ -70,6 +70,8 @@ function [res, score_] = ScorePoints(inStruct, visPlot, pt1)
     res.r = r;
     res.fval = fval;
     res.flag = flag;
+    res.startingX = startingX;
+    res.startingY = startingY;
     % res.cluster = idx(mask);
     % res.clusterX = c(mask, 1);
     % res.clusterY = c(mask, 2);
@@ -114,7 +116,7 @@ function [res, score_] = ScorePoints(inStruct, visPlot, pt1)
         r = r(mask);
         fval = fval(mask);
         flag = flag(mask);
-        %startingX = startingX(mask);
-        %startingY = startingY(mask);
+        startingX = startingX(mask);
+        startingY = startingY(mask);
     end
 end

@@ -1,8 +1,8 @@
-function [] = NearestCluster(points, image)
+function [score] = NearestCluster(points, image)
 
     %% cluster
-    thresDist = 1.0;
-    thresClusterSize = 7;
+    thresDist = 0.15;
+    thresClusterSize = 10;
     
     count = 0;
     idx = zeros(1, height(points));
@@ -46,12 +46,13 @@ function [] = NearestCluster(points, image)
     score.meanR = meanXYZR(:, 4);
     
     %% visualize
-    if true
+    % visualize clusters
+    if false
     
         figure
         colormapExt = [bone(64); parula(64)];
-        %C = score.clusterSize;
-        C = score.varXY;
+        C = score.clusterSize;
+        %C = score.varXY;
         %C = score.varR;
         %C = score.fval;
         %C = score.score;
@@ -72,5 +73,38 @@ function [] = NearestCluster(points, image)
         h(2) = scatter(score.meanX, score.meanY, 35, C2, 'filled', 'MarkerEdgeColor', [0.8500 0.3250 0.0980]);
         colormap(colormapExt)
         caxis([1, 128]);
+    end
+    % visualize dots on subplots
+    if true
+        
+        % number of row, col
+        depth = 12:31;
+        ncol = ceil(sqrt(16/9*length(depth)));
+        nrow = ceil(length(depth) / ncol);
+        % enhance
+        t = image(:, :, depth);
+        t = t(:);
+        lowerBound = quantile(t, 0.003);
+        upperBound = quantile(t, 0.997);
+        
+        % subplot
+        figure
+        ha = tight_subplot(nrow, ncol);
+        count_ = 1;
+        for i = depth
+            
+            axes(ha(count_)); %#ok
+            count_ = count_ + 1;
+            imshow(image(:, :, i), [lowerBound, upperBound]);
+            colormap(pink);
+            titleStr = sprintf('z=%d', i);
+            title(titleStr);
+            hold on
+            
+            mask = points.z == i;
+            points_ = points(mask, :);
+            viscircles([points_.x, points_.y], points_.r, 'LineWidth', 0.5, 'Color', [0.2, 0.2, 0.8]);
+            % scatter(points_.x, points_.y, 22, 'filled');
+        end
     end
 end

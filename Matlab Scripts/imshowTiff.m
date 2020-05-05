@@ -32,6 +32,7 @@ function [] = ImshowTiff(image, index, enhanced, zoomIn)
     N = length(index);
     ncol = ceil(sqrt(16/9*N));
     nrow = ceil(N / ncol);
+    if (N==1) ncol=1;nrow=1;end
     % zoom in calculation
     imageX = size(image.image, 1);
     imageY = size(image.image, 2);
