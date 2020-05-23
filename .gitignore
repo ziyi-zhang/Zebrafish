@@ -5,3 +5,8 @@ data/
 report/
 
 *.asv
+
+
+bin*
+build*
+external
