@@ -3,6 +3,7 @@
 #include <CLI/CLI.hpp>
 #include <Eigen/Dense>
 #include <iostream>
+#include <vector>
 
 using namespace std;
 using namespace zebrafish;
@@ -23,11 +24,12 @@ int main(int argc, char **argv)
         return command_line.exit(e);
     }
 
-    Eigen::MatrixXd image;
+    std::vector<Eigen::MatrixXd> image;
     read_tif_image(image_path, image);
 
 
-    cout << image << endl;
+    cout << image.size() << endl;
+    cout << image[0] << endl;
 
     return EXIT_SUCCESS;
 }
