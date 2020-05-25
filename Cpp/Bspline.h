@@ -6,5 +6,6 @@
 
 namespace zebrafish {
 
-    
+double Interp3D();
+
 }  // namespace zebrafish

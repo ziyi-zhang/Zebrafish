@@ -10,3 +10,4 @@ report/
 bin*
 build*
 external
+.vscode

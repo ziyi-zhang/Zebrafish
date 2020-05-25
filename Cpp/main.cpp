@@ -1,4 +1,4 @@
-#include <zebrafish/TiffReader.h>
+#include <TiffReader.h>
 
 #include <CLI/CLI.hpp>
 #include <Eigen/Dense>
