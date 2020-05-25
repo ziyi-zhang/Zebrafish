@@ -1,5 +1,4 @@
-#include <Cylinder.h>
-#include <cmath>
+#include <zebrafish/Cylinder.h>
 
 namespace zebrafish {
 
