@@ -1,9 +1,11 @@
-#include <TiffReader.h>
+#include <zebrafish/TiffReader.h>
 
 #include <CLI/CLI.hpp>
 #include <Eigen/Dense>
+#include <Eigen/Core>
 #include <iostream>
 #include <vector>
+#include <fstream>
 
 using namespace std;
 using namespace zebrafish;
@@ -28,8 +30,14 @@ int main(int argc, char **argv)
     read_tif_image(image_path, image);
 
 
-    cout << image.size() << endl;
-    cout << image[0] << endl;
+    cout << "Total number of frames picked = " << image.size() << endl;
+    ofstream file("output.log");
+    // Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "[", "]", "[", "]");
+    // file << image[0].format(OctaveFmt);
+    Eigen::MatrixXd frame1 = image[0];
+    Eigen::MatrixXd frame2 = image[1];
+    file << frame1 << std::endl;
+    file << frame2;
 
     return EXIT_SUCCESS;
 }

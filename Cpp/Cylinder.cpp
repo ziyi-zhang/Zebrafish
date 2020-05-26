@@ -1,4 +1,4 @@
-#include <Cylinder.h>
+#include <zebrafish/Cylinder.h>
 
 namespace zebrafish {
 
@@ -15,9 +15,10 @@ bool cylinder::SampleCylinder(const Eigen::MatrixXd &image) {
     // boundary check
     if (x < -0.5 + r*1.5 || x > xmax-0.5-r*1.5 ||
         y < -0.5 + r*1.5 || y > ymax-0.5-r*1.5 ||
-        z < 0 || z > ) {
+        z < 0 || z > 0) {
         return false;
     }
+    return true;  // FIXME
 }
 
 }  // namespace zebrafish

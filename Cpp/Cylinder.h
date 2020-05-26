@@ -10,7 +10,7 @@
 
 namespace zebrafish {
 
-typedef struct cylinder {
+typedef struct cylinder_t {
 // uniquely defines a cylinder
     double x, y, z, r, h;  // bottom x(row), y(col), z + radius + height
 } cylinder_t;
