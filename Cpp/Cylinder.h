@@ -37,8 +37,8 @@ public:
     /// save them to corresponding private variables
     /// 'image' is only used to do boundary check
     ///
-    /// @param[in]  image     { 3D matrix of the image }
-    /// @return      {whether the cylinder is inside the boundary of the image}
+    /// @param[in]   image     { 3D matrix of the image }
+    /// @return      { whether the cylinder is inside the boundary of the image }
     ///
 
     void EvaluateCylinder(const Eigen::MatrixXd &image);

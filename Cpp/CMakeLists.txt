@@ -1,6 +1,9 @@
 set(SOURCES
+    common.h
 	Cylinder.cpp
     Cylinder.h
+    Bspline.cpp
+    Bspline.h
 )
 
 prepend_current_path(SOURCES)
