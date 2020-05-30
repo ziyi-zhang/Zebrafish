@@ -131,6 +131,11 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     testVector << 4, 5, 6;
     AtransposeA = testMatrix;
     vectorY = testVector;
+
+    std::cout << std::endl;
+    std::cout << AtransposeA << std::endl;
+    std::cout << vectorY << std::endl;
+    std::cout << std::endl;
     ///////////////// TEST ONLY
 
     const std::string solverName = "Hypre";
