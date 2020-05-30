@@ -53,4 +53,12 @@ function(zebra_download_cli11)
     )
 endfunction()
 
+## Polysolve MIT
+function(zebra_download_polysolve)
+    zebra_download_project(polysolve
+        GIT_REPOSITORY     https://github.com/polyfem/polysolve.git
+        GIT_TAG            358fa9769e1b67c0e7883eb2b27f171ab3b59b62
+    )
+endfunction()
+
 

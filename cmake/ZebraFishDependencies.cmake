@@ -36,3 +36,6 @@ if(NOT TARGET TinyTiff)
   )
   target_include_directories(TinyTiff SYSTEM INTERFACE ${ZEBRA_EXTERNAL}/TinyTIFF)
 endif()
+
+zebra_download_polysolve()
+add_subdirectory(${ZEBRA_EXTERNAL}/polysolve)

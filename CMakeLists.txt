@@ -54,7 +54,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_BINARY_DIR}/include)
 
 add_subdirectory(Cpp)
 
-
 # libigl
 target_link_libraries(${PROJECT_NAME} PUBLIC igl::core)
 
@@ -63,6 +62,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE warnings::all)
 
 #Tiny Tiff
 target_link_libraries(${PROJECT_NAME} PUBLIC TinyTiff)
+
+#Polysolve
+target_link_libraries(${PROJECT_NAME} PUBLIC polysolve)
 
 
 
