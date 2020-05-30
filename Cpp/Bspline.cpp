@@ -3,11 +3,108 @@
 
 #include <Eigen/Dense>
 #include <Eigen/Core>
+#include <Eigen/Sparse>
+#include <cmath>
+#include <math.h>
+#include <vector>
+#include <iostream>
 
 
 namespace zebrafish {
 
-void Interp3D(const image_t &image, const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) {
+namespace {
+
+    inline double CubicBasis(double t) {
+    /// Defines the cubic basis function centered at t=0 for uniform knot vector B-spline
+    /// If t>2 or t<-2, the function will return zero due to local control property
+
+        if (t>2 || t<-2)
+            return 0;
+        else if (t > 1)
+            return -1/6 * t*t*t + t*t - 2 * t + 4/3;
+        else if (t > 0)
+            return 0.5 * t*t*t - t*t + 2/3;
+        else if (t > -1)
+            return -0.5* t*t*t - t*t + 2/3;
+        else // t > -2
+            return 1/6 * t*t*t + t*t + 2*t + 4/3;
+    }
+}  // anonymous namespace
+
+
+void bspline::CalcControlPts(const image_t &image, const double xratio, const double yratio, const double zratio) {
+// Note: this function will only be called once
+
+    assert(xratio <= 1 && yratio <= 1 && zratio <= 1);
+
+    int Nz = image.size(), Nx = image[0].rows(), Ny = image[0].cols();  // dimension of sample points
+    int num, N = Nx*Ny*Nz;
+    int i, j, ix, iy, iz, jx, jy, jz;
+    std::vector<double> centersX, centersY, centersZ;  // location of the center of a control point's basis function
+    double centerX, centerY, centerZ, t;
+    Eigen::VectorXd inputPts, vectorY;
+    std::vector<Eigen::Triplet<double> > tripletArray;  // to fill in sparse matrix
+
+    numX = ceil(Nx * xratio);  // dimension of control points
+    numY = ceil(Ny * yratio);
+    numZ = ceil(Nz * zratio);
+    num = numX * numY * numZ;
+    // Eigen::MatrixXd A;
+    Eigen::SparseMatrix<double> A(N, num);  // A[i, j] is the evaluation of basis j for the i-th sample point
+    Eigen::SparseMatrix<double> AtransposeA(num, num);
+
+    gapX = Nx / (numX - 1);  // the interval between two control points along a direction
+    gapY = Ny / (numY - 1);
+    gapZ = Nz / (numZ - 1);
+    for (i=0; i<numX; i++)
+        centersX.push_back(i * gapX);
+    for (i=0; i<numY; i++)
+        centersY.push_back(i * gapY);
+    for (i=0; i<numZ; i++)
+        centersZ.push_back(i * gapZ);
+
+    // map 3D "image" to 1D "inputPts"
+    // order matters! z -> x -> y
+    inputPts.resize(N);
+    for (auto it=image.begin(); it!=image.end(); it++) {
+        inputPts << Eigen::Map<const Eigen::VectorXd>(it->data(), Nx*Ny);
+    }
+
+    // calculate matrix A
+    for (jz=0; jz<numZ; jz++)
+        for (jx=0; jx<numX; jx++)
+            for (jy=0; jy<numY; jy++) {
+
+                j = jz * numX * numY + jx * numY + jy;  // iterating control points' basis function
+                centerX = centersX[jx];
+                centerY = centersY[jy];
+                centerZ = centersZ[jz];
+                for (iz=0; iz<Nz; iz++)
+                    for (ix=0; ix<Nx; ix++)
+                        for (iy=0; iy<Ny; iy++) {
+
+                            i = iz * Nx * Ny + ix * Ny + iy;  // iterating sample points
+                            t = CubicBasis( (ix-centerX) / gapX ) * 
+                                CubicBasis( (iy-centerY) / gapY ) * 
+                                CubicBasis( (iz-centerZ) / gapZ );
+                            if (fabs(t) > 1e-3)
+                                tripletArray.push_back(Eigen::Triplet<double>(i, j, t));
+                        }
+            }
+    A.setFromTriplets(tripletArray.begin(), tripletArray.end());
+
+    // calculate control points based on least square
+    std::cout << "Starting solving linear system..." << std::endl;
+    AtransposeA = (A.transpose() * A).pruned();  // A' * A
+    vectorY.resize(N);
+    vectorY = A.transpose() * inputPts;  // A' * y
+    Eigen::SimplicialCholesky<Eigen::SparseMatrix<double> > chol(AtransposeA);  // performs Cholesky factorization
+    controlPoints = chol.solve(vectorY);
+    std::cout << "Control points calculated..." << std::endl;
+}
+
+
+void bspline::Interp3D(const image_t &image, const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) {
 
     double t1, t2, t3, t4;
     Eigen::MatrixX3d truncSample = sample.array().floor();
@@ -61,6 +158,17 @@ void Interp3D(const image_t &image, const Eigen::MatrixX3d &sample, Eigen::Vecto
 
     // res = \sum{ yArray * BxArray * ByArray * BzArray }
     res(0) = (yArray * BxArray * ByArray * BzArray).sum();
+}
+
+
+bspline::bspline() {
+
+    controlPoints.setZero();
+}
+
+
+bspline::~bspline() {
+
 }
 
 }  // namespace zebrafish

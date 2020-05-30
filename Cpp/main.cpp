@@ -46,8 +46,11 @@ int main(int argc, char **argv)
     Eigen::VectorXd t(1);
     Eigen::Matrix<double, 1, 3> V;
     V << 23.2, 45.3, 10.9;
-    zebrafish::Interp3D(image, V, t);
-    cout << t(0) << endl;
+    // zebrafish::Interp3D(image, V, t);
+
+    zebrafish::bspline bsplineSolver;
+    bsplineSolver.CalcControlPts(image, 1, 1, 1);
+    // cout << t(0) << endl;
 
     return EXIT_SUCCESS;
 }
