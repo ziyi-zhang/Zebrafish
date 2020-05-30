@@ -8,6 +8,7 @@
 #include <math.h>
 #include <vector>
 #include <iostream>
+#include <algorithm>
 
 
 namespace zebrafish {
@@ -40,6 +41,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     int Nz = image.size(), Nx = image[0].rows(), Ny = image[0].cols();  // dimension of sample points
     int num, N = Nx*Ny*Nz;
     int i, j, ix, iy, iz, jx, jy, jz;
+    int ixMin, ixMax, iyMin, iyMax, izMin, izMax;
     std::vector<double> centersX, centersY, centersZ;  // location of the center of a control point's basis function
     double centerX, centerY, centerZ, t;
     Eigen::VectorXd inputPts, vectorY;
@@ -66,8 +68,10 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     // map 3D "image" to 1D "inputPts"
     // order matters! z -> x -> y
     inputPts.resize(N);
+    t = 0;
     for (auto it=image.begin(); it!=image.end(); it++) {
-        inputPts << Eigen::Map<const Eigen::VectorXd>(it->data(), Nx*Ny);
+        inputPts.segment(t*Nx*Ny, Nx*Ny) << Eigen::Map<const Eigen::VectorXd>(it->data(), Nx*Ny);
+        t++;
     }
 
     // calculate matrix A
@@ -76,12 +80,21 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
             for (jy=0; jy<numY; jy++) {
 
                 j = jz * numX * numY + jx * numY + jy;  // iterating control points' basis function
+                if (j % 100000 == 0)
+                    std::cout << j << "/" << numX*numY*numZ << std::endl;
                 centerX = centersX[jx];
                 centerY = centersY[jy];
                 centerZ = centersZ[jz];
-                for (iz=0; iz<Nz; iz++)
-                    for (ix=0; ix<Nx; ix++)
-                        for (iy=0; iy<Ny; iy++) {
+
+                ixMin = std::max(0, int(floor(centerX-2*gapX)));
+                ixMax = std::min(Nx, int(ceil(centerX+2*gapX)));
+                iyMin = std::max(0, int(floor(centerY-2*gapY)));
+                iyMax = std::min(Ny, int(ceil(centerY+2*gapY)));
+                izMin = std::max(0, int(floor(centerZ-2*gapZ)));
+                izMax = std::min(Nz, int(ceil(centerZ+2*gapZ)));
+                for (iz=izMin; iz<izMax; iz++)
+                    for (ix=ixMin; ix<ixMax; ix++)
+                        for (iy=iyMin; iy<iyMax; iy++) {
 
                             i = iz * Nx * Ny + ix * Ny + iy;  // iterating sample points
                             t = CubicBasis( (ix-centerX) / gapX ) * 
@@ -91,7 +104,10 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
                                 tripletArray.push_back(Eigen::Triplet<double>(i, j, t));
                         }
             }
+    std::cout << "# of triplets = " << tripletArray.size() << std::endl;
     A.setFromTriplets(tripletArray.begin(), tripletArray.end());
+    tripletArray.clear();
+    tripletArray.shrink_to_fit();  // give my memory back to me!
 
     // calculate control points based on least square
     std::cout << "Starting solving linear system..." << std::endl;

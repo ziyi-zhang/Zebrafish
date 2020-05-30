@@ -30,6 +30,12 @@ int main(int argc, char **argv)
 
     image_t image;
     read_tif_image(image_path, image);
+    
+    // clip image
+    for (auto it=image.begin(); it!=image.end(); it++) {
+        Eigen::MatrixXd &img = *it;
+        img = img.block(333, 305, 717-334, 638-306);
+    }
 
 
     cout << "Total number of frames picked = " << image.size() << endl;
@@ -49,7 +55,7 @@ int main(int argc, char **argv)
     // zebrafish::Interp3D(image, V, t);
 
     zebrafish::bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 1, 1, 1);
+    bsplineSolver.CalcControlPts(image, 0.5, 0.5, 1);
     // cout << t(0) << endl;
 
     return EXIT_SUCCESS;
