@@ -4,11 +4,15 @@
 #include <Eigen/Dense>
 #include <Eigen/Core>
 #include <Eigen/Sparse>
+#include <polysolve/LinearSolver.hpp>
+#include <string>
 #include <cmath>
 #include <math.h>
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <chrono>
+#include <ctime>
 
 
 namespace zebrafish {
@@ -104,7 +108,8 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
                                 tripletArray.push_back(Eigen::Triplet<double>(i, j, t));
                         }
             }
-    std::cout << "# of triplets = " << tripletArray.size() << std::endl;
+    std::cout << "# of non-zero elements = " << tripletArray.size() << std::endl;
+    std::cout << "Matrix size = " << A.rows() << " * " << A.cols() << std::endl;
     A.setFromTriplets(tripletArray.begin(), tripletArray.end());
     tripletArray.clear();
     tripletArray.shrink_to_fit();  // give my memory back to me!
@@ -114,9 +119,47 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     AtransposeA = (A.transpose() * A).pruned();  // A' * A
     vectorY.resize(N);
     vectorY = A.transpose() * inputPts;  // A' * y
-    Eigen::SimplicialCholesky<Eigen::SparseMatrix<double> > chol(AtransposeA);  // performs Cholesky factorization
-    controlPoints = chol.solve(vectorY);
+    // Eigen::SimplicialCholesky<Eigen::SparseMatrix<double> > chol(AtransposeA);  // performs Cholesky factorization
+    // controlPoints = chol.solve(vectorY);
+    
+    ///////////////// TEST ONLY
+    Eigen::SparseMatrix<double> testMatrix(3, 3);
+    testMatrix.insert(0, 0) = 1;
+    testMatrix.insert(1, 1) = 2;
+    testMatrix.insert(2, 2) = 3;
+    Eigen::Vector3d testVector;
+    testVector << 4, 5, 6;
+    AtransposeA = testMatrix;
+    vectorY = testVector;
+    ///////////////// TEST ONLY
+
+    const std::string solverName = "Hypre";
+    auto solver = polysolve::LinearSolver::create(solverName, "");
+    const nlohmann::json params = {
+        {"max_iter", 500}, 
+        {"tolerance", 1e-5}
+    };
+    solver->setParameters(params);
+
+        auto timeStamp = std::chrono::system_clock::now();
+        std::time_t time = std::chrono::system_clock::to_time_t(timeStamp);
+        std::cout << std::endl << "Start analyzing pattern..." << std::ctime(&time);
+    solver->analyzePattern(AtransposeA, AtransposeA.rows());
+    std::cout << "Matrix pattern analyzed" << std::endl;
+        timeStamp = std::chrono::system_clock::now();
+        time = std::chrono::system_clock::to_time_t(timeStamp);
+        std::cout << std::endl << "Start factorizing matrix..." << std::ctime(&time);
+    solver->factorize(AtransposeA);
+    std::cout << "Matrix factorized" << std::endl;
+        timeStamp = std::chrono::system_clock::now();
+        time = std::chrono::system_clock::to_time_t(timeStamp);
+        std::cout << std::endl << "Start solving linear system..." << std::ctime(&time);
+    solver->solve(vectorY, controlPoints);
+
     std::cout << "Control points calculated..." << std::endl;
+        timeStamp = std::chrono::system_clock::now();
+        time = std::chrono::system_clock::to_time_t(timeStamp);
+        std::cout << std::endl << "Control points generated..." << std::ctime(&time);
 }
 
 

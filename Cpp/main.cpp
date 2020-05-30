@@ -34,7 +34,8 @@ int main(int argc, char **argv)
     // clip image
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
-        img = img.block(333, 305, 717-334, 638-306);
+        // img = img.block(333, 305, 717-334, 638-306);
+        img = img.block(333, 305, 100, 100);
     }
 
 
