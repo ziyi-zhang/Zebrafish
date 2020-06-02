@@ -13,6 +13,7 @@ class bspline {
 private:
     Eigen::VectorXd controlPoints;  // #points control points array
     int numX, numY, numZ;  // the dimension of control points (numX * numY * numZ == #points)
+    std::vector<double> centersX, centersY, centersZ;  // location of the center of a control point's basis function
     double gapX, gapY, gapZ;  // the interval between two control points along a direction
 
 public:
@@ -25,11 +26,10 @@ public:
     /// @param[in]   yratio     { the ratio of (#control points) to (#sample points) along y-axis }
     /// @param[in]   zratio     { the ratio of (#control points) to (#sample points) along z-axis }
 
-    void Interp3D(const image_t &image, const Eigen::MatrixX3d &sample, Eigen::VectorXd &res);
+    void Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res);
     /// Calculate the interpolated B-spline result at "sample" points.
     /// Note: this function does not check for input validity
     ///
-    /// @param[in]   image     { 3D matrix of the image }
     /// @param[in]   sample    { #sample x 3 input sample points }
     /// @param[out]  res       { #sample x 1 output interpolated results}
     ///

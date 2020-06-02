@@ -34,8 +34,8 @@ int main(int argc, char **argv)
     // clip image
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
-        // img = img.block(333, 305, 717-334, 638-306);
-        img = img.block(333, 305, 100, 100);
+        // img = img.block(305, 333, 638-306, 717-334);
+        img = img.block(305, 333, 20, 20);
     }
 
 
@@ -50,14 +50,24 @@ int main(int argc, char **argv)
     file << frame2;
     */
 
-    Eigen::VectorXd t(1);
-    Eigen::Matrix<double, 1, 3> V;
-    V << 23.2, 45.3, 10.9;
-    // zebrafish::Interp3D(image, V, t);
-
     zebrafish::bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 0.5, 0.5, 1);
-    // cout << t(0) << endl;
+    bsplineSolver.CalcControlPts(image, 1, 1, 1);
+
+    Eigen::VectorXd t(10);
+    Eigen::Matrix<double, 10, 3> V;
+    V << 5.0665,    8.3141,   12.5303,
+   13.6190,   13.1065,   10.2206,
+    4.0463,    5.8185,    7.5095,
+   11.7491,    6.6380,    9.1325,
+   12.1730,    5.4554,    8.0181,
+   12.6869,    5.3607,    4.7597,
+    4.8444,   12.6929,    6.3992,
+    7.9978,    9.7970,    5.2332,
+    6.5987,    9.4986,    5.8391,
+   12.0007,    5.4495,    6.3995;
+    bsplineSolver.Interp3D(V, t);
+    cout << "Interpolation result:" << endl << V << endl;
+    cout << t << endl;
 
     return EXIT_SUCCESS;
 }
