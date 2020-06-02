@@ -35,7 +35,7 @@ int main(int argc, char **argv)
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         // img = img.block(305, 333, 638-306, 717-334);
-        img = img.block(305, 333, 20, 20);
+        img = img.block(305, 333, 100, 100);
     }
 
 
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
     */
 
     zebrafish::bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 1, 1, 1);
+    bsplineSolver.CalcControlPts(image, 0.3, 0.3, 1);
 
     Eigen::VectorXd t(10);
     Eigen::Matrix<double, 10, 3> V;

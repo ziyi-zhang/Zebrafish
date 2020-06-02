@@ -52,10 +52,11 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     assert(xratio <= 1 && yratio <= 1 && zratio <= 1);
     std::cout << "====================================================" << std::endl;
     PrintTime("Start calculating control points...");
+    std::cout << "numX= " << numX << ", numY= " << numY << ", numZ= " << numZ << std::endl;
 
     int Nz = image.size(), Nx = image[0].rows(), Ny = image[0].cols();  // dimension of sample points
     int num, N = Nx*Ny*Nz;
-    int i, j, ix, iy, iz, jx, jy, jz, count;
+    int i, j, ix, iy, iz, jx, jy, jz;
     int ixMin, ixMax, iyMin, iyMax, izMin, izMax;
     double centerX, centerY, centerZ, t;
     Eigen::VectorXd inputPts, vectorY;
@@ -94,7 +95,6 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     // for column (j): z -> x -> y
     // for row (i): z -> y -> x
     PrintTime("Start filling least square matrix...");
-    count = 0;
     for (jz=0; jz<numZ; jz++)
         for (jx=0; jx<numX; jx++)
             for (jy=0; jy<numY; jy++) {
@@ -120,7 +120,6 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
                                 CubicBasis( (iz-centerZ) / gapZ );
                             if (fabs(t) > 0.00001) {
                                 A.insert(i, j) = t;
-                                count++;
                                 // printf("%d %d : %.5f\n", i, j, t);  // DEBUG only
                             }
                         }
@@ -128,11 +127,12 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
 
     std::cout << "Control points " << numX << " * " << numY << " * " << numZ << std::endl;
     std::cout << "Matrix A size = " << A.rows() << " * " << A.cols() << std::endl;
-    std::cout << "# non-zero elements = " << count << std::endl;
+    std::cout << "A: # non-zero elements = " << A.nonZeros() << std::endl;
 
     // calculate control points based on least square
     PrintTime("Start solving linear system...");
     AtransposeA = (A.transpose() * A).pruned();  // A' * A
+    std::cout << "A'A: # non-zero elements = " << AtransposeA.nonZeros() << std::endl;
     vectorY.resize(N);
     vectorY = A.transpose() * inputPts;  // A' * y
     // Eigen::SimplicialCholesky<Eigen::SparseMatrix<double> > chol(AtransposeA);  // performs Cholesky factorization
@@ -173,6 +173,10 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
         PrintTime("Start solving linear system...");
     controlPoints.resize(num, 1);
     solver->solve(vectorY, controlPoints);
+    /////////////// TEST ONLY ///////////
+    std::cout << ">>>>>" << std::endl;
+    std::cout << controlPoints << std::endl;
+    /////////////// TEST ONLY ///////////
         PrintTime("Control points calculated...");
         std::cout << "====================================================" << std::endl;
 }
