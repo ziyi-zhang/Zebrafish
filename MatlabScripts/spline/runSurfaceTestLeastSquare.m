@@ -1,7 +1,7 @@
-f = @(x, y) (x-10).^3 - (y-10).^3 - 2.*x.^2 + y.^2;
+f = @(x, y) (x-20).^3 - (y-20).^3 - 2.*x.^2 + y.^2;
 % f = @(x, y)  x + y;
 
-[x, y] = meshgrid(1:20, 1:20);
+[x, y] = meshgrid(1:40, 1:40);
 z = f(x, y);
 % z = z + rand(12, 12) .* 3;
 
@@ -9,8 +9,8 @@ z = f(x, y);
 N_x = size(z, 1);
 N_y = size(z, 2);
 N = N_x * N_y;
-num_x = 20;
-num_y = 20;
+num_x = 40;
+num_y = 40;
 num = num_x * num_y;
 gap_x = (N_x-1) / (num_x-1);
 gap_y = (N_y-1) / (num_y-1);
@@ -36,8 +36,8 @@ inputPts = inputPts (:);
 controlPts = linsolve(A'*A, A'*inputPts);
 
 % interpolate
-[xx, yy] = meshgrid(3:0.2:18, 3:0.2:18);
-res = zeros(length(3:0.2:18));
+[xx, yy] = meshgrid(10:0.2:30, 10:0.2:30);
+res = zeros(length(10:0.2:30));
 for ix = 1:size(xx, 1)
     for iy = 1:size(xx, 2)
 
@@ -49,8 +49,8 @@ for ix = 1:size(xx, 1)
 
         [xcoef_, ycoef_] = meshgrid(xcoef, ycoef);
         %}
-        xres = round((xx(ix, iy)-2.8)/0.2);
-        yres = round((yy(ix, iy)-2.8)/0.2);
+        xres = round((xx(ix, iy)-9.8)/0.2);
+        yres = round((yy(ix, iy)-9.8)/0.2);
         idx_x = floor( (xx(ix, iy)-1)/gap_x ) + 1;
         idx_y = floor( (yy(ix, iy)-1)/gap_y ) + 1;
         for j = -1:2
@@ -73,8 +73,11 @@ scatter3(x(:), y(:), z(:), 'filled')
 x_control = x_control';
 y_control = y_control';
 scatter3(x_control(:), y_control(:), controlPts, 'filled');
-xlim([2.5 18.5])
-ylim([2.5 18.5])
-zlim([-600 400])
+xlim([9.5 30.5])
+ylim([9.5 30.5])
+    %maxz = max(controlPts(:));
+    %minz = min(controlPts(:));
+    %pad = (maxz - minz) * 0.07;
+zlim([-1700 700])
 set(gcf, 'Position',  [100, 100, 1200, 1000])
 legend("interpolation/fitting surface", "Input points", "Control points")
