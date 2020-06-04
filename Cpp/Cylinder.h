@@ -1,7 +1,7 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////////////////////////
-#include <zebrafish/common.h>
+#include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
 
 #include <Eigen/Dense>
@@ -18,7 +18,8 @@ typedef struct cylinder_t {
 typedef struct samplePoints_t {
 //
     Eigen::MatrixX2d points;  // [#points x 2] point positions
-    Eigen::VectorXd weights;  // [#points] (Gaussian quadrature weight)*(energy function constants)*(subtraction sigma function)
+    Eigen::VectorXd weights;  // [#points] (Gaussian quadrature weight)*(energy function constants)*(subtraction function)
+    Eigen::VectorXd zArray;   // [#depth] depth along z-axis
 } samplePoints_t;
 
 ///////////////////////////////////////
@@ -27,7 +28,6 @@ class cylinder {
 
 private:
     cylinder_t cyl;
-    double energy;  // evaluated energy function value
     samplePoints_t samplePoints;
 
 public:
@@ -51,8 +51,8 @@ public:
     /// @param[out]  resWeight  { [#points] returned weight array }
     ///
 
-    void EvaluateCylinder(const Eigen::MatrixXd &image, const zebrafish::bspline &bspline);
-    /// Calculate the energy for this cylinder and save the value to a private variable "energy"
+    double EvaluateCylinder(const zebrafish::image_t &image, const zebrafish::bspline &bspline);
+    /// Calculate the energy for this cylinder
 
     // maintenance methods
     cylinder();

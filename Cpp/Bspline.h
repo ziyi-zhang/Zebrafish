@@ -1,7 +1,7 @@
 #pragma once
 
 ////////////////////////////////////////////////////////////////////////////////
-#include <zebrafish/common.h>
+#include <zebrafish/Common.h>
 
 #include <Eigen/Dense>
 ////////////////////////////////////////////////////////////////////////////////
@@ -26,7 +26,7 @@ public:
     /// @param[in]   yratio     { the ratio of (#control points) to (#sample points) along y-axis }
     /// @param[in]   zratio     { the ratio of (#control points) to (#sample points) along z-axis }
 
-    void Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res);
+    void Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) const;
     /// Calculate the interpolated B-spline result at "sample" points.
     /// Note: this function does not check for input validity
     ///

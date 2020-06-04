@@ -1,4 +1,4 @@
-#include <zebrafish/common.h>
+#include <zebrafish/Common.h>
 #include <zebrafish/Cylinder.h>
 #include <cmath>
 
@@ -11,7 +11,7 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
            (x_>0 && y_>0 && z_>0 && r_>0 && h_>0));
 
     // update cylinder
-    if (x_ == -1) {
+    if (x_ != -1) {
         cyl.x = x_;
         cyl.y = y_;
         cyl.z = z_;
@@ -30,6 +30,7 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
     const int &zmax = image.size();
     Eigen::MatrixX2d &points = samplePoints.points;
     Eigen::VectorXd &weights = samplePoints.weights;
+    Eigen::VectorXd &zArray = samplePoints.zArray;
 
     // boundary check
     if (x - 1.5*r < 2*bsp.gapX || x + 1.5*r > xmax - 2*bsp.gapX ||
@@ -41,11 +42,11 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
 
     // depth array
     double pad = h / (heightLayers * 2.0);
-    Eigen::VectorXd zArray = Eigen::VectorXd::LinSpaced(heightLayers, z+pad, z+h-pad);
+    zArray = Eigen::VectorXd::LinSpaced(heightLayers, z+pad, z+h-pad);
     
     // alias of location & weights (this is changeable)
-    Eigen::MatrixXd &xyArray = cools_kim_1.block<57, 2>(0, 0);
-    Eigen::VectorXd &weightArray = cools_kim_1.block<57, 1>(0, 2);
+    const Eigen::MatrixXd &xyArray = cools_kim_1.block<57, 2>(0, 0);
+    const Eigen::VectorXd &weightArray = cools_kim_1.block<57, 1>(0, 2);
 
     // points xy (rc) array
     points.resize(xyArray.rows(), 2);
@@ -62,7 +63,6 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
     scalar /= r * r * h * M_PI;  // V_peri
     weights = weightArray.array() * scalar;
 
-
     return true;
 }
 
@@ -72,6 +72,39 @@ void cylinder::SubtractionHelper(const Eigen::MatrixXd &points, const Eigen::Vec
     // this function can be used to implement sigmoid subtraction function
     // but it seems this is not necessary
 }
+
+
+double cylinder::EvaluateCylinder(const zebrafish::image_t &image, const zebrafish::bspline &bsp) {
+
+    int depth, i;
+    double res = 0;
+    Eigen::MatrixX3d query;
+    Eigen::VectorXd interpRes, temp;
+    const int H = samplePoints.zArray.size();
+    const int N = samplePoints.points.rows();
+
+    query.resize(N, 3);
+    query.block(0, 0, N, 2) = samplePoints.points;
+    for (depth=0; depth<H; depth++) {
+
+        temp.setConstant(N, samplePoints.zArray(depth));
+        query.block(0, 2, N, 1) = temp;  // set z to current depth
+        bsp.Interp3D(query, interpRes);  // interp this layer
+        
+        assert(samplePoints.weights.size() == interpRes.size());
+        res += interpRes.dot(samplePoints.weights);
+    }
+
+    return res / H;
+}
+
+
+cylinder::cylinder() {
+
+}
+
+
+cylinder::~cylinder() {}
 
 
 ////////////////////////////////////////////////////

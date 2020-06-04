@@ -1,5 +1,5 @@
 #include <zebrafish/Bspline.h>
-#include <zebrafish/common.h>
+#include <zebrafish/Common.h>
 
 #include <Eigen/Dense>
 #include <Eigen/Core>
@@ -52,7 +52,6 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     assert(xratio <= 1 && yratio <= 1 && zratio <= 1);
     std::cout << "====================================================" << std::endl;
     PrintTime("Start calculating control points...");
-    std::cout << "numX= " << numX << ", numY= " << numY << ", numZ= " << numZ << std::endl;
 
     int Nz = image.size(), Nx = image[0].rows(), Ny = image[0].cols();  // dimension of sample points
     int num, N = Nx*Ny*Nz;
@@ -67,6 +66,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     // Eigen::MatrixXd A;
     Eigen::SparseMatrix<double> A(N, num);  // A[i, j] is the evaluation of basis j for the i-th sample point
     Eigen::SparseMatrix<double> AtransposeA(num, num);
+    std::cout << "numX= " << numX << ", numY= " << numY << ", numZ= " << numZ << std::endl;
 
     gapX = double(Nx-1) / double(numX-1);  // the interval between two control points along a direction
     gapY = double(Ny-1) / double(numY-1);
@@ -130,7 +130,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     std::cout << "A: # non-zero elements = " << A.nonZeros() << std::endl;
 
     // calculate control points based on least square
-    PrintTime("Start solving linear system...");
+    PrintTime("Calculating A'*A and A'*y...");
     AtransposeA = (A.transpose() * A).pruned();  // A' * A
     std::cout << "A'A: # non-zero elements = " << AtransposeA.nonZeros() << std::endl;
     vectorY.resize(N);
@@ -166,23 +166,21 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     solver->setParameters(params);
         PrintTime("Start analyzing matrix pattern...");
     solver->analyzePattern(AtransposeA, AtransposeA.rows());
-        std::cout << "Matrix pattern analyzed" << std::endl;
         PrintTime("Start factorizing matrix...");
     solver->factorize(AtransposeA);
-        std::cout << "Matrix factorized" << std::endl;
         PrintTime("Start solving linear system...");
     controlPoints.resize(num, 1);
     solver->solve(vectorY, controlPoints);
     /////////////// TEST ONLY ///////////
-    std::cout << ">>>>>" << std::endl;
-    std::cout << controlPoints << std::endl;
+    // std::cout << ">>>>>" << std::endl;
+    // std::cout << controlPoints << std::endl;
     /////////////// TEST ONLY ///////////
         PrintTime("Control points calculated...");
         std::cout << "====================================================" << std::endl;
 }
 
 
-void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) {
+void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) const {
 
     assert(numX != 0 && numY != 0 && numZ != 0);
 

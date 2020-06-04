@@ -1,6 +1,6 @@
 set(SOURCES
-    common.cpp
-    common.h
+    Common.cpp
+    Common.h
 	Cylinder.cpp
     Cylinder.h
     Bspline.cpp
