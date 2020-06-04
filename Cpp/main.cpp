@@ -40,16 +40,17 @@ int main(int argc, char **argv)
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         // img = img.block(305, 333, 638-306, 717-334);
-        img = img.block(305, 333, 40, 40);
+        img = img.block(305, 333, 100, 100);
     }
     cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
     // normalize all layers
     double quantile = zebrafish::QuantileImage(image, pixelQuantile);
-    cout << "Quantile with q=" << pixelQuantile << " is " << quantile << endl;
+    cout << "Quantile of image with q=" << pixelQuantile << " is " << quantile << endl;
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
-
+        img.array() /= quantile;
     }
+    cout << "Image normalized: most pixels will have value between 0 and 1" << endl;
 
     // ofstream file("output.log");
     // Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "[", "]", "[", "]");
@@ -65,7 +66,7 @@ int main(int argc, char **argv)
     bsplineSolver.CalcControlPts(image, 1, 1, 1);
 
     zebrafish::cylinder cylinder;
-    if (!cylinder.SampleCylinder(image, bsplineSolver, 18, 22, 16, 5, 4)) {
+    if (!cylinder.SampleCylinder(image, bsplineSolver, 66, 54, 16, 5, 4)) {
         cerr << "Invalid cylinder";
     }
     cout << "Evaluated result: " << cylinder.EvaluateCylinder(image, bsplineSolver) << endl;

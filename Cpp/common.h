@@ -4,6 +4,7 @@
 #include <cassert>
 #include <Eigen/Dense>
 #include <vector>
+#include <iostream>
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace zebrafish {
