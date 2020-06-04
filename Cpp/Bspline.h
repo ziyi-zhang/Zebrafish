@@ -14,9 +14,9 @@ private:
     Eigen::VectorXd controlPoints;  // #points control points array
     int numX, numY, numZ;  // the dimension of control points (numX * numY * numZ == #points)
     std::vector<double> centersX, centersY, centersZ;  // location of the center of a control point's basis function
-    double gapX, gapY, gapZ;  // the interval between two control points along a direction
 
 public:
+    double gapX, gapY, gapZ;  // the interval between two control points along a direction
 
     void CalcControlPts(const image_t &image, const double xratio, const double yratio, const double zratio);
     /// Use least square to calculate an array of control points and store the result 

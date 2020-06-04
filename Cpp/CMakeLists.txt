@@ -1,4 +1,5 @@
 set(SOURCES
+    common.cpp
     common.h
 	Cylinder.cpp
     Cylinder.h
