@@ -49,7 +49,7 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
     const Eigen::VectorXd &weightArray = cools_kim_1.block<57, 1>(0, 2);
 
     // points xy (rc) array
-    points.resize(xyArray.rows(), 2);
+    points.resize(xyArray.rows(), 2);  // Note: xyArray already multiplied by sqrt(2)
     points = xyArray.array() * r;  // * r
     Eigen::Vector2d xyVec;
     xyVec << x, y;
@@ -61,7 +61,8 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
     scalar = 2 * r * r;  // disk quadrature jacobian
                          // NOTE: this is not density function jacobian
     scalar /= r * r * h * M_PI;  // V_peri
-    weights = weightArray.array() * scalar;
+    scalar *= h / double(heightLayers);
+    weights = weightArray.array() * scalar;  // Note: weightArray already has subtraction function multiplied
 
     return true;
 }
@@ -95,7 +96,7 @@ double cylinder::EvaluateCylinder(const zebrafish::image_t &image, const zebrafi
         res += interpRes.dot(samplePoints.weights);
     }
 
-    return res / H;
+    return res;
 }
 
 

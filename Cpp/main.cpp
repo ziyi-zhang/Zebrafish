@@ -2,6 +2,7 @@
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
 #include <zebrafish/Cylinder.h>
+#include <zebrafish/Quantile.h>
 
 #include <CLI/CLI.hpp>
 #include <Eigen/Dense>
@@ -30,17 +31,26 @@ int main(int argc, char **argv)
     }
 
     image_t image;
+    cout << "====================================================" << endl;
     read_tif_image(image_path, image);
+    cout << "Total number of frames picked = " << image.size() << endl;
     
     // clip image
+    double maxPixel = 0, tempMaxPixel;
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         // img = img.block(305, 333, 638-306, 717-334);
-        img = img.block(305, 333, 100, 100);
+        img = img.block(305, 333, 40, 40);
+    }
+    cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
+    // normalize all layers
+    double quantile = zebrafish::QuantileImage(image, pixelQuantile);
+    cout << "Quantile with q=" << pixelQuantile << " is " << quantile << endl;
+    for (auto it=image.begin(); it!=image.end(); it++) {
+        Eigen::MatrixXd &img = *it;
+
     }
 
-
-    cout << "Total number of frames picked = " << image.size() << endl;
     // ofstream file("output.log");
     // Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "[", "]", "[", "]");
     // file << image[0].format(OctaveFmt);
@@ -52,11 +62,11 @@ int main(int argc, char **argv)
     */
 
     zebrafish::bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 0.3, 0.3, 1);
+    bsplineSolver.CalcControlPts(image, 1, 1, 1);
 
     zebrafish::cylinder cylinder;
-    if (!cylinder.SampleCylinder(image, bsplineSolver, 25, 35, 16, 5, 4)) {
-        cerr << "Invalid cylinder to interpolate!";
+    if (!cylinder.SampleCylinder(image, bsplineSolver, 18, 22, 16, 5, 4)) {
+        cerr << "Invalid cylinder";
     }
     cout << "Evaluated result: " << cylinder.EvaluateCylinder(image, bsplineSolver) << endl;
 
