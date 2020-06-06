@@ -1,7 +1,6 @@
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
-#include <math.h>
 
 using namespace std;
 using namespace Eigen;
@@ -9,23 +8,7 @@ using namespace zebrafish;
 
 double func(double x, double y, double z) {
 
-    // return x + y;
-
-    // x^2 + y^2
-    // return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
-
-    // (x^2 + y^2)^(3/2)
-    return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
-
-    // x^4 + y^4 + 2 * x^2 * y^2
-    // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5) +
-            2 * (y-14.5)*(y-14.5)* (x-14.5)*(x-14.5);
-
-    // x^5 + y^5
-    // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5)*(y-14.5);
-
-    // (x^2 + y^2)^(5/2)
-    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 2.5);
+    return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
 }
 
 int main() {
@@ -52,12 +35,12 @@ int main() {
 
     // prepare B-spline
     bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 0.5, 0.5, 1);
+    bsplineSolver.CalcControlPts(image, 1, 1, 1);
 
     // prepare cylinder
     cylinder cylinder;
     if (!cylinder.SampleCylinder(image, bsplineSolver, 14.5, 14.5, 3, 5, 4)) {
-        cerr << "Invalid cylinder" << endl;
+        cerr << "Invalid cylinder";
     }
     cout << "Evaluated result: " << cylinder.EvaluateCylinder(image, bsplineSolver) << endl;
 }
