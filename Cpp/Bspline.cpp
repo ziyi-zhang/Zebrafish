@@ -94,6 +94,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     // order matters!
     // for column (j): z -> x -> y
     // for row (i): z -> y -> x
+    int count;
     PrintTime("Start filling least square matrix...");
     for (jz=0; jz<numZ; jz++)
         for (jx=0; jx<numX; jx++)
@@ -118,6 +119,17 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
                             t = CubicBasis( (ix-centerX) / gapX ) *
                                 CubicBasis( (iy-centerY) / gapY ) *
                                 CubicBasis( (iz-centerZ) / gapZ );
+
+                            ////////// DEBUG
+                            count = 0;
+                            if (ix==0 || ix==Nx-1) count++;
+                            if (iy==0 || iy==Ny-1) count++;
+                            if (iz==0 || iz==Nz-1) count++;
+                            if (count == 1) t/=0.833;
+                            else if (count == 2) t/=0.6944;
+                            else if (count == 3) t/=0.5787;
+                            ////////// DEBUG
+
                             if (fabs(t) > 0.00001) {
                                 A.insert(i, j) = t;
                                 // printf("%d %d : %.5f\n", i, j, t);  // DEBUG only
@@ -172,8 +184,8 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     controlPoints.resize(num, 1);
     solver->solve(vectorY, controlPoints);
     /////////////// TEST ONLY ///////////
-    // std::cout << ">>>>>" << std::endl;
-    // std::cout << controlPoints << std::endl;
+    std::cout << ">>>>>" << std::endl;
+    std::cout << controlPoints << std::endl;
     /////////////// TEST ONLY ///////////
         PrintTime("Control points calculated...");
         std::cout << "====================================================" << std::endl;

@@ -48,7 +48,7 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
       // const Eigen::MatrixXd &xyArray = cools_kim_1.block<57, 2>(0, 0);
       // const Eigen::VectorXd &weightArray = cools_kim_1.block<57, 1>(0, 2);
     const Eigen::MatrixXd &xyArray = lether.block<900, 2>(0, 0);
-    const Eigen::VectorXd &weightArray = lether.block<900, 1>(0, 2);
+    const Eigen::VectorXd &weightArray = lether.block<900, 1>(0, 2).cwiseAbs();
 
     // points xy (rc) array
     points.resize(xyArray.rows(), 2);  // Note: xyArray already multiplied by sqrt(2)
@@ -111,7 +111,7 @@ cylinder::cylinder() {
 
 
 cylinder::~cylinder() {
-    
+
 }
 
 

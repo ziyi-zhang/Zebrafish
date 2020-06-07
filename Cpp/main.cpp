@@ -9,17 +9,17 @@ using namespace zebrafish;
 
 double func(double x, double y, double z) {
 
-    // return x + y;
+     return x + y;
 
     // x^2 + y^2
     // return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
 
     // (x^2 + y^2)^(3/2)
-    return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
+    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
 
     // x^4 + y^4 + 2 * x^2 * y^2
     // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5) +
-            2 * (y-14.5)*(y-14.5)* (x-14.5)*(x-14.5);
+      //   2 * (y-14.5)*(y-14.5)* (x-14.5)*(x-14.5);
 
     // x^5 + y^5
     // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5)*(y-14.5);
@@ -39,6 +39,7 @@ int main() {
     sizeZ = 10;
 
     // generate sample grid (3D)
+    double maxPixel = 0;
     for (z=0; z<sizeZ; z++) {
         
         MatrixXd layer(sizeX, sizeY);
@@ -48,7 +49,17 @@ int main() {
             }
 
         image.push_back(layer);
+        if (layer.maxCoeff() > maxPixel) maxPixel = layer.maxCoeff();
     }
+
+    // normalize it
+    /*
+    for (z=0; z<sizeZ; z++) {
+        
+        MatrixXd &layer = image[z];
+        layer.array() /= maxPixel;
+    }
+    */
 
     // prepare B-spline
     bspline bsplineSolver;
@@ -56,8 +67,10 @@ int main() {
 
     // prepare cylinder
     cylinder cylinder;
-    if (!cylinder.SampleCylinder(image, bsplineSolver, 14.5, 14.5, 3, 5, 4)) {
+    if (!cylinder.SampleCylinder(image, bsplineSolver, 14.5, 14.5, 4, 5, 3)) {
         cerr << "Invalid cylinder" << endl;
     }
-    cout << "Evaluated result: " << cylinder.EvaluateCylinder(image, bsplineSolver) << endl;
+    double ans = cylinder.EvaluateCylinder(image, bsplineSolver);
+    cout << "Evaluated result: " << ans << endl;
+    cout << "maxPixel = " << maxPixel << "  normalized res = " << ans / maxPixel << endl;
 }
