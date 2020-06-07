@@ -11,6 +11,7 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <ctime>
 
@@ -55,8 +56,8 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
 
     int Nz = image.size(), Nx = image[0].rows(), Ny = image[0].cols();  // dimension of sample points
     int num, N = Nx*Ny*Nz;
-    int i, j, ix, iy, iz, jx, jy, jz;
-    int ixMin, ixMax, iyMin, iyMax, izMin, izMax;
+    int i, j, ix, iy, iz, jx, jy, jz, refIdx_x, refIdx_y, refIdx_z;
+    int jxMin, jxMax, jyMin, jyMax, jzMin, jzMax;
     double centerX, centerY, centerZ, t;
     Eigen::VectorXd inputPts, vectorY;
     numX = ceil(Nx * xratio);  // dimension of control points
@@ -95,46 +96,50 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     // for column (j): z -> x -> y
     // for row (i): z -> y -> x
     int count;
+    double rowSum;
+    std::array<int, 64> cache_i, cache_j;
+    std::array<double, 64> cache_t;
     PrintTime("Start filling least square matrix...");
-    for (jz=0; jz<numZ; jz++)
-        for (jx=0; jx<numX; jx++)
-            for (jy=0; jy<numY; jy++) {
+    for (iz=0; iz<=Nz-1; iz++)
+        for (iy=0; iy<=Ny-1; iy++)
+            for (ix=0; ix<=Nx-1; ix++) {
 
-                j = jz * numX * numY + jx * numY + jy;  // iterating control points' basis function
-                centerX = centersX[jx];
-                centerY = centersY[jy];
-                centerZ = centersZ[jz];
+                i = iz * Nx * Ny + iy * Nx + ix;  // iterating sample points
+                
+                refIdx_x = floor(ix / gapX) - 1;
+                refIdx_y = floor(iy / gapY) - 1;
+                refIdx_z = floor(iz / gapZ) - 1;
+                jxMin = std::max(0, refIdx_x);
+                jxMax = std::min(numX-1, refIdx_x+3);
+                jyMin = std::max(0, refIdx_y);
+                jyMax = std::min(numY-1, refIdx_y+3);
+                jzMin = std::max(0, refIdx_z);
+                jzMax = std::min(numZ-1, refIdx_z+3);
+                count = 0;
+                rowSum = 0.0;
+                for (jz=jzMin; jz<=jzMax; jz++)
+                    for (jx=jxMin; jx<=jxMax; jx++)
+                        for (jy=jyMin; jy<=jyMax; jy++) {
 
-                ixMin = std::max(0, int(floor(centerX-2*gapX)));
-                ixMax = std::min(Nx-1, int(ceil(centerX+2*gapX)));
-                iyMin = std::max(0, int(floor(centerY-2*gapY)));
-                iyMax = std::min(Ny-1, int(ceil(centerY+2*gapY)));
-                izMin = std::max(0, int(floor(centerZ-2*gapZ)));
-                izMax = std::min(Nz-1, int(ceil(centerZ+2*gapZ)));
-                for (iz=izMin; iz<=izMax; iz++)
-                    for (iy=iyMin; iy<=iyMax; iy++)
-                        for (ix=ixMin; ix<=ixMax; ix++) {
-
-                            i = iz * Nx * Ny + iy * Nx + ix;  // iterating sample points
-                            t = CubicBasis( (ix-centerX) / gapX ) *
-                                CubicBasis( (iy-centerY) / gapY ) *
-                                CubicBasis( (iz-centerZ) / gapZ );
-
-                            ////////// DEBUG
-                            count = 0;
-                            if (ix==0 || ix==Nx-1) count++;
-                            if (iy==0 || iy==Ny-1) count++;
-                            if (iz==0 || iz==Nz-1) count++;
-                            if (count == 1) t/=0.833;
-                            else if (count == 2) t/=0.6944;
-                            else if (count == 3) t/=0.5787;
-                            ////////// DEBUG
+                            j = jz * numX * numY + jx * numY + jy;  // iterating control points' basis function
+                            t = CubicBasis( (ix-centersX[jx]) / gapX) * 
+                                CubicBasis( (iy-centersY[jy]) / gapY) * 
+                                CubicBasis( (iz-centersZ[jz]) / gapZ);
 
                             if (fabs(t) > 0.00001) {
-                                A.insert(i, j) = t;
+                                cache_i[count] = i;
+                                cache_j[count] = j;
+                                cache_t[count] = t;
+                                count++;
+                                rowSum += t;
+                                // A.insert(i, j) = t;  // direct insertion
                                 // printf("%d %d : %.5f\n", i, j, t);  // DEBUG only
                             }
                         }
+                // Fix a minor error when calculating matrix A
+                for (i=0; i<count; i++) {
+                    A.insert(cache_i[i], cache_j[i]) = cache_t[i] / rowSum;
+                }
             }
 
     std::cout << "Control points " << numX << " * " << numY << " * " << numZ << std::endl;
@@ -184,8 +189,8 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     controlPoints.resize(num, 1);
     solver->solve(vectorY, controlPoints);
     /////////////// TEST ONLY ///////////
-    std::cout << ">>>>>" << std::endl;
-    std::cout << controlPoints << std::endl;
+    // std::cout << ">>>>>" << std::endl;
+    // std::cout << controlPoints << std::endl;
     /////////////// TEST ONLY ///////////
         PrintTime("Control points calculated...");
         std::cout << "====================================================" << std::endl;

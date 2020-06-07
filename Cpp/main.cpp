@@ -63,7 +63,7 @@ int main() {
 
     // prepare B-spline
     bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 0.5, 0.5, 1);
+    bsplineSolver.CalcControlPts(image, 1, 1, 1);
 
     // prepare cylinder
     cylinder cylinder;
