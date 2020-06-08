@@ -17,9 +17,9 @@ typedef struct cylinder_t {
 
 typedef struct samplePoints_t {
 //
-    Eigen::MatrixX2d points;  // [#points x 2] point positions
-    Eigen::VectorXd weights;  // [#points] (Gaussian quadrature weight)*(energy function constants)*(subtraction function)
-    Eigen::VectorXd zArray;   // [#depth] depth along z-axis
+    Eigen::Matrix<DScalar, Eigen::Dynamic, 2> points;  // [#points x 2] point positions
+    Eigen::Matrix<DScalar, Eigen::Dynamic, 1> weights;  // [#points] (Gaussian quadrature weight)*(energy function constants)*(subtraction function)
+    Eigen::Matrix<double, Eigen::Dynamic, 1> zArray;   // [#depth] depth along z-axis
 } samplePoints_t;
 
 ///////////////////////////////////////
@@ -51,7 +51,7 @@ public:
     /// @param[out]  resWeight  { [#points] returned weight array }
     ///
 
-    double EvaluateCylinder(const zebrafish::image_t &image, const zebrafish::bspline &bspline);
+    DScalar EvaluateCylinder(const zebrafish::image_t &image, const zebrafish::bspline &bspline);
     /// Calculate the energy for this cylinder
 
     // maintenance methods

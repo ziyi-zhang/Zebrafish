@@ -9,7 +9,7 @@ using namespace zebrafish;
 
 double func(double x, double y, double z) {
 
-     return x + y;
+    return x + y;
 
     // x^2 + y^2
     // return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
@@ -36,7 +36,7 @@ int main() {
 
     sizeX = 30;  // 0, 1, ..., 29
     sizeY = 30;
-    sizeZ = 10;
+    sizeZ = 20;
 
     // generate sample grid (3D)
     double maxPixel = 0;
@@ -70,7 +70,7 @@ int main() {
     if (!cylinder.SampleCylinder(image, bsplineSolver, 14.5, 14.5, 4, 5, 3)) {
         cerr << "Invalid cylinder" << endl;
     }
-    double ans = cylinder.EvaluateCylinder(image, bsplineSolver);
-    cout << "Evaluated result: " << ans << endl;
+    auto ans = cylinder.EvaluateCylinder(image, bsplineSolver);
+    cout << "Evaluated result: " << ans.getValue() << endl;
     cout << "maxPixel = " << maxPixel << "  normalized res = " << ans / maxPixel << endl;
 }

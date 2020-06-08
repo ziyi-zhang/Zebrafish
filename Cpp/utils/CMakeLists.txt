@@ -1,4 +1,5 @@
 set(SOURCES
+    autodiff.h
 	TiffReader.cpp
     TiffReader.h
 )

@@ -24,7 +24,7 @@ namespace {
     /// Defines the cubic basis function centered at t=0 for uniform knot vector B-spline
     /// If t>2 or t<-2, the function will return zero due to local control property
 
-        if (t>2 || t<-2)
+        if (t>=2 || t<=-2)
             return 0;
         else if (t > 1)
             return -1.0/6.0 * t*t*t + t*t - 2.0 * t + 4.0/3.0;
@@ -105,6 +105,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
             for (ix=0; ix<=Nx-1; ix++) {
 
                 i = iz * Nx * Ny + iy * Nx + ix;  // iterating sample points
+                if (i % 5000 == 0) std::cout << i << " / " << Nx*Ny*Nz << std::endl;
                 
                 refIdx_x = floor(ix / gapX) - 1;
                 refIdx_y = floor(iy / gapY) - 1;
@@ -125,8 +126,8 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
                             t = CubicBasis( (ix-centersX[jx]) / gapX) * 
                                 CubicBasis( (iy-centersY[jy]) / gapY) * 
                                 CubicBasis( (iz-centersZ[jz]) / gapZ);
-
-                            if (fabs(t) > 0.00001) {
+ 
+                            if (fabs(t) > 0.000000) {
                                 cache_i[count] = i;
                                 cache_j[count] = j;
                                 cache_t[count] = t;
@@ -138,7 +139,9 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
                         }
                 // Fix a minor error when calculating matrix A
                 for (i=0; i<count; i++) {
-                    A.insert(cache_i[i], cache_j[i]) = cache_t[i] / rowSum;
+                    // A.insert(cache_i[i], cache_j[i]) = cache_t[i] / rowSum;
+                    // if (rowSum != 1.0) std::cout << rowSum << " ";
+                    A.insert(cache_i[i], cache_j[i]) = cache_t[i];
                 }
             }
 
@@ -154,7 +157,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     vectorY = A.transpose() * inputPts;  // A' * y
     // Eigen::SimplicialCholesky<Eigen::SparseMatrix<double> > chol(AtransposeA);  // performs Cholesky factorization
     // controlPoints = chol.solve(vectorY);
-    
+
     ///////////////// TEST ONLY
     /*
     Eigen::SparseMatrix<double> testMatrix(3, 3);
@@ -177,8 +180,8 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     const std::string solverName = "Hypre";
     auto solver = polysolve::LinearSolver::create(solverName, "");
     const nlohmann::json params = {
-        //{"max_iter", 500}, 
-        //{"tolerance", 1e-5}
+        {"max_iter", 3000}, 
+        {"tolerance", 1e-15}
     };
     solver->setParameters(params);
         PrintTime("Start analyzing matrix pattern...");

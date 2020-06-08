@@ -1,5 +1,6 @@
 #include <zebrafish/Common.h>
 #include <zebrafish/Cylinder.h>
+#include <zebrafish/autodiff.h>
 #include <cmath>
 
 namespace zebrafish {
@@ -9,6 +10,9 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
 
     assert((x_==-1 && y_==-1 && z_==-1 && r_==-1 && h_==-1) || 
            (x_>0 && y_>0 && z_>0 && r_>0 && h_>0));
+    int i;
+
+    DiffScalarBase::setVariableCount(3);  // x, y, r
 
     // update cylinder
     if (x_ != -1) {
@@ -20,6 +24,9 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
     }
 
     // alias
+    DScalar xDS = DScalar(0, cyl.x);
+    DScalar yDS = DScalar(1, cyl.y);
+    DScalar rDS = DScalar(2, cyl.r);
     const double &x = cyl.x;
     const double &y = cyl.y;
     const double &z = cyl.z;
@@ -28,9 +35,9 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
     const int &xmax = image[0].rows();
     const int &ymax = image[0].cols();
     const int &zmax = image.size();
-    Eigen::MatrixX2d &points = samplePoints.points;
-    Eigen::VectorXd &weights = samplePoints.weights;
-    Eigen::VectorXd &zArray = samplePoints.zArray;
+    auto &points = samplePoints.points;
+    auto &weights = samplePoints.weights;
+    auto &zArray = samplePoints.zArray;
 
     // boundary check
     if (x - 1.5*r < 2*bsp.gapX || x + 1.5*r > xmax - 2*bsp.gapX ||
@@ -42,8 +49,9 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
 
     // depth array
     double pad = h / (heightLayers * 2.0);
+    zArray.resize(heightLayers, 1);
     zArray = Eigen::VectorXd::LinSpaced(heightLayers, z+pad, z+h-pad);
-    
+
     // alias of location & weights (this is changeable)
       // const Eigen::MatrixXd &xyArray = cools_kim_1.block<57, 2>(0, 0);
       // const Eigen::VectorXd &weightArray = cools_kim_1.block<57, 1>(0, 2);
@@ -53,18 +61,20 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
     // points xy (rc) array
     points.resize(xyArray.rows(), 2);  // Note: xyArray already multiplied by sqrt(2)
     points = xyArray.array() * r;  // * r
-    Eigen::Vector2d xyVec;
-    xyVec << x, y;
+    Eigen::Matrix<DScalar, 2, 1> xyVec;
+    xyVec(0) = xDS;
+    xyVec(1) = yDS;
     points.rowwise() += xyVec.transpose();  // + [x, y], broadcast operation
 
     // weight
     weights.resize(weightArray.rows(), 1);
-    double scalar;
-    scalar = 2 * r * r;  // disk quadrature jacobian
+    DScalar scalar;
+    scalar = 2 * rDS * rDS;  // disk quadrature jacobian
                          // NOTE: this is not density function jacobian
-    scalar /= r * r * h * M_PI;  // V_peri
+    scalar = scalar / (rDS * rDS * h * M_PI);  // V_peri
     scalar *= h / double(heightLayers);
-    weights = weightArray.array() * scalar;  // Note: weightArray already has subtraction function multiplied
+    /// weights = weightArray.array() * scalar;  // Note: weightArray already has subtraction function multiplied
+
 
     return true;
 }
@@ -77,10 +87,10 @@ void cylinder::SubtractionHelper(const Eigen::MatrixXd &points, const Eigen::Vec
 }
 
 
-double cylinder::EvaluateCylinder(const zebrafish::image_t &image, const zebrafish::bspline &bsp) {
+DScalar cylinder::EvaluateCylinder(const zebrafish::image_t &image, const zebrafish::bspline &bsp) {
 
     int depth, i;
-    double res = 0;
+    DScalar res = DScalar(0);
     Eigen::MatrixX3d query;
     Eigen::VectorXd interpRes, temp;
     const int H = samplePoints.zArray.size();
@@ -96,7 +106,11 @@ double cylinder::EvaluateCylinder(const zebrafish::image_t &image, const zebrafi
         
         assert(samplePoints.weights.size() == interpRes.size());
         ////// DEBUG
-        std::cout << "depth=" << samplePoints.zArray(depth) << " RES=" << interpRes.dot(samplePoints.weights) << std::endl;
+        // Eigen::VectorXd const_ = Eigen::VectorXd::Ones(900, 1).array() * 14.5;
+        // Eigen::VectorXd error = query.col(0) + query.col(1) - interpRes;
+        // Eigen::VectorXd error = (query.col(0)-const_)*(query.col(0)-const_) + (query.col(1)-const_)*(query.col(1)-const_) - interpRes;
+        //std::cout << "error= " << error.maxCoeff() << std::endl;
+        //std::cout << "depth=" << samplePoints.zArray(depth) << " RES=" << interpRes.dot(samplePoints.weights) << std::endl;
         ////// DEBUG
         res += interpRes.dot(samplePoints.weights);
     }
