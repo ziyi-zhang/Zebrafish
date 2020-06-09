@@ -1,5 +1,6 @@
 #include <zebrafish/Bspline.h>
 #include <zebrafish/Common.h>
+#include <zebrafish/autodiff.h>
 
 #include <Eigen/Dense>
 #include <Eigen/Core>
@@ -31,6 +32,24 @@ namespace {
         else if (t > 0)
             return 0.5 * t*t*t - t*t + 2.0/3.0;
         else if (t > -1)
+            return -0.5 * t*t*t - t*t + 2.0/3.0;
+        else // t > -2
+            return 1.0/6.0 * t*t*t + t*t + 2.0*t + 4.0/3.0;
+    }
+
+
+    inline DScalar CubicBasis(DScalar t) {
+    /// Defines the cubic basis function centered at t=0 for uniform knot vector B-spline
+    /// If t>2 or t<-2, the function will return zero due to local control property
+
+        double t_value = t.getValue();
+        if (t_value>=2 || t_value<=-2)
+            return DScalar(0);
+        else if (t_value > 1)
+            return -1.0/6.0 * t*t*t + t*t - 2.0 * t + 4.0/3.0;
+        else if (t_value > 0)
+            return 0.5 * t*t*t - t*t + 2.0/3.0;
+        else if (t_value > -1)
             return -0.5 * t*t*t - t*t + 2.0/3.0;
         else // t > -2
             return 1.0/6.0 * t*t*t + t*t + 2.0*t + 4.0/3.0;
@@ -286,6 +305,52 @@ void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) con
     // res = \sum{ yArray * BxArray * ByArray * BzArray }
     res(0) = (yArray * BxArray * ByArray * BzArray).sum();
     */
+}
+
+
+void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sampleDS, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
+
+    assert(numX != 0 && numY != 0 && numZ != 0);
+
+    int i, ix, iy, iz, idx_x, idx_y, idx_z;
+    DScalar xcoef, ycoef, zcoef;
+    int refIdx_x, refIdx_y, refIdx_z;
+    double evalX1, evalX2, evalX3, evalX4, evalY1, evalY2, evalY3, evalY4, evalZ1, evalZ2, evalZ3, evalZ4;
+    Eigen::MatrixXd sample(sampleDS.rows(), 3);
+    for (i=0; i<sampleDS.rows(); i++) {
+        sample(i, 0) = sampleDS(i, 0).getValue();
+        sample(i, 1) = sampleDS(i, 1).getValue();
+        sample(i, 2) = sampleDS(i, 2).getValue();
+    }
+    Eigen::MatrixX3d truncSample = sample.array().floor();
+    Eigen::MatrixX3d baseIdx = truncSample.array() - 1.0;
+
+    res.resize(sample.rows(), 1);
+    for (i=0; i<sample.rows(); i++) {
+
+        // Get reference index
+        refIdx_x = floor(sample(i, 0) / gapX) - 1;
+        refIdx_y = floor(sample(i, 1) / gapY) - 1;
+        refIdx_z = floor(sample(i, 2) / gapZ) - 1;
+        assert(refIdx_x >= 0 && refIdx_y >= 0 && refIdx_z >= 0);
+        assert(refIdx_x <= numX-4 && refIdx_y <= numY-4 && refIdx_z <= numZ-4);
+        // 
+        res(i) = DScalar(0);
+        for (ix=0; ix<=3; ix++)
+            for (iy=0; iy<=3; iy++)
+                for (iz=0; iz<=3; iz++) {
+
+                    idx_x = refIdx_x + ix;
+                    idx_y = refIdx_y + iy;
+                    idx_z = refIdx_z + iz;
+
+                    xcoef = CubicBasis( (sampleDS(i, 0)-centersX[idx_x]) / gapX );
+                    ycoef = CubicBasis( (sampleDS(i, 1)-centersY[idx_y]) / gapY );
+                    zcoef = CubicBasis( (sampleDS(i, 2)-centersZ[idx_z]) / gapZ );
+
+                    res(i) += controlPoints(numX*numY*idx_z + numY*idx_x + idx_y) * xcoef * ycoef * zcoef;
+                }
+    }
 }
 
 

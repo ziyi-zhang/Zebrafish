@@ -28,6 +28,8 @@ double func(double x, double y, double z) {
     // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 2.5);
 }
 
+DECLARE_DIFFSCALAR_BASE();
+
 int main() {
 
     image_t image;  // 30 * 30 * 10
@@ -36,7 +38,7 @@ int main() {
 
     sizeX = 30;  // 0, 1, ..., 29
     sizeY = 30;
-    sizeZ = 20;
+    sizeZ = 10;
 
     // generate sample grid (3D)
     double maxPixel = 0;
@@ -72,5 +74,6 @@ int main() {
     }
     auto ans = cylinder.EvaluateCylinder(image, bsplineSolver);
     cout << "Evaluated result: " << ans.getValue() << endl;
-    cout << "maxPixel = " << maxPixel << "  normalized res = " << ans / maxPixel << endl;
+    cout << "Gradient: " << ans << endl;
+    cout << "maxPixel = " << maxPixel << "  normalized res = " << ans.getValue() / maxPixel << endl;
 }

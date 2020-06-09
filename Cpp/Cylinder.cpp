@@ -60,11 +60,19 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
 
     // points xy (rc) array
     points.resize(xyArray.rows(), 2);  // Note: xyArray already multiplied by sqrt(2)
-    points = xyArray.array() * r;  // * r
+    /// points = xyArray.array() * r;  // * r
+    for (i=0; i<xyArray.rows(); i++) {
+        points(i, 0) = xyArray(i, 0) * rDS;
+        points(i, 1) = xyArray(i, 1) * rDS;
+    }
     Eigen::Matrix<DScalar, 2, 1> xyVec;
     xyVec(0) = xDS;
     xyVec(1) = yDS;
-    points.rowwise() += xyVec.transpose();  // + [x, y], broadcast operation
+    for (i=0; i<points.rows(); i++) {
+        points(i, 0) += xDS;
+        points(i, 1) += yDS;
+    }
+    // points.rowwise() += xyVec.transpose();  // + [x, y], broadcast operation
 
     // weight
     weights.resize(weightArray.rows(), 1);
@@ -74,7 +82,8 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
     scalar = scalar / (rDS * rDS * h * M_PI);  // V_peri
     scalar *= h / double(heightLayers);
     /// weights = weightArray.array() * scalar;  // Note: weightArray already has subtraction function multiplied
-
+    for (i=0; i<weights.rows(); i++)
+        weights(i) = weightArray(i) * scalar;
 
     return true;
 }
@@ -91,19 +100,20 @@ DScalar cylinder::EvaluateCylinder(const zebrafish::image_t &image, const zebraf
 
     int depth, i;
     DScalar res = DScalar(0);
-    Eigen::MatrixX3d query;
-    Eigen::VectorXd interpRes, temp;
+    Eigen::Matrix<DScalar, Eigen::Dynamic, 3> query;
+    Eigen::Matrix<DScalar, Eigen::Dynamic, 1> interpRes, temp;
     const int H = samplePoints.zArray.size();
     const int N = samplePoints.points.rows();
 
     query.resize(N, 3);
+    temp.resize(N, 1);
     query.block(0, 0, N, 2) = samplePoints.points;
     for (depth=0; depth<H; depth++) {
 
-        temp.setConstant(N, samplePoints.zArray(depth));
+        temp.setConstant(N, DScalar(samplePoints.zArray(depth)));
         query.block(0, 2, N, 1) = temp;  // set z to current depth
         bsp.Interp3D(query, interpRes);  // interp this layer
-        
+
         assert(samplePoints.weights.size() == interpRes.size());
         ////// DEBUG
         // Eigen::VectorXd const_ = Eigen::VectorXd::Ones(900, 1).array() * 14.5;
@@ -112,7 +122,10 @@ DScalar cylinder::EvaluateCylinder(const zebrafish::image_t &image, const zebraf
         //std::cout << "error= " << error.maxCoeff() << std::endl;
         //std::cout << "depth=" << samplePoints.zArray(depth) << " RES=" << interpRes.dot(samplePoints.weights) << std::endl;
         ////// DEBUG
-        res += interpRes.dot(samplePoints.weights);
+
+        /// res += interpRes.dot(samplePoints.weights);
+        for (i=0; i<interpRes.rows(); i++)
+            res = res + interpRes(i) * samplePoints.weights(i);
     }
 
     return res;

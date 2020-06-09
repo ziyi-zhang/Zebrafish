@@ -2,6 +2,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 #include <zebrafish/Common.h>
+#include <zebrafish/autodiff.h>
 
 #include <Eigen/Dense>
 ////////////////////////////////////////////////////////////////////////////////
@@ -27,6 +28,7 @@ public:
     /// @param[in]   zratio     { the ratio of (#control points) to (#sample points) along z-axis }
 
     void Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) const;
+    void Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sample, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const;
     /// Calculate the interpolated B-spline result at "sample" points.
     /// Note: this function does not check for input validity
     ///
