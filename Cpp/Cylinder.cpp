@@ -8,8 +8,6 @@ namespace zebrafish {
 bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::bspline &bsp, 
                               double x_, double y_, double z_, double r_, double h_) {
 
-    assert((x_==-1 && y_==-1 && z_==-1 && r_==-1 && h_==-1) || 
-           (x_>0 && y_>0 && z_>0 && r_>0 && h_>0));
     int i;
 
     DiffScalarBase::setVariableCount(3);  // x, y, r
@@ -27,11 +25,11 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
     DScalar xDS = DScalar(0, cyl.x);
     DScalar yDS = DScalar(1, cyl.y);
     DScalar rDS = DScalar(2, cyl.r);
-    const double &x = cyl.x;
-    const double &y = cyl.y;
-    const double &z = cyl.z;
-    const double &r = cyl.r;
-    const double &h = cyl.h;
+    const double x = cyl.x;
+    const double y = cyl.y;
+    const double z = cyl.z;
+    const double r = cyl.r;
+    const double h = cyl.h;
     const int &xmax = image[0].rows();
     const int &ymax = image[0].cols();
     const int &zmax = image.size();

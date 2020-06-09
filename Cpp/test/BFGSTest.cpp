@@ -1,11 +1,14 @@
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
+#include <zebrafish/LBFGS.h>
+#include <zebrafish/autodiff.h>
 #include <math.h>
 
 using namespace std;
 using namespace Eigen;
 using namespace zebrafish;
+using namespace LBFGSpp;
 
 double func(double x, double y, double z) {
 
@@ -29,6 +32,39 @@ double func(double x, double y, double z) {
 }
 
 DECLARE_DIFFSCALAR_BASE();
+
+class CylinderEnergy {
+private:
+    const image_t &image;
+    bspline bsplineSolver;
+    cylinder cylinder;
+
+public:
+    // constructor
+    CylinderEnergy(const image_t &image_) : image(image_) {
+
+        // prepare B-spline
+        bsplineSolver.CalcControlPts(image, 1, 1, 1);
+    }
+
+    // evaluate
+    double operator()(const VectorXd& x, VectorXd& grad) {
+
+        if (!cylinder.SampleCylinder(image, bsplineSolver, x(0), x(1), 4, x(2), 3)) {
+            cout << "Invalid cylinder - ";
+            grad.setZero();
+            return 1000;
+        }
+
+        DScalar ans = cylinder.EvaluateCylinder(image, bsplineSolver);
+        grad.resize(3, 1);
+        grad = ans.getGradient();
+        cout << "F(" << x.transpose() << ") = " << ans.getValue() << endl;
+        cout << "    Grad = " << grad.transpose() << endl;
+        return ans.getValue();
+    }
+};
+
 
 int main() {
 
@@ -63,17 +99,24 @@ int main() {
     }
     */
 
-    // prepare B-spline
-    bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 1, 1, 1);
+    CylinderEnergy energy(image);
 
-    // prepare cylinder
-    cylinder cylinder;
-    if (!cylinder.SampleCylinder(image, bsplineSolver, 14.5, 14.5, 4, 5, 3)) {
-        cerr << "Invalid cylinder" << endl;
-    }
-    auto ans = cylinder.EvaluateCylinder(image, bsplineSolver);
-    cout << "Evaluated result: " << ans.getValue() << endl;
-    cout << "Gradient: " << ans << endl;
-    cout << "maxPixel = " << maxPixel << "  normalized res = " << ans.getValue() / maxPixel << endl;
+    LBFGSParam<double> param;
+    param.epsilon = 1e-3;
+    param.max_iterations = 100;
+    VectorXd lb = VectorXd::Constant(3, 0);
+    VectorXd ub = VectorXd::Constant(3, 30);
+    lb(2) = 2.0;
+    ub(2) = numeric_limits<double>::infinity();
+
+
+    LBFGSSolver<double> solver(param);
+    VectorXd xx(3, 1);
+    xx << 12, 15, 4;
+    int it;
+    double res;
+    it = solver.minimize(energy, xx, res);
+
+    cout << "iterations = " << it << endl;
+    cout << "Fmin = " << res << endl;
 }

@@ -1,9 +1,13 @@
 set(SOURCES
-    autodiff.h
-    LBFGS.h
-    LBFGSB.h
-	TiffReader.cpp
-    TiffReader.h
+    BFGSMat.h
+    BKLDLT.h
+    Cauchy.h
+    LineSearchBacktracking.h
+    LineSearchBracketing.h
+    LineSearchMoreThuente.h
+    LineSearchNocedalWright.h
+    Param.h
+    SubspaceMin.h
 )
 
 prepend_current_path(SOURCES)
@@ -16,4 +20,3 @@ target_sources(ZebraFish PRIVATE ${SOURCES})
 ################################################################################
 
 # add_subdirectory(xxx)
-# add_subdirectory(LBFGSpp)

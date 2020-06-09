@@ -42,14 +42,13 @@ namespace {
     /// Defines the cubic basis function centered at t=0 for uniform knot vector B-spline
     /// If t>2 or t<-2, the function will return zero due to local control property
 
-        double t_value = t.getValue();
-        if (t_value>=2 || t_value<=-2)
+        if (t>=2 || t<=-2)
             return DScalar(0);
-        else if (t_value > 1)
+        else if (t > 1)
             return -1.0/6.0 * t*t*t + t*t - 2.0 * t + 4.0/3.0;
-        else if (t_value > 0)
+        else if (t > 0)
             return 0.5 * t*t*t - t*t + 2.0/3.0;
-        else if (t_value > -1)
+        else if (t > -1)
             return -0.5 * t*t*t - t*t + 2.0/3.0;
         else // t > -2
             return 1.0/6.0 * t*t*t + t*t + 2.0*t + 4.0/3.0;
@@ -124,7 +123,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
             for (ix=0; ix<=Nx-1; ix++) {
 
                 i = iz * Nx * Ny + iy * Nx + ix;  // iterating sample points
-                if (i % 5000 == 0) std::cout << i << " / " << Nx*Ny*Nz << std::endl;
+                if (i % 3000 == 0) std::cout << i << " / " << Nx*Ny*Nz << std::endl;
                 
                 refIdx_x = floor(ix / gapX) - 1;
                 refIdx_y = floor(iy / gapY) - 1;
@@ -160,7 +159,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
                 for (i=0; i<count; i++) {
                     // A.insert(cache_i[i], cache_j[i]) = cache_t[i] / rowSum;
                     // if (rowSum != 1.0) std::cout << rowSum << " ";
-                    A.insert(cache_i[i], cache_j[i]) = cache_t[i];
+                    A.insert(cache_i[i], cache_j[i]) = cache_t[i] / rowSum;
                 }
             }
 
@@ -199,8 +198,8 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     const std::string solverName = "Hypre";
     auto solver = polysolve::LinearSolver::create(solverName, "");
     const nlohmann::json params = {
-        {"max_iter", 3000}, 
-        {"tolerance", 1e-15}
+        // {"max_iter", 3000}, 
+        // {"tolerance", 1e-15}
     };
     solver->setParameters(params);
         PrintTime("Start analyzing matrix pattern...");
