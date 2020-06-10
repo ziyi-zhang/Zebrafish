@@ -1,3 +1,4 @@
+// Cylinder & autodiff TEST
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
@@ -39,6 +40,11 @@ int main() {
     sizeX = 30;  // 0, 1, ..., 29
     sizeY = 30;
     sizeZ = 10;
+
+    // user input
+    resolutionX = 0.325;
+    resolutionY = 0.325;
+    resolutionZ = 0.5;
 
     // generate sample grid (3D)
     double maxPixel = 0;

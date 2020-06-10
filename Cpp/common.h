@@ -17,6 +17,10 @@ typedef Eigen::Vector3d gradient_t;  // gradient
 typedef DScalar1<double, gradient_t> DScalar;
 
 // global variables
+extern double resolutionX;    // The distance between two pixels in X-direction (in micrometers)
+extern double resolutionY;
+extern double resolutionZ;
+
 extern double pixelQuantile;  // pixels with value larger than this quantile will be trimmed
 
 extern double minRadius;      // minimal radius of a cylinder
