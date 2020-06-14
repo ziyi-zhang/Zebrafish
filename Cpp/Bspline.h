@@ -13,11 +13,15 @@ namespace zebrafish {
 class bspline {
 
 private:
-    Eigen::VectorXd controlPoints;  // #points control points array
-    int numX, numY, numZ;  // the dimension of control points (numX * numY * numZ == #points)
+    Eigen::VectorXd controlPoints;  // [#points] control points array
+    int Nx, Ny, Nz;  // the dimension of sample points (Nx * Ny * Nz == #pixels)
+    int numX, numY, numZ;  // the dimension of control points (numX * numY * numZ == #control points)
     Eigen::VectorXd centersX, centersY, centersZ;  // location of the center of a control point's basis function
+    Eigen::Matrix< std::function<DScalar(DScalar)>, 4, Eigen::Dynamic, Eigen::ColMajor> basisX, basisY, basisZ;
+        // matrix of pre-calculated lambda basis functions
     
-    void CalcLeastSquareMat(Eigen::SparseMatrix<double> &A, int Nx, int Ny, int Nz);
+    void CalcLeastSquareMat(Eigen::SparseMatrix<double> &A);
+    void CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, 4, Eigen::Dynamic, Eigen::ColMajor> &basisT, int numT);
 
 public:
     double gapX, gapY, gapZ;  // the interval between two control points along a direction
