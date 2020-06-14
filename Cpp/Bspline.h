@@ -16,6 +16,7 @@ private:
     Eigen::VectorXd controlPoints;  // #points control points array
     int numX, numY, numZ;  // the dimension of control points (numX * numY * numZ == #points)
     Eigen::VectorXd centersX, centersY, centersZ;  // location of the center of a control point's basis function
+    
     void CalcLeastSquareMat(Eigen::SparseMatrix<double> &A, int Nx, int Ny, int Nz);
 
 public:

@@ -158,10 +158,10 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
         PrintTime("Solving linear system...");
     controlPoints.resize(num, 1);
     solver->solve(vectorY, controlPoints);
-    /////////////// TEST ONLY ///////////
+    /////////////// DEBUG ONLY ///////////
     // std::cout << ">>>>> control points >>>>>" << std::endl;
     // std::cout << controlPoints << std::endl;
-    /////////////// TEST ONLY ///////////
+    /////////////// DEBUG ONLY ///////////
         PrintTime("Control points calculated...");
         std::cout << "====================================================" << std::endl;
 }
@@ -183,7 +183,7 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A, int Nx, int Ny,
             for (ix=0; ix<=Nx-1; ix++) {
 
                 i = iz * Nx * Ny + iy * Nx + ix;  // iterating sample points
-                if (i % 3000 == 0) std::cout << i << " / " << Nx*Ny*Nz << std::endl;
+                if (i % 3000 == 0) std::cout << " " << i << " / " << Nx*Ny*Nz << std::endl;
                 
                 refIdx_x = floor(ix / gapX) - 1;
                 refIdx_y = floor(iy / gapY) - 1;
