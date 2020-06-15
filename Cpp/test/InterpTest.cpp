@@ -36,11 +36,11 @@ int main() {
 
     image_t image;  // 30 * 30 * 10
     int sizeX, sizeY, sizeZ;
-    double x, y, z;
+    int x, y, z;
 
-    sizeX = 12;  // 0, 1, ..., 29
-    sizeY = 12;
-    sizeZ = 12;
+    sizeX = 30;  // 0, 1, ..., 29
+    sizeY = 30;
+    sizeZ = 10;
 
     // user input
     resolutionX = 0.325;
@@ -77,19 +77,17 @@ int main() {
     // interp
     srand(time(NULL));
 
-    for (int i = 0; i<20; i++) {
-        x = rand() % sizeX+0.2;
-        y = rand() % sizeY+0.3;
-        z = rand() % sizeZ+0.1;
-        x = 4.2; y = 4.5; z = 5;
-        cout << x << " " << y << " " << z << ": ";
+    for (int i = 0; i<10; i++) {
+        x = rand() % sizeX;
+        y = rand() % sizeY;
+        z = rand() % sizeZ;
 
         Eigen::Matrix<DScalar, Eigen::Dynamic, 3> in;
         in.resize(1, 3);
-        in << DScalar(x), DScalar(y), DScalar(z);
+        in << x, y, z;
         Eigen::Matrix<DScalar, Eigen::Dynamic, 1> out;
 
         bsplineSolver.Interp3D(in, out);
-        cout << func(x, y, z) - out(0).getValue() << endl;
+        cout << func(x, y, z) - out(0) << endl;
     }
 }

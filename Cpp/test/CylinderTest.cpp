@@ -1,3 +1,4 @@
+// Cylinder & autodiff TEST
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
@@ -40,6 +41,11 @@ int main() {
     sizeY = 30;
     sizeZ = 10;
 
+    // user input
+    resolutionX = 0.325;
+    resolutionY = 0.325;
+    resolutionZ = 0.5;
+
     // generate sample grid (3D)
     double maxPixel = 0;
     for (z=0; z<sizeZ; z++) {
@@ -65,7 +71,7 @@ int main() {
 
     // prepare B-spline
     bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 1, 1, 1);
+    bsplineSolver.CalcControlPts(image, 0.5, 0.5, 1);
 
     // prepare cylinder
     cylinder cylinder;

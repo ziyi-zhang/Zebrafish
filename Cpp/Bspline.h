@@ -21,7 +21,7 @@ private:
         // matrix of pre-calculated lambda basis functions
     
     void CalcLeastSquareMat(Eigen::SparseMatrix<double> &A);
-    void CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, 4, Eigen::Dynamic, Eigen::ColMajor> &basisT, int numT);
+    void CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, 4, Eigen::Dynamic, Eigen::ColMajor> &basisT, int numT, double gapT);
 
 public:
     double gapX, gapY, gapZ;  // the interval between two control points along a direction
