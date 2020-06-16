@@ -113,10 +113,11 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     Eigen::SparseMatrix<double> AtransposeA(num, num);
 
     // the interval between two control points along a direction
-    gapX = double(Nx-1) / double(numX-1);
-    gapY = double(Ny-1) / double(numY-1);
-    gapZ = double(Nz-1) / double(numZ-1);
+    gapX = double(Nx-1) / double(numX-1-2);  // "-2" due to clamped B-spline
+    gapY = double(Ny-1) / double(numY-1-2);
+    gapZ = double(Nz-1) / double(numZ-1-2);
     // location of the center of a control point's basis function
+        // WARNING: This is wrong & useless now
     centersX = Eigen::VectorXd::LinSpaced(numX, 0, Nx-1);
     centersY = Eigen::VectorXd::LinSpaced(numY, 0, Ny-1);
     centersZ = Eigen::VectorXd::LinSpaced(numZ, 0, Nz-1);
@@ -155,8 +156,8 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     const std::string solverName = "Hypre";
     auto solver = polysolve::LinearSolver::create(solverName, "");
     const nlohmann::json params = {
-        {"max_iter", 5000}, 
-        {"tolerance", 1e-10}
+        {"max_iter", 100000}, 
+        {"tolerance", 1e-20}
     };
     solver->setParameters(params);
         PrintTime("Analyzing matrix pattern...");
@@ -194,15 +195,15 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
                 refIdx_x = floor(ix / gapX);
                 refIdx_y = floor(iy / gapY);
                 refIdx_z = floor(iz / gapZ);
-                if (refIdx_x == numX-1) refIdx_x--;
-                if (refIdx_y == numY-1) refIdx_y--;
-                if (refIdx_z == numZ-1) refIdx_z--;
-                jxMin = std::max(0, refIdx_x-1);
-                jxMax = std::min(numX-1, refIdx_x+2);
-                jyMin = std::max(0, refIdx_y-1);
-                jyMax = std::min(numY-1, refIdx_y+2);
-                jzMin = std::max(0, refIdx_z-1);
-                jzMax = std::min(numZ-1, refIdx_z+2);
+                if (refIdx_x == numX-1-2) refIdx_x--;
+                if (refIdx_y == numY-1-2) refIdx_y--;
+                if (refIdx_z == numZ-1-2) refIdx_z--;
+                jxMin = std::max(0, refIdx_x);
+                jxMax = std::min(numX-1, refIdx_x+3);
+                jyMin = std::max(0, refIdx_y);
+                jyMax = std::min(numY-1, refIdx_y+3);
+                jzMin = std::max(0, refIdx_z);
+                jzMax = std::min(numZ-1, refIdx_z+3);
                 rowSum = 0.0;
                 for (jz=jzMin; jz<=jzMax; jz++)
                     for (jx=jxMin; jx<=jxMax; jx++)
@@ -212,9 +213,9 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
                             // t = CubicBasis( (ix-centersX(jx)) / gapX) * 
                             //     CubicBasis( (iy-centersY(jy)) / gapY) * 
                             //     CubicBasis( (iz-centersZ(jz)) / gapZ);
-                            t1 = basisX(jx-refIdx_x+1, refIdx_x)(DScalar(ix)).getValue();
-                            t2 = basisY(jy-refIdx_y+1, refIdx_y)(DScalar(iy)).getValue();
-                            t3 = basisZ(jz-refIdx_z+1, refIdx_z)(DScalar(iz)).getValue();
+                            t1 = basisX(jx-refIdx_x, refIdx_x)(DScalar(ix)).getValue();
+                            t2 = basisY(jy-refIdx_y, refIdx_y)(DScalar(iy)).getValue();
+                            t3 = basisZ(jz-refIdx_z, refIdx_z)(DScalar(iz)).getValue();
                             t = t1 * t2 * t3;
 
                             if (fabs(t) > 0.000000) {
@@ -234,30 +235,30 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
 void bspline::CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, 4, Eigen::Dynamic, Eigen::ColMajor> &basisT, int numT, double gapT) {
 // NOTE: "T" can be "X", "Y" or "Z"
 
-    assert(numT >= 6);
+    assert(numT >= 8);
 
-    basisT.resize(4, numT-1);
+    basisT.resize(4, numT-1-2);
     // first 3 columns
-    basisT(0, 0) = [](DScalar x) {return DScalar(0.0);};
+    basisT(0, 0) = [=](DScalar x) {x = x/gapT; return - (x-1)*(x-1)*(x-1);};
         // cubic [111234]
-    basisT(1, 0) = [=](DScalar x) {x = x/gapT; return (7.0/4.0)*x*x*x - (9.0/2.0)*x*x + 3.0*x - (x-1)*(x-1)*(x-1);};
+    basisT(1, 0) = [=](DScalar x) {x = x/gapT; return (7.0/4.0)*x*x*x - (9.0/2.0)*x*x + 3.0*x;};
     basisT(0, 1) = [=](DScalar x) {x = x/gapT; return -(1.0/4.0)*x*x*x + (3.0/2.0)*x*x - 3.0*x + 2.0;};
         // cubic [11234]
     basisT(2, 0) = [=](DScalar x) {x = x/gapT; return -(11.0/12.0)*x*x*x + (3.0/2.0)*x*x;};
     basisT(1, 1) = [=](DScalar x) {x = x/gapT; return (7.0/12.0)*x*x*x - 3.0*x*x + 9.0/2.0*x - (3.0/2.0);};
     basisT(0, 2) = [=](DScalar x) {x = x/gapT; return -(1.0/6.0)*x*x*x + (3.0/2.0)*x*x - (9.0/2.0)*x + (9.0/2.0);};
     // last 3 columns
-    basisT(3, numT-2) = [](DScalar x) {return DScalar(0.0);};
+    basisT(3, numT-4) = [=](DScalar x) {x = numT-3-x/gapT; return - (x-1)*(x-1)*(x-1);};
         // cubic [111234]
-    basisT(2, numT-2) = [=](DScalar x) {x = numT-1-x/gapT; return (7.0/4.0)*x*x*x - (9.0/2.0)*x*x + 3.0*x - (x-1)*(x-1)*(x-1);};
-    basisT(3, numT-3) = [=](DScalar x) {x = numT-1-x/gapT; return -(1.0/4.0)*x*x*x + (3.0/2.0)*x*x - 3.0*x + 2.0;};
+    basisT(2, numT-4) = [=](DScalar x) {x = numT-3-x/gapT; return (7.0/4.0)*x*x*x - (9.0/2.0)*x*x + 3.0*x;};
+    basisT(3, numT-5) = [=](DScalar x) {x = numT-3-x/gapT; return -(1.0/4.0)*x*x*x + (3.0/2.0)*x*x - 3.0*x + 2.0;};
         // cubic [11234]
-    basisT(1, numT-2) = [=](DScalar x) {x = numT-1-x/gapT; return -(11.0/12.0)*x*x*x + (3.0/2.0)*x*x;};
-    basisT(2, numT-3) = [=](DScalar x) {x = numT-1-x/gapT; return (7.0/12.0)*x*x*x - 3.0*x*x + 9.0/2.0*x - (3.0/2.0);};
-    basisT(3, numT-4) = [=](DScalar x) {x = numT-1-x/gapT; return -(1.0/6.0)*x*x*x + (3.0/2.0)*x*x - (9.0/2.0)*x + (9.0/2.0);};
+    basisT(1, numT-4) = [=](DScalar x) {x = numT-3-x/gapT; return -(11.0/12.0)*x*x*x + (3.0/2.0)*x*x;};
+    basisT(2, numT-5) = [=](DScalar x) {x = numT-3-x/gapT; return (7.0/12.0)*x*x*x - 3.0*x*x + 9.0/2.0*x - (3.0/2.0);};
+    basisT(3, numT-6) = [=](DScalar x) {x = numT-3-x/gapT; return -(1.0/6.0)*x*x*x + (3.0/2.0)*x*x - (9.0/2.0)*x + (9.0/2.0);};
     // middle columns
         // cubic [1234]
-    for (int i=2; i<=numT-3; i++) {
+    for (int i=2; i<=numT-5; i++) {
         basisT(3, i-2) = [=](DScalar x) {x = x/gapT-i; return (1.0/6.0)*x*x*x + x*x + 2.0*x + (4.0/3.0);};
         basisT(2, i-1) = [=](DScalar x) {x = x/gapT-i; return -(1.0/2.0)*x*x*x - x*x + (2.0/3.0);};
         basisT(1, i  ) = [=](DScalar x) {x = x/gapT-i; return (1.0/2.0)*x*x*x - x*x + (2.0/3.0);};
@@ -386,22 +387,22 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sampleDS
         assert(refIdx_x <= numX-2 && refIdx_y <= numY-2 && refIdx_z <= numZ-2);
         // Evaluate
         res(i) = DScalar(0);
-        for (ix=-1; ix<=2; ix++)
-            for (iy=-1; iy<=2; iy++)
-                for (iz=-1; iz<=2; iz++) {
+        for (ix=0; ix<=3; ix++)
+            for (iy=0; iy<=3; iy++)
+                for (iz=0; iz<=3; iz++) {
 
                     idx_x = refIdx_x + ix;
                     idx_y = refIdx_y + iy;
                     idx_z = refIdx_z + iz;
-                    if (idx_x<0 || idx_y<0 || idx_z<0) continue;
-                    if (idx_x>numX-1 || idx_y>numY-1 || idx_z>numZ-1) continue;
+                    // if (idx_x<0 || idx_y<0 || idx_z<0) continue;
+                    // if (idx_x>numX-1 || idx_y>numY-1 || idx_z>numZ-1) continue;
 
                     // xcoef = CubicBasis( (sampleDS(i, 0)-centersX(idx_x)) / gapX );
                     // ycoef = CubicBasis( (sampleDS(i, 1)-centersY(idx_y)) / gapY );
                     // zcoef = CubicBasis( (sampleDS(i, 2)-centersZ(idx_z)) / gapZ );
-                    xcoef = basisX(ix+1, refIdx_x)(sampleDS(i, 0));
-                    ycoef = basisY(iy+1, refIdx_y)(sampleDS(i, 1));
-                    zcoef = basisZ(iz+1, refIdx_z)(sampleDS(i, 2));
+                    xcoef = basisX(ix, refIdx_x)(sampleDS(i, 0));
+                    ycoef = basisY(iy, refIdx_y)(sampleDS(i, 1));
+                    zcoef = basisZ(iz, refIdx_z)(sampleDS(i, 2));
 
                     res(i) += controlPoints(numX*numY*idx_z + numY*idx_x + idx_y) * xcoef * ycoef * zcoef;
                 }

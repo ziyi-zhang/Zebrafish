@@ -11,13 +11,14 @@ using namespace zebrafish;
 
 double func(double x, double y, double z) {
 
-    return x + y;
+    // return x + y;
 
     // x^2 + y^2
     // return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
 
     // (x^2 + y^2)^(3/2)
     // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
+    return (x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5);
 
     // x^4 + y^4 + 2 * x^2 * y^2
     // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5) +
@@ -72,16 +73,16 @@ int main() {
 
     // prepare B-spline
     bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 1, 1, 1);
+    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 1);
 
     // interp
     srand(time(NULL));
 
     for (int i = 0; i<20; i++) {
-        x = rand() % sizeX+0.2;
-        y = rand() % sizeY+0.3;
-        z = rand() % sizeZ+0.1;
-        x = 4.2; y = 4.5; z = 5;
+        x = rand() % (sizeX-1)+0.2;
+        y = rand() % (sizeY-1)+0.3;
+        z = rand() % (sizeZ-1)+0.1;
+        // x = 0; y = 0; z = 5;
         cout << x << " " << y << " " << z << ": ";
 
         Eigen::Matrix<DScalar, Eigen::Dynamic, 3> in;
