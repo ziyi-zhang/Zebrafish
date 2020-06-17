@@ -38,9 +38,9 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
     auto &zArray = samplePoints.zArray;
 
     // boundary check
-    if (x - 1.5*r < 2*bsp.gapX || x + 1.5*r > xmax - 2*bsp.gapX ||
-        y - 1.5*r < 2*bsp.gapY || y + 1.5*r > ymax - 2*bsp.gapY ||
-        z < 2*bsp.gapZ || z+h > zmax - 2*bsp.gapZ || 
+    if (x - 1.5*r < 0 || x + 1.5*r > xmax - 1 ||
+        y - 1.5*r < 0 || y + 1.5*r > ymax - 1 ||
+        z < 0 || z+h > zmax - 1 || 
         r < minRadius) {
         return false;
     }
