@@ -51,6 +51,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
 
     assert(xratio <= 1 && yratio <= 1 && zratio <= 1);
         std::cout << "====================================================" << std::endl;
+        std::cout << "B-Spline degree = " << degree << std::endl;
         PrintTime("Start calculating control points...");
 
     DiffScalarBase::setVariableCount(3);  // x, y, r
@@ -87,6 +88,8 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
         gapY = double(Ny-1) / double(numY-1-1);
         gapZ = double(Nz-1) / double(numZ-1-1);
     }
+        std::cout << "gapX= " << gapX << " gapY= " << gapY << " gapZ= " << gapZ << std::endl;
+        std::cout << "gapX= " << gapX*resolutionX << "um gapY= " << gapY*resolutionY << "um gapZ= " << gapZ*resolutionZ << "um" << std::endl;
 
     // map 3D "image" to 1D "inputPts"
         // order matters! z -> y -> x
@@ -376,9 +379,9 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sampleDS
         refIdx_x = floor(sampleDS(i, 0).getValue() / gapX);
         refIdx_y = floor(sampleDS(i, 1).getValue() / gapY);
         refIdx_z = floor(sampleDS(i, 2).getValue() / gapZ);
-        if (refIdx_x == numX-1) refIdx_x--;
-        if (refIdx_y == numY-1) refIdx_y--;
-        if (refIdx_z == numZ-1) refIdx_z--;
+        if (refIdx_x == numX-1-(degree-1)) refIdx_x--;
+        if (refIdx_y == numY-1-(degree-1)) refIdx_y--;
+        if (refIdx_z == numZ-1-(degree-1)) refIdx_z--;
         assert(refIdx_x >= 0 && refIdx_y >= 0 && refIdx_z >= 0);
         assert(refIdx_x <= numX-(degree+1) && refIdx_y <= numY-(degree+1) && refIdx_z <= numZ-(degree+1));
         // Evaluate

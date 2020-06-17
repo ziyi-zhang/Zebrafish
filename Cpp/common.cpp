@@ -3,7 +3,7 @@
 namespace zebrafish {
 
 // Bspline
-int degree = 2;
+int degree = 3;
 
 // image info
 double resolutionX;
