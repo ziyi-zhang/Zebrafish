@@ -21,40 +21,6 @@ namespace zebrafish {
 
 namespace {
 
-    inline double CubicBasis(double t) {
-    /// Defines the cubic basis function centered at t=0 for uniform knot vector B-spline
-    /// If t>2 or t<-2, the function will return zero due to local control property
-
-        if (t>=2 || t<=-2)
-            return 0;
-        else if (t > 1)
-            return -1.0/6.0 * t*t*t + t*t - 2.0 * t + 4.0/3.0;
-        else if (t > 0)
-            return 0.5 * t*t*t - t*t + 2.0/3.0;
-        else if (t > -1)
-            return -0.5 * t*t*t - t*t + 2.0/3.0;
-        else // t > -2
-            return 1.0/6.0 * t*t*t + t*t + 2.0*t + 4.0/3.0;
-    }
-
-
-    inline DScalar CubicBasis(DScalar t) {
-    /// Defines the cubic basis function centered at t=0 for uniform knot vector B-spline
-    /// If t>2 or t<-2, the function will return zero due to local control property
-
-        if (t>=2 || t<=-2)
-            return DScalar(0);
-        else if (t > 1)
-            return -1.0/6.0 * t*t*t + t*t - 2.0 * t + 4.0/3.0;
-        else if (t > 0)
-            return 0.5 * t*t*t - t*t + 2.0/3.0;
-        else if (t > -1)
-            return -0.5 * t*t*t - t*t + 2.0/3.0;
-        else // t > -2
-            return 1.0/6.0 * t*t*t + t*t + 2.0*t + 4.0/3.0;
-    }
-
-
     void PrintTime(std::string str) {
     // print human readable time
 
@@ -89,7 +55,6 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
 
     DiffScalarBase::setVariableCount(3);  // x, y, r
 
-
     int N, num;
     double centerX, centerY, centerZ, t;
     Eigen::VectorXd inputPts, vectorY;
@@ -116,11 +81,6 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     gapX = double(Nx-1) / double(numX-1-2);  // "-2" due to clamped B-spline
     gapY = double(Ny-1) / double(numY-1-2);
     gapZ = double(Nz-1) / double(numZ-1-2);
-    // location of the center of a control point's basis function
-        // WARNING: This is wrong & useless now
-    centersX = Eigen::VectorXd::LinSpaced(numX, 0, Nx-1);
-    centersY = Eigen::VectorXd::LinSpaced(numY, 0, Ny-1);
-    centersZ = Eigen::VectorXd::LinSpaced(numZ, 0, Nz-1);
 
     // map 3D "image" to 1D "inputPts"
         // order matters! z -> y -> x
@@ -195,24 +155,25 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
                 refIdx_x = floor(ix / gapX);
                 refIdx_y = floor(iy / gapY);
                 refIdx_z = floor(iz / gapZ);
+                // if the query point lies exactly at the end of the border
                 if (refIdx_x == numX-1-2) refIdx_x--;
                 if (refIdx_y == numY-1-2) refIdx_y--;
                 if (refIdx_z == numZ-1-2) refIdx_z--;
+                /*
+                // This is not necessary anymore because clamped B-spline has wider gap
                 jxMin = std::max(0, refIdx_x);
                 jxMax = std::min(numX-1, refIdx_x+3);
                 jyMin = std::max(0, refIdx_y);
                 jyMax = std::min(numY-1, refIdx_y+3);
                 jzMin = std::max(0, refIdx_z);
                 jzMax = std::min(numZ-1, refIdx_z+3);
+                */
                 rowSum = 0.0;
-                for (jz=jzMin; jz<=jzMax; jz++)
-                    for (jx=jxMin; jx<=jxMax; jx++)
-                        for (jy=jyMin; jy<=jyMax; jy++) {
+                for (jz=refIdx_z; jz<=refIdx_z+3; jz++)
+                    for (jx=refIdx_x; jx<=refIdx_x+3; jx++)
+                        for (jy=refIdx_y; jy<=refIdx_y+3; jy++) {
 
                             j = jz * numX * numY + jx * numY + jy;  // iterating control points' basis function
-                            // t = CubicBasis( (ix-centersX(jx)) / gapX) * 
-                            //     CubicBasis( (iy-centersY(jy)) / gapY) * 
-                            //     CubicBasis( (iz-centersZ(jz)) / gapZ);
                             t1 = basisX(jx-refIdx_x, refIdx_x)(DScalar(ix)).getValue();
                             t2 = basisY(jy-refIdx_y, refIdx_y)(DScalar(iy)).getValue();
                             t3 = basisZ(jz-refIdx_z, refIdx_z)(DScalar(iz)).getValue();
@@ -225,8 +186,8 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
                             }
                         }
                 ///////////// DEBUG ONLY
-                if (fabs(rowSum-1.0)> 1e-8)
-                    std::cout << ix << " " << iy << " " << iz << " " << rowSum << std::endl;
+                if (fabs(rowSum-1.0)> 1e-8)  // if (rowSum != 1.0)
+                    std::cout << "RowSum: " << ix << " " << iy << " " << iz << " " << rowSum << std::endl;
                 ///////////// DEBUG ONLY
             }
 }
@@ -268,6 +229,8 @@ void bspline::CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, 4, E
 
 
 void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) const {
+// This function is temporarily deprecated 
+// Use the DScalar version instead
 
     assert(numX != 0 && numY != 0 && numZ != 0);
 
@@ -297,11 +260,13 @@ void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) con
                     idx_y = refIdx_y + iy;
                     idx_z = refIdx_z + iz;
 
+                    /*
                     xcoef = CubicBasis( (sample(i, 0)-centersX(idx_x)) / gapX );
                     ycoef = CubicBasis( (sample(i, 1)-centersY(idx_y)) / gapY );
                     zcoef = CubicBasis( (sample(i, 2)-centersZ(idx_z)) / gapZ );
 
                     res(i) += controlPoints(numX*numY*idx_z + numY*idx_x + idx_y) * xcoef * ycoef * zcoef;
+                    */
                 }
     }
 
@@ -364,27 +329,19 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sampleDS
     DScalar xcoef, ycoef, zcoef;
     int refIdx_x, refIdx_y, refIdx_z;
     double evalX1, evalX2, evalX3, evalX4, evalY1, evalY2, evalY3, evalY4, evalZ1, evalZ2, evalZ3, evalZ4;
-    Eigen::MatrixXd sample(sampleDS.rows(), 3);
-    for (i=0; i<sampleDS.rows(); i++) {
-        sample(i, 0) = sampleDS(i, 0).getValue();
-        sample(i, 1) = sampleDS(i, 1).getValue();
-        sample(i, 2) = sampleDS(i, 2).getValue();
-    }
-    Eigen::MatrixX3d truncSample = sample.array().floor();
-    Eigen::MatrixX3d baseIdx = truncSample.array() - 1.0;
 
-    res.resize(sample.rows(), 1);
-    for (i=0; i<sample.rows(); i++) {
+    res.resize(sampleDS.rows(), 1);
+    for (i=0; i<sampleDS.rows(); i++) {
 
         // Get reference index
-        refIdx_x = floor(sample(i, 0) / gapX);
-        refIdx_y = floor(sample(i, 1) / gapY);
-        refIdx_z = floor(sample(i, 2) / gapZ);
+        refIdx_x = floor(sampleDS(i, 0).getValue() / gapX);
+        refIdx_y = floor(sampleDS(i, 1).getValue() / gapY);
+        refIdx_z = floor(sampleDS(i, 2).getValue() / gapZ);
         if (refIdx_x == numX-1) refIdx_x--;
         if (refIdx_y == numY-1) refIdx_y--;
         if (refIdx_z == numZ-1) refIdx_z--;
         assert(refIdx_x >= 0 && refIdx_y >= 0 && refIdx_z >= 0);
-        assert(refIdx_x <= numX-2 && refIdx_y <= numY-2 && refIdx_z <= numZ-2);
+        assert(refIdx_x <= numX-4 && refIdx_y <= numY-4 && refIdx_z <= numZ-4);
         // Evaluate
         res(i) = DScalar(0);
         for (ix=0; ix<=3; ix++)
@@ -394,17 +351,13 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sampleDS
                     idx_x = refIdx_x + ix;
                     idx_y = refIdx_y + iy;
                     idx_z = refIdx_z + iz;
-                    // if (idx_x<0 || idx_y<0 || idx_z<0) continue;
-                    // if (idx_x>numX-1 || idx_y>numY-1 || idx_z>numZ-1) continue;
 
-                    // xcoef = CubicBasis( (sampleDS(i, 0)-centersX(idx_x)) / gapX );
-                    // ycoef = CubicBasis( (sampleDS(i, 1)-centersY(idx_y)) / gapY );
-                    // zcoef = CubicBasis( (sampleDS(i, 2)-centersZ(idx_z)) / gapZ );
                     xcoef = basisX(ix, refIdx_x)(sampleDS(i, 0));
                     ycoef = basisY(iy, refIdx_y)(sampleDS(i, 1));
                     zcoef = basisZ(iz, refIdx_z)(sampleDS(i, 2));
 
-                    res(i) += controlPoints(numX*numY*idx_z + numY*idx_x + idx_y) * xcoef * ycoef * zcoef;
+                    res(i) += controlPoints(numX*numY*idx_z + numY*idx_x + idx_y) 
+                              * xcoef * ycoef * zcoef;
                 }
     }
 }
