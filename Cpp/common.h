@@ -11,20 +11,32 @@
 
 namespace zebrafish {
 
-// types
+///////////
+// types //
+///////////
 typedef std::vector<Eigen::MatrixXd> image_t;  // a 3D double matrix
 typedef Eigen::Vector3d gradient_t;  // gradient
 typedef DScalar1<double, gradient_t> DScalar;
 
-// global variables
+//////////////////////
+// global variables //
+//////////////////////
+// Bspline
 extern int degree;            // B-spline degree
                               // "3" for cubic basis function
                               // "2" for quadratic basis function
 
+// image info
 extern double resolutionX;    // The distance between two pixels in X-direction (in micrometers)
 extern double resolutionY;
 extern double resolutionZ;
 
+// hypre solver
+extern int solverMaxIt;       // Hypre solver max iterations
+extern double solverConvTol;        // Hypre solver convergence tolerance
+extern double solverTol;      // Hypre solver tolerance
+
+//
 extern double pixelQuantile;  // pixels with value larger than this quantile will be trimmed
 
 extern double minRadius;      // minimal radius of a cylinder

@@ -122,8 +122,9 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     const std::string solverName = "Hypre";
     auto solver = polysolve::LinearSolver::create(solverName, "");
     const nlohmann::json params = {
-        {"max_iter", 100000}, 
-        {"tolerance", 1e-20}
+        {"max_iter", solverMaxIt}, 
+        {"conv_tol", solverConvTol},
+        {"tolerance", solverTol}
     };
     solver->setParameters(params);
         PrintTime("Analyzing matrix pattern...");
