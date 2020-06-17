@@ -78,9 +78,15 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     Eigen::SparseMatrix<double> AtransposeA(num, num);
 
     // the interval between two control points along a direction
-    gapX = double(Nx-1) / double(numX-1-2);  // "-2" due to clamped B-spline
-    gapY = double(Ny-1) / double(numY-1-2);
-    gapZ = double(Nz-1) / double(numZ-1-2);
+    if (degree == 3) {
+        gapX = double(Nx-1) / double(numX-1-2);  // "-2" due to clamped B-spline
+        gapY = double(Ny-1) / double(numY-1-2);
+        gapZ = double(Nz-1) / double(numZ-1-2);
+    } else if (degree == 2) {
+        gapX = double(Nx-1) / double(numX-1-1);  // "-1" due to clamped B-spline
+        gapY = double(Ny-1) / double(numY-1-1);
+        gapZ = double(Nz-1) / double(numZ-1-1);
+    }
 
     // map 3D "image" to 1D "inputPts"
         // order matters! z -> y -> x
@@ -150,15 +156,16 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
             for (ix=0; ix<=Nx-1; ix++) {
 
                 i = iz * Nx * Ny + iy * Nx + ix;  // iterating sample points
-                if (i % 3000 == 0) std::cout << " " << i << " / " << Nx*Ny*Nz << std::endl;
+
+                if (i % int(Nx*Ny*Nz*0.2) == 0) std::cout << "     " << i << " / " << Nx*Ny*Nz << std::endl;
                 
                 refIdx_x = floor(ix / gapX);
                 refIdx_y = floor(iy / gapY);
                 refIdx_z = floor(iz / gapZ);
                 // if the query point lies exactly at the end of the border
-                if (refIdx_x == numX-1-2) refIdx_x--;
-                if (refIdx_y == numY-1-2) refIdx_y--;
-                if (refIdx_z == numZ-1-2) refIdx_z--;
+                if (refIdx_x == numX-1-(degree-1)) refIdx_x--;
+                if (refIdx_y == numY-1-(degree-1)) refIdx_y--;
+                if (refIdx_z == numZ-1-(degree-1)) refIdx_z--;
                 /*
                 // This is not necessary anymore because clamped B-spline has wider gap
                 jxMin = std::max(0, refIdx_x);
@@ -169,9 +176,9 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
                 jzMax = std::min(numZ-1, refIdx_z+3);
                 */
                 rowSum = 0.0;
-                for (jz=refIdx_z; jz<=refIdx_z+3; jz++)
-                    for (jx=refIdx_x; jx<=refIdx_x+3; jx++)
-                        for (jy=refIdx_y; jy<=refIdx_y+3; jy++) {
+                for (jz=refIdx_z; jz<=refIdx_z+degree; jz++)
+                    for (jx=refIdx_x; jx<=refIdx_x+degree; jx++)
+                        for (jy=refIdx_y; jy<=refIdx_y+degree; jy++) {
 
                             j = jz * numX * numY + jx * numY + jy;  // iterating control points' basis function
                             t1 = basisX(jx-refIdx_x, refIdx_x)(DScalar(ix)).getValue();
@@ -187,43 +194,72 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
                         }
                 ///////////// DEBUG ONLY
                 if (fabs(rowSum-1.0)> 1e-8)  // if (rowSum != 1.0)
-                    std::cout << "RowSum: " << ix << " " << iy << " " << iz << " " << rowSum << std::endl;
+                    std::cout << "RowSum error: " << ix << " " << iy << " " << iz << " " << rowSum << std::endl;
                 ///////////// DEBUG ONLY
             }
 }
 
 
-void bspline::CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, 4, Eigen::Dynamic, Eigen::ColMajor> &basisT, int numT, double gapT) {
+void bspline::CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, int numT, double gapT) {
 // NOTE: "T" can be "X", "Y" or "Z"
 
-    assert(numT >= 8);
+    if (degree == 3) {  // cubic basis
 
-    basisT.resize(4, numT-1-2);
-    // first 3 columns
-    basisT(0, 0) = [=](DScalar x) {x = x/gapT; return - (x-1)*(x-1)*(x-1);};
-        // cubic [111234]
-    basisT(1, 0) = [=](DScalar x) {x = x/gapT; return (7.0/4.0)*x*x*x - (9.0/2.0)*x*x + 3.0*x;};
-    basisT(0, 1) = [=](DScalar x) {x = x/gapT; return -(1.0/4.0)*x*x*x + (3.0/2.0)*x*x - 3.0*x + 2.0;};
-        // cubic [11234]
-    basisT(2, 0) = [=](DScalar x) {x = x/gapT; return -(11.0/12.0)*x*x*x + (3.0/2.0)*x*x;};
-    basisT(1, 1) = [=](DScalar x) {x = x/gapT; return (7.0/12.0)*x*x*x - 3.0*x*x + 9.0/2.0*x - (3.0/2.0);};
-    basisT(0, 2) = [=](DScalar x) {x = x/gapT; return -(1.0/6.0)*x*x*x + (3.0/2.0)*x*x - (9.0/2.0)*x + (9.0/2.0);};
-    // last 3 columns
-    basisT(3, numT-4) = [=](DScalar x) {x = numT-3-x/gapT; return - (x-1)*(x-1)*(x-1);};
-        // cubic [111234]
-    basisT(2, numT-4) = [=](DScalar x) {x = numT-3-x/gapT; return (7.0/4.0)*x*x*x - (9.0/2.0)*x*x + 3.0*x;};
-    basisT(3, numT-5) = [=](DScalar x) {x = numT-3-x/gapT; return -(1.0/4.0)*x*x*x + (3.0/2.0)*x*x - 3.0*x + 2.0;};
-        // cubic [11234]
-    basisT(1, numT-4) = [=](DScalar x) {x = numT-3-x/gapT; return -(11.0/12.0)*x*x*x + (3.0/2.0)*x*x;};
-    basisT(2, numT-5) = [=](DScalar x) {x = numT-3-x/gapT; return (7.0/12.0)*x*x*x - 3.0*x*x + 9.0/2.0*x - (3.0/2.0);};
-    basisT(3, numT-6) = [=](DScalar x) {x = numT-3-x/gapT; return -(1.0/6.0)*x*x*x + (3.0/2.0)*x*x - (9.0/2.0)*x + (9.0/2.0);};
-    // middle columns
-        // cubic [1234]
-    for (int i=2; i<=numT-5; i++) {
-        basisT(3, i-2) = [=](DScalar x) {x = x/gapT-i; return (1.0/6.0)*x*x*x + x*x + 2.0*x + (4.0/3.0);};
-        basisT(2, i-1) = [=](DScalar x) {x = x/gapT-i; return -(1.0/2.0)*x*x*x - x*x + (2.0/3.0);};
-        basisT(1, i  ) = [=](DScalar x) {x = x/gapT-i; return (1.0/2.0)*x*x*x - x*x + (2.0/3.0);};
-        basisT(0, i+1) = [=](DScalar x) {x = x/gapT-i; return -(1.0/6.0)*x*x*x + x*x - 2.0*x + (4.0/3.0);};
+        assert(numT >= 8);
+
+        basisT.resize(4, numT-1-2);
+        // first 3 columns
+            // cubic [11112]
+        basisT(0, 0) = [=](DScalar x) {x = x/gapT; return - (x-1.0)*(x-1.0)*(x-1.0);};
+            // cubic [11123]
+        basisT(1, 0) = [=](DScalar x) {x = x/gapT; return (7.0/4.0)*x*x*x - (9.0/2.0)*x*x + 3.0*x;};
+        basisT(0, 1) = [=](DScalar x) {x = x/gapT; return -(1.0/4.0)*x*x*x + (3.0/2.0)*x*x - 3.0*x + 2.0;};
+            // cubic [11234]
+        basisT(2, 0) = [=](DScalar x) {x = x/gapT; return -(11.0/12.0)*x*x*x + (3.0/2.0)*x*x;};
+        basisT(1, 1) = [=](DScalar x) {x = x/gapT; return (7.0/12.0)*x*x*x - 3.0*x*x + 9.0/2.0*x - (3.0/2.0);};
+        basisT(0, 2) = [=](DScalar x) {x = x/gapT; return -(1.0/6.0)*x*x*x + (3.0/2.0)*x*x - (9.0/2.0)*x + (9.0/2.0);};
+        // last 3 columns
+            // cubic [11112]
+        basisT(3, numT-4) = [=](DScalar x) {x = numT-3-x/gapT; return - (x-1.0)*(x-1.0)*(x-1.0);};
+            // cubic [11123]
+        basisT(2, numT-4) = [=](DScalar x) {x = numT-3-x/gapT; return (7.0/4.0)*x*x*x - (9.0/2.0)*x*x + 3.0*x;};
+        basisT(3, numT-5) = [=](DScalar x) {x = numT-3-x/gapT; return -(1.0/4.0)*x*x*x + (3.0/2.0)*x*x - 3.0*x + 2.0;};
+            // cubic [11234]
+        basisT(1, numT-4) = [=](DScalar x) {x = numT-3-x/gapT; return -(11.0/12.0)*x*x*x + (3.0/2.0)*x*x;};
+        basisT(2, numT-5) = [=](DScalar x) {x = numT-3-x/gapT; return (7.0/12.0)*x*x*x - 3.0*x*x + 9.0/2.0*x - (3.0/2.0);};
+        basisT(3, numT-6) = [=](DScalar x) {x = numT-3-x/gapT; return -(1.0/6.0)*x*x*x + (3.0/2.0)*x*x - (9.0/2.0)*x + (9.0/2.0);};
+        // middle columns
+            // cubic [12345]
+        for (int i=2; i<=numT-5; i++) {
+            basisT(3, i-2) = [=](DScalar x) {x = x/gapT-i; return (1.0/6.0)*x*x*x + x*x + 2.0*x + (4.0/3.0);};
+            basisT(2, i-1) = [=](DScalar x) {x = x/gapT-i; return -(1.0/2.0)*x*x*x - x*x + (2.0/3.0);};
+            basisT(1, i  ) = [=](DScalar x) {x = x/gapT-i; return (1.0/2.0)*x*x*x - x*x + (2.0/3.0);};
+            basisT(0, i+1) = [=](DScalar x) {x = x/gapT-i; return -(1.0/6.0)*x*x*x + x*x - 2.0*x + (4.0/3.0);};
+        }
+    } else if (degree == 2) {  // quadratic basis
+
+        assert(numT >= 6);
+
+        basisT.resize(3, numT-1-1);
+        // first 2 columns
+            // quadratic [1112]
+        basisT(0, 0) = [=](DScalar x) {x = x/gapT; return (x-1.0)*(x-1.0);};
+            // quadratic [1123]
+        basisT(1, 0) = [=](DScalar x) {x = x/gapT-1; return -(3.0/2.0)*x*x - x + (1.0/2.0);};  // Why minus one? the basis function is from -1, see notes
+        basisT(0, 1) = [=](DScalar x) {x = x/gapT-1; return (1.0/2.0)*x*x - x + (1.0/2.0);};
+        // last 2 columns
+            // quadratic [1112]
+        basisT(2, numT-3) = [=](DScalar x) {x = numT-2-x/gapT; return (x-1.0)*(x-1.0);};
+            // quadratic [1123]
+        basisT(1, numT-3) = [=](DScalar x) {x = numT-2-x/gapT-1; return -(3.0/2.0)*x*x - x + (1.0/2.0);};
+        basisT(2, numT-4) = [=](DScalar x) {x = numT-2-x/gapT-1; return (1.0/2.0)*x*x - x + (1.0/2.0);};
+        // middle columns
+            // quadratic [1234]
+        for (int i=1; i<=numT-4; i++) {
+            basisT(2, i-1) = [=](DScalar x) {x = x/gapT-i; return (1.0/2.0)*x*x + x + (1.0/2.0);};
+            basisT(1, i  ) = [=](DScalar x) {x = x/gapT-i; return -x*x + x + (1.0/2.0);};
+            basisT(0, i+1) = [=](DScalar x) {x = x/gapT-i; return (1.0/2.0)*x*x - 2.0*x + 2.0;};
+        }
     }
 }
 
@@ -341,12 +377,12 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sampleDS
         if (refIdx_y == numY-1) refIdx_y--;
         if (refIdx_z == numZ-1) refIdx_z--;
         assert(refIdx_x >= 0 && refIdx_y >= 0 && refIdx_z >= 0);
-        assert(refIdx_x <= numX-4 && refIdx_y <= numY-4 && refIdx_z <= numZ-4);
+        assert(refIdx_x <= numX-(degree+1) && refIdx_y <= numY-(degree+1) && refIdx_z <= numZ-(degree+1));
         // Evaluate
         res(i) = DScalar(0);
-        for (ix=0; ix<=3; ix++)
-            for (iy=0; iy<=3; iy++)
-                for (iz=0; iz<=3; iz++) {
+        for (ix=0; ix<=degree; ix++)
+            for (iy=0; iy<=degree; iy++)
+                for (iz=0; iz<=degree; iz++) {
 
                     idx_x = refIdx_x + ix;
                     idx_y = refIdx_y + iy;

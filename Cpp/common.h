@@ -17,6 +17,10 @@ typedef Eigen::Vector3d gradient_t;  // gradient
 typedef DScalar1<double, gradient_t> DScalar;
 
 // global variables
+extern int degree;            // B-spline degree
+                              // "3" for cubic basis function
+                              // "2" for quadratic basis function
+
 extern double resolutionX;    // The distance between two pixels in X-direction (in micrometers)
 extern double resolutionY;
 extern double resolutionZ;
