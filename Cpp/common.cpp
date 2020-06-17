@@ -2,7 +2,7 @@
 
 namespace zebrafish {
 
-int degree = 3;
+int degree = 2;
 
 double resolutionX;
 double resolutionY;

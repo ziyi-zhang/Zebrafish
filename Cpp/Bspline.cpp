@@ -358,6 +358,8 @@ void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) con
 
 
 void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sampleDS, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
+// NOTE: This interpolation function supports all valid query input 
+//       at the cost of some extra logics. 
 
     assert(numX != 0 && numY != 0 && numZ != 0);
 
