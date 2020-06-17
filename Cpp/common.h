@@ -33,12 +33,14 @@ extern double resolutionZ;
 
 // hypre solver
 extern int solverMaxIt;       // Hypre solver max iterations
-extern double solverConvTol;        // Hypre solver convergence tolerance
+extern double solverConvTol;  // Hypre solver convergence tolerance
 extern double solverTol;      // Hypre solver tolerance
 
-//
+// pre-process
 extern double pixelQuantile;  // pixels with value larger than this quantile will be trimmed
 
+// cylinder / enerygy function
+extern int diskQuadMethod;    // index of the disk quadrature method
 extern double minRadius;      // minimal radius of a cylinder
 extern int heightLayers;      // desired height layers used in quadrature
 

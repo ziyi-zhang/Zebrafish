@@ -1,4 +1,4 @@
-// Cylinder & autodiff TEST
+// Cylinder TEST
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
@@ -10,14 +10,13 @@ using namespace zebrafish;
 
 double func(double x, double y, double z) {
 
-    // return x + y;
+    return x + y;
 
     // x^2 + y^2
-    return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
+    // return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
 
     // (x^2 + y^2)^(3/2)
     // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
-    // return (x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5);
 
     // x^4 + y^4 + 2 * x^2 * y^2
     // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5) +
@@ -77,29 +76,14 @@ int main() {
     // prepare cylinder
     cylinder cylinder;
     double eps = 1e-4;
-    double xx = 13.28, yy = 16.52, rr = 4.33;
+    double xx = 14.5, yy = 14.5, rr = 5;
     if (!cylinder.SampleCylinder(image, bsplineSolver, xx, yy, 4, rr, 3))
         cerr << "Invalid cylinder 1" << endl;
     DScalar ans1 = cylinder.EvaluateCylinder(image, bsplineSolver);
-    if (!cylinder.SampleCylinder(image, bsplineSolver, xx+eps, yy, 4, rr, 3))
-        cerr << "Invalid cylinder 2" << endl;
-    DScalar ans2 = cylinder.EvaluateCylinder(image, bsplineSolver);
-    if (!cylinder.SampleCylinder(image, bsplineSolver, xx, yy+eps, 4, rr, 3))
-        cerr << "Invalid cylinder 3" << endl;
-    DScalar ans3 = cylinder.EvaluateCylinder(image, bsplineSolver);
-    if (!cylinder.SampleCylinder(image, bsplineSolver, xx, yy, 4, rr+eps, 3))
-        cerr << "Invalid cylinder 4" << endl;
-    DScalar ans4 = cylinder.EvaluateCylinder(image, bsplineSolver);
 
     cout.precision(10);
-    cout << "E(t) = " << ans1 << endl;
-    cout << "E(t)+dx*G = " << ans1.getValue()+eps*ans1.getGradient()(0) << "    E(t+dx) = " << ans2.getValue() << endl;
-    cout << "E(t)+dy*G = " << ans1.getValue()+eps*ans1.getGradient()(1) << "    E(t+dy) = " << ans3.getValue() << endl;
-    cout << "E(t)+dr*G = " << ans1.getValue()+eps*ans1.getGradient()(2) << "    E(t+dr) = " << ans4.getValue() << endl;
 
-    /*
-    cout << "Evaluated result: " << ans.getValue() << endl;
-    cout << "Gradient: " << ans << endl;
-    cout << "maxPixel = " << maxPixel << "  normalized res = " << ans.getValue() / maxPixel << endl;
-    */
+    cout << "Evaluated result: " << ans1.getValue() << endl;
+    cout << "Gradient: " << ans1 << endl;
+    cout << "maxPixel = " << maxPixel << "  normalized res = " << ans1.getValue() / maxPixel << endl;
 }

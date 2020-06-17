@@ -7,6 +7,7 @@ set(SOURCES
     Bspline.h
     Quantile.cpp
     Quantile.h
+    Quad.ipp
 )
 
 prepend_current_path(SOURCES)

@@ -62,8 +62,10 @@ private:
     // hardcoded quadrature weights and locations
     // "locations" multiplied by sqrt(2)
     // "weight" multiplied by 1 or -1 depending on distance to center
-    static Eigen::Matrix<double, 57, 3> cools_kim_1;  // 57 samples, degree = 17
-    static Eigen::Matrix<double, 900, 3> lether;  // 900 samples, degree = 59
+        // static Eigen::Matrix<double, 57, 3> cools_kim_1;  // 57 samples, degree = 17
+        // static Eigen::Matrix<double, 900, 3> lether;  // 900 samples, degree = 59
+    Eigen::Matrix<double, Eigen::Dynamic, 2> xyArray;
+    Eigen::Matrix<double, Eigen::Dynamic, 1> weightArray;
 };
 
 }  // namespace zebrafish

@@ -1,4 +1,4 @@
-// Cylinder & autodiff TEST
+// Cylinder TEST
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
