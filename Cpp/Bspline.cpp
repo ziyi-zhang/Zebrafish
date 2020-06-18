@@ -204,7 +204,7 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
 }
 
 
-void bspline::CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, int numT, double gapT) {
+void bspline::CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, int& numT, double& gapT) {
 // NOTE: "T" can be "X", "Y" or "Z"
 
     if (degree == 3) {  // cubic basis
@@ -214,31 +214,32 @@ void bspline::CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, Eige
         basisT.resize(4, numT-1-2);
         // first 3 columns
             // cubic [11112]
-        basisT(0, 0) = [=](DScalar x) {x = x/gapT; return - (x-1.0)*(x-1.0)*(x-1.0);};
+        basisT(0, 0) = [&gapT](DScalar x) {x = x/gapT; return - (x-1.0)*(x-1.0)*(x-1.0);};
             // cubic [11123]
-        basisT(1, 0) = [=](DScalar x) {x = x/gapT; return (7.0/4.0)*x*x*x - (9.0/2.0)*x*x + 3.0*x;};
-        basisT(0, 1) = [=](DScalar x) {x = x/gapT; return -(1.0/4.0)*x*x*x + (3.0/2.0)*x*x - 3.0*x + 2.0;};
+        basisT(1, 0) = [&gapT](DScalar x) {x = x/gapT; return (7.0/4.0)*x*x*x - (9.0/2.0)*x*x + 3.0*x;};
+        basisT(0, 1) = [&gapT](DScalar x) {x = x/gapT; return -(1.0/4.0)*x*x*x + (3.0/2.0)*x*x - 3.0*x + 2.0;};
             // cubic [11234]
-        basisT(2, 0) = [=](DScalar x) {x = x/gapT; return -(11.0/12.0)*x*x*x + (3.0/2.0)*x*x;};
-        basisT(1, 1) = [=](DScalar x) {x = x/gapT; return (7.0/12.0)*x*x*x - 3.0*x*x + 9.0/2.0*x - (3.0/2.0);};
-        basisT(0, 2) = [=](DScalar x) {x = x/gapT; return -(1.0/6.0)*x*x*x + (3.0/2.0)*x*x - (9.0/2.0)*x + (9.0/2.0);};
+        basisT(2, 0) = [&gapT](DScalar x) {x = x/gapT; return -(11.0/12.0)*x*x*x + (3.0/2.0)*x*x;};
+        basisT(1, 1) = [&gapT](DScalar x) {x = x/gapT; return (7.0/12.0)*x*x*x - 3.0*x*x + 9.0/2.0*x - (3.0/2.0);};
+        basisT(0, 2) = [&gapT](DScalar x) {x = x/gapT; return -(1.0/6.0)*x*x*x + (3.0/2.0)*x*x - (9.0/2.0)*x + (9.0/2.0);};
         // last 3 columns
             // cubic [11112]
-        basisT(3, numT-4) = [=](DScalar x) {x = numT-3-x/gapT; return - (x-1.0)*(x-1.0)*(x-1.0);};
+        basisT(3, numT-4) = [&](DScalar x) {x = numT-3-x/gapT; return - (x-1.0)*(x-1.0)*(x-1.0);};
             // cubic [11123]
-        basisT(2, numT-4) = [=](DScalar x) {x = numT-3-x/gapT; return (7.0/4.0)*x*x*x - (9.0/2.0)*x*x + 3.0*x;};
-        basisT(3, numT-5) = [=](DScalar x) {x = numT-3-x/gapT; return -(1.0/4.0)*x*x*x + (3.0/2.0)*x*x - 3.0*x + 2.0;};
+        basisT(2, numT-4) = [&](DScalar x) {x = numT-3-x/gapT; return (7.0/4.0)*x*x*x - (9.0/2.0)*x*x + 3.0*x;};
+        basisT(3, numT-5) = [&](DScalar x) {x = numT-3-x/gapT; return -(1.0/4.0)*x*x*x + (3.0/2.0)*x*x - 3.0*x + 2.0;};
             // cubic [11234]
-        basisT(1, numT-4) = [=](DScalar x) {x = numT-3-x/gapT; return -(11.0/12.0)*x*x*x + (3.0/2.0)*x*x;};
-        basisT(2, numT-5) = [=](DScalar x) {x = numT-3-x/gapT; return (7.0/12.0)*x*x*x - 3.0*x*x + 9.0/2.0*x - (3.0/2.0);};
-        basisT(3, numT-6) = [=](DScalar x) {x = numT-3-x/gapT; return -(1.0/6.0)*x*x*x + (3.0/2.0)*x*x - (9.0/2.0)*x + (9.0/2.0);};
+        basisT(1, numT-4) = [&](DScalar x) {x = numT-3-x/gapT; return -(11.0/12.0)*x*x*x + (3.0/2.0)*x*x;};
+        basisT(2, numT-5) = [&](DScalar x) {x = numT-3-x/gapT; return (7.0/12.0)*x*x*x - 3.0*x*x + 9.0/2.0*x - (3.0/2.0);};
+        basisT(3, numT-6) = [&](DScalar x) {x = numT-3-x/gapT; return -(1.0/6.0)*x*x*x + (3.0/2.0)*x*x - (9.0/2.0)*x + (9.0/2.0);};
         // middle columns
             // cubic [12345]
         for (int i=2; i<=numT-5; i++) {
-            basisT(3, i-2) = [=](DScalar x) {x = x/gapT-i; return (1.0/6.0)*x*x*x + x*x + 2.0*x + (4.0/3.0);};
-            basisT(2, i-1) = [=](DScalar x) {x = x/gapT-i; return -(1.0/2.0)*x*x*x - x*x + (2.0/3.0);};
-            basisT(1, i  ) = [=](DScalar x) {x = x/gapT-i; return (1.0/2.0)*x*x*x - x*x + (2.0/3.0);};
-            basisT(0, i+1) = [=](DScalar x) {x = x/gapT-i; return -(1.0/6.0)*x*x*x + x*x - 2.0*x + (4.0/3.0);};
+            // [&gapT, i]: gapT capture by reference & i capture by copy
+            basisT(3, i-2) = [&gapT, i](DScalar x) {x = x/gapT-i; return (1.0/6.0)*x*x*x + x*x + 2.0*x + (4.0/3.0);};
+            basisT(2, i-1) = [&gapT, i](DScalar x) {x = x/gapT-i; return -(1.0/2.0)*x*x*x - x*x + (2.0/3.0);};
+            basisT(1, i  ) = [&gapT, i](DScalar x) {x = x/gapT-i; return (1.0/2.0)*x*x*x - x*x + (2.0/3.0);};
+            basisT(0, i+1) = [&gapT, i](DScalar x) {x = x/gapT-i; return -(1.0/6.0)*x*x*x + x*x - 2.0*x + (4.0/3.0);};
         }
     } else if (degree == 2) {  // quadratic basis
 
@@ -247,22 +248,23 @@ void bspline::CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, Eige
         basisT.resize(3, numT-1-1);
         // first 2 columns
             // quadratic [1112]
-        basisT(0, 0) = [=](DScalar x) {x = x/gapT; return (x-1.0)*(x-1.0);};
+        basisT(0, 0) = [&](DScalar x) {x = x/gapT; return (x-1.0)*(x-1.0);};
             // quadratic [1123]
-        basisT(1, 0) = [=](DScalar x) {x = x/gapT-1; return -(3.0/2.0)*x*x - x + (1.0/2.0);};  // Why minus one? the basis function is from -1, see notes
-        basisT(0, 1) = [=](DScalar x) {x = x/gapT-1; return (1.0/2.0)*x*x - x + (1.0/2.0);};
+        // Why minus one? the basis function is from -1, see notes
+        basisT(1, 0) = [&](DScalar x) {x = x/gapT-1; return -(3.0/2.0)*x*x - x + (1.0/2.0);};
+        basisT(0, 1) = [&](DScalar x) {x = x/gapT-1; return (1.0/2.0)*x*x - x + (1.0/2.0);};
         // last 2 columns
             // quadratic [1112]
-        basisT(2, numT-3) = [=](DScalar x) {x = numT-2-x/gapT; return (x-1.0)*(x-1.0);};
+        basisT(2, numT-3) = [&](DScalar x) {x = numT-2-x/gapT; return (x-1.0)*(x-1.0);};
             // quadratic [1123]
-        basisT(1, numT-3) = [=](DScalar x) {x = numT-2-x/gapT-1; return -(3.0/2.0)*x*x - x + (1.0/2.0);};
-        basisT(2, numT-4) = [=](DScalar x) {x = numT-2-x/gapT-1; return (1.0/2.0)*x*x - x + (1.0/2.0);};
+        basisT(1, numT-3) = [&](DScalar x) {x = numT-2-x/gapT-1; return -(3.0/2.0)*x*x - x + (1.0/2.0);};
+        basisT(2, numT-4) = [&](DScalar x) {x = numT-2-x/gapT-1; return (1.0/2.0)*x*x - x + (1.0/2.0);};
         // middle columns
             // quadratic [1234]
         for (int i=1; i<=numT-4; i++) {
-            basisT(2, i-1) = [=](DScalar x) {x = x/gapT-i; return (1.0/2.0)*x*x + x + (1.0/2.0);};
-            basisT(1, i  ) = [=](DScalar x) {x = x/gapT-i; return -x*x + x + (1.0/2.0);};
-            basisT(0, i+1) = [=](DScalar x) {x = x/gapT-i; return (1.0/2.0)*x*x - 2.0*x + 2.0;};
+            basisT(2, i-1) = [&gapT, i](DScalar x) {x = x/gapT-i; return (1.0/2.0)*x*x + x + (1.0/2.0);};
+            basisT(1, i  ) = [&gapT, i](DScalar x) {x = x/gapT-i; return -x*x + x + (1.0/2.0);};
+            basisT(0, i+1) = [&gapT, i](DScalar x) {x = x/gapT-i; return (1.0/2.0)*x*x - 2.0*x + 2.0;};
         }
     }
 }

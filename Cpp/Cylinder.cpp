@@ -85,13 +85,25 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
     }
 
     // weight
+    //////////////////////////////////////////////////////////////////////////////////
+    /// Notes about the quadrature weight correction term "scalar":
+    /// scalar = [disk quadrature jacobian] / [cylinder volumn] * [depth layer weight]
+    /// For the inner cylinder with equidistant depth layer - 
+    ///                r^2                 H
+    ///     scalar = --------------- * ---------
+    ///                pi * r^2 * H     #layers
+    /// For the extended cylinder with equidistant depth layer - 
+    ///                    (sqrt(2)*r)^2            H
+    ///     scalar = ------------------------ * ---------
+    ///               pi * (sqrt(2)*r)^2 * H     #layers
+    /// Thus they share the same correction term.
+    //////////////////////////////////////////////////////////////////////////////////
     weights.resize(numPts, 1);
     DScalar scalar;
     scalar = rDS * rDS;  // disk quadrature jacobian
-                         // NOTE: this is not density function jacobian
+                         // NOTE: this is NOT energy function jacobian
     scalar = scalar / (rDS * rDS * h * M_PI);  // V_peri
     scalar *= h / double(heightLayers);  // z-weight
-    /// weights = weightArray.array() * scalar;  // Note: weightArray already has subtraction function multiplied
     for (i=0; i<weights.rows(); i++)
         weights(i) = weightArray(i) * scalar;
 
@@ -151,7 +163,16 @@ DScalar cylinder::EvaluateCylinder(const zebrafish::image_t &image, const zebraf
             resExt = resExt + interpRes(i) * samplePoints.weights(i);
     }
 
-    return 2.0*(resInner - resExt);
+    ////////////////////////////////////////////////////
+    /// Notes about enerygy function evaluation:
+    /// Energy = (Inner density) - (Periperal density)
+    ///        = S_in / V_in - S_peri / V_peri
+    /// [note: we enforced V_in == V_peri]
+    ///        = (1 / V_in) * (S_in + S_in - S_in - S_peri)
+    ///        = (1 / V_in) * (2*S_in - S_ext)
+    ///        = 2 * (Inner density - Extended density)
+    ////////////////////////////////////////////////////
+    return 2.0*(resInner - resExt);  // double quadrature solution
 }
 
 
