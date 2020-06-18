@@ -5,6 +5,21 @@
 
 namespace zebrafish {
 
+namespace {
+
+void LoadQuadParas(Eigen::Matrix<double, Eigen::Dynamic, 2> &xyArray, Eigen::Matrix<double, Eigen::Dynamic, 1>& weightArray) {
+    switch (diskQuadMethod) {
+        #include <zebrafish/Quad.ipp>
+
+        default:
+            assert(false);
+    }
+}
+
+}  // anonymous namespace
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::bspline &bsp, 
                               double x_, double y_, double z_, double r_, double h_) {
 
@@ -30,12 +45,14 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
     const double z = cyl.z;
     const double r = cyl.r;
     const double h = cyl.h;
-    const int &xmax = image[0].rows();
-    const int &ymax = image[0].cols();
-    const int &zmax = image.size();
-    auto &points = samplePoints.points;
+    const int xmax = image[0].rows();
+    const int ymax = image[0].cols();
+    const int zmax = image.size();
+    auto &innerPoints = samplePoints.innerPoints;
+    auto &outerPoints = samplePoints.outerPoints;
     auto &weights = samplePoints.weights;
     auto &zArray = samplePoints.zArray;
+    const int numPts = xyArray.rows();
 
     // boundary check
     if (x - 1.5*r < 0 || x + 1.5*r > xmax - 1 ||
@@ -57,28 +74,23 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
     //const Eigen::VectorXd &weightArray = lether.block<900, 1>(0, 2).cwiseAbs();
 
     // points xy (rc) array
-    points.resize(xyArray.rows(), 2);  // Note: xyArray already multiplied by sqrt(2)
-    /// points = xyArray.array() * r;  // * r
-    for (i=0; i<xyArray.rows(); i++) {
-        points(i, 0) = xyArray(i, 0) * rDS;
-        points(i, 1) = xyArray(i, 1) * rDS;
+    innerPoints.resize(numPts, 2);
+    outerPoints.resize(numPts, 2);
+    for (i=0; i<numPts; i++) {
+        // * r + [x, y]
+        innerPoints(i, 0) = xyArray(i, 0) * rDS + xDS;
+        innerPoints(i, 1) = xyArray(i, 1) * rDS + yDS;
+        outerPoints(i, 0) = xyArray(i, 0) * rDS * sqrt(2) + xDS;
+        outerPoints(i, 1) = xyArray(i, 1) * rDS * sqrt(2) + yDS;
     }
-    Eigen::Matrix<DScalar, 2, 1> xyVec;
-    xyVec(0) = xDS;
-    xyVec(1) = yDS;
-    for (i=0; i<points.rows(); i++) {
-        points(i, 0) += xDS;
-        points(i, 1) += yDS;
-    }
-    // points.rowwise() += xyVec.transpose();  // + [x, y], broadcast operation
 
     // weight
-    weights.resize(weightArray.rows(), 1);
+    weights.resize(numPts, 1);
     DScalar scalar;
-    scalar = 2 * rDS * rDS;  // disk quadrature jacobian
+    scalar = rDS * rDS;  // disk quadrature jacobian
                          // NOTE: this is not density function jacobian
     scalar = scalar / (rDS * rDS * h * M_PI);  // V_peri
-    scalar *= h / double(heightLayers);
+    scalar *= h / double(heightLayers);  // z-weight
     /// weights = weightArray.array() * scalar;  // Note: weightArray already has subtraction function multiplied
     for (i=0; i<weights.rows(); i++)
         weights(i) = weightArray(i) * scalar;
@@ -90,22 +102,22 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
 void cylinder::SubtractionHelper(const Eigen::MatrixXd &points, const Eigen::VectorXd &weight, Eigen::VectorXd &resWeight) {
 
     // this function can be used to implement sigmoid subtraction function
-    // but it seems this is not necessary
+
 }
 
 
 DScalar cylinder::EvaluateCylinder(const zebrafish::image_t &image, const zebrafish::bspline &bsp) {
 
     int depth, i;
-    DScalar res = DScalar(0);
+    DScalar resInner = DScalar(0.0), resExt = DScalar(0.0);
     Eigen::Matrix<DScalar, Eigen::Dynamic, 3> query;
     Eigen::Matrix<DScalar, Eigen::Dynamic, 1> interpRes, temp;
     const int H = samplePoints.zArray.size();
-    const int N = samplePoints.points.rows();
+    const int N = samplePoints.innerPoints.rows();
 
     query.resize(N, 3);
     temp.resize(N, 1);
-    query.block(0, 0, N, 2) = samplePoints.points;
+    query.block(0, 0, N, 2) = samplePoints.innerPoints;
     for (depth=0; depth<H; depth++) {
 
         temp.setConstant(N, DScalar(samplePoints.zArray(depth)));
@@ -122,24 +134,30 @@ DScalar cylinder::EvaluateCylinder(const zebrafish::image_t &image, const zebraf
         ////// DEBUG
 
         /// res += interpRes.dot(samplePoints.weights);
-        for (i=0; i<interpRes.rows(); i++)
-            res = res + interpRes(i) * samplePoints.weights(i);
+        for (i=0; i<N; i++)
+            resInner = resInner + interpRes(i) * samplePoints.weights(i);
     }
 
-    return res;
+    query.block(0, 0, N, 2) = samplePoints.outerPoints;
+    for (depth=0; depth<H; depth++) {
+
+        temp.setConstant(N, DScalar(samplePoints.zArray(depth)));
+        query.block(0, 2, N, 1) = temp;  // set z to current depth
+        bsp.Interp3D(query, interpRes);  // interp this layer
+
+        assert(samplePoints.weights.size() == interpRes.size());
+
+        for (i=0; i<N; i++)
+            resExt = resExt + interpRes(i) * samplePoints.weights(i);
+    }
+
+    return 2.0*(resInner - resExt);
 }
 
 
 cylinder::cylinder() {
 
-    switch (diskQuadMethod) {
-        #include <zebrafish/Quad.ipp>
-
-        default:
-            assert(false);
-    }
-    xyArray = xyArray.array() * sqrt(2);
-
+    LoadQuadParas(xyArray, weightArray);
 }
 
 

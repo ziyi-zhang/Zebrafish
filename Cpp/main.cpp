@@ -10,23 +10,26 @@ using namespace zebrafish;
 
 double func(double x, double y, double z) {
 
-    return x + y;
+    // return x + y;
 
     // x^2 + y^2
-    // return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
+    return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
 
     // (x^2 + y^2)^(3/2)
     // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
 
     // x^4 + y^4 + 2 * x^2 * y^2
     // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5) +
-      //   2 * (y-14.5)*(y-14.5)* (x-14.5)*(x-14.5);
+    //      2 * (y-14.5)*(y-14.5)* (x-14.5)*(x-14.5);
 
     // x^5 + y^5
     // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5)*(y-14.5);
 
     // (x^2 + y^2)^(5/2)
     // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 2.5);
+
+    // (x^2 + y^2)^3
+    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 3.0);
 }
 
 DECLARE_DIFFSCALAR_BASE();
@@ -69,21 +72,30 @@ int main() {
     }
     */
 
-    // prepare B-spline
-    bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 1);
+    double sizeArray[] = {0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+    for (int i=0; i<7; i++) {
 
-    // prepare cylinder
-    cylinder cylinder;
-    double eps = 1e-4;
-    double xx = 14.5, yy = 14.5, rr = 5;
-    if (!cylinder.SampleCylinder(image, bsplineSolver, xx, yy, 4, rr, 3))
-        cerr << "Invalid cylinder 1" << endl;
-    DScalar ans1 = cylinder.EvaluateCylinder(image, bsplineSolver);
+        // prepare B-spline
+        bspline bsplineSolver;
+        double size = sizeArray[i];
+        bsplineSolver.CalcControlPts(image, size, size, 1);
 
-    cout.precision(10);
+        // prepare cylinder
+        cylinder cylinder;
+        double xx = 14.5, yy = 14.5, rr = 5;
+        if (!cylinder.SampleCylinder(image, bsplineSolver, xx, yy, 4, rr, 3))
+            cerr << "Invalid cylinder 1" << endl;
+        DScalar ans1 = cylinder.EvaluateCylinder(image, bsplineSolver);
 
-    cout << "Evaluated result: " << ans1.getValue() << endl;
-    cout << "Gradient: " << ans1 << endl;
-    cout << "maxPixel = " << maxPixel << "  normalized res = " << ans1.getValue() / maxPixel << endl;
+        cout.precision(10);
+
+        double theory = -25.0;
+        cout << "Evaluated result: " << ans1.getValue() << " Error = " << ans1.getValue() - theory << endl;
+        cout << "Degree = " << degree << endl;
+        cout << "control size = " << size << endl;
+
+        cout << "Gradient: " << ans1 << endl;
+        cout << "maxPixel = " << maxPixel << "  normalized res = " << ans1.getValue() / maxPixel << endl;
+        cout << endl << flush;
+    }
 }

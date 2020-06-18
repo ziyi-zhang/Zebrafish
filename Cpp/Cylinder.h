@@ -17,7 +17,8 @@ typedef struct cylinder_t {
 
 typedef struct samplePoints_t {
 //
-    Eigen::Matrix<DScalar, Eigen::Dynamic, 2> points;  // [#points x 2] point positions
+    Eigen::Matrix<DScalar, Eigen::Dynamic, 2> innerPoints;  // [#points x 2] point positions
+    Eigen::Matrix<DScalar, Eigen::Dynamic, 2> outerPoints;
     Eigen::Matrix<DScalar, Eigen::Dynamic, 1> weights;  // [#points] (Gaussian quadrature weight)*(energy function constants)*(subtraction function)
     Eigen::Matrix<double, Eigen::Dynamic, 1> zArray;   // [#depth] depth along z-axis
 } samplePoints_t;
