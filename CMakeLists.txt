@@ -10,7 +10,7 @@ else()
 endif()
 
 # project-options
-OPTION(ZEBRA_WITH_UNIT_TESTS "Enable unit test"  OFF)
+OPTION(ZEBRA_WITH_UNIT_TESTS "Enable unit test"  ON)
 
 # libigl
 option(LIBIGL_USE_STATIC_LIBRARY     "Use libigl as static library" OFF)
