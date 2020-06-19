@@ -4,6 +4,8 @@
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Quantile.h>
 
+#include <zebrafish/Logger.hpp>
+
 #include <CLI/CLI.hpp>
 #include <Eigen/Dense>
 #include <Eigen/Core>
@@ -30,11 +32,20 @@ int main(int argc, char **argv)
         return command_line.exit(e);
     }
 
+    bool is_quiet = false;
+    std::string log_file = "";
+    int log_level = 2;
+
+    Logger::init(!is_quiet, log_file);
+    log_level = std::max(0, std::min(6, log_level));
+    spdlog::set_level(static_cast<spdlog::level::level_enum>(log_level));
+    spdlog::flush_every(std::chrono::seconds(3));
+
     image_t image;
     cout << "====================================================" << endl;
     read_tif_image(image_path, image);
     cout << "Total number of frames picked = " << image.size() << endl;
-    
+
     // clip image
     double maxPixel = 0, tempMaxPixel;
     for (auto it=image.begin(); it!=image.end(); it++) {
