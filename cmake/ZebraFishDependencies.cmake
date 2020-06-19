@@ -39,3 +39,10 @@ endif()
 
 zebra_download_polysolve()
 add_subdirectory(${ZEBRA_EXTERNAL}/polysolve)
+
+
+# spdlog
+if(NOT TARGET spdlog::spdlog)
+	zebra_download_spdlog()
+	add_subdirectory(${ZEBRA_EXTERNAL}/spdlog)
+endif()

@@ -19,7 +19,6 @@ target_link_libraries(unit_tests PUBLIC ZebraFish Catch2::Catch2 warnings::all)
 set(DATA_DIR "$CMAKE_CURRENT_SOURCE_DIR/data/")
 target_include_directories(unit_tests PUBLIC ${ZEBRA_EXTERNAL}/Catch2/single_include/catch2)
 target_compile_definitions(unit_tests PUBLIC -DZEBRA_DATA_DIR=\"${DATA_DIR}\")
-MESSAGE(STATUS "ASdasdas ${ZEBRA_EXTERNAL}/Catch2/single_include/catch2")
 
 
 # Register tests

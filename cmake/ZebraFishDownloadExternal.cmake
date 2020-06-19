@@ -53,6 +53,14 @@ function(zebra_download_cli11)
     )
 endfunction()
 
+## spdlog MIT
+function(zebra_download_spdlog)
+    zebra_download_project(spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG         v1.3.1
+    )
+endfunction()
+
 ## Polysolve MIT
 function(zebra_download_polysolve)
     zebra_download_project(polysolve

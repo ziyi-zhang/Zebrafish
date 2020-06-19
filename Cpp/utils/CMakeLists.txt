@@ -4,6 +4,8 @@ set(SOURCES
     LBFGSB.h
 	TiffReader.cpp
     TiffReader.h
+    Logger.cpp
+    Logger.hpp
 )
 
 prepend_current_path(SOURCES)

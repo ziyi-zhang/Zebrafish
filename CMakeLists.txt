@@ -67,6 +67,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC TinyTiff)
 target_link_libraries(${PROJECT_NAME} PUBLIC polysolve)
 
 
+#spdlog
+target_link_libraries(${PROJECT_NAME} PUBLIC spdlog::spdlog)
 
 
 ################################################################################

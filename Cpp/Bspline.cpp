@@ -2,6 +2,8 @@
 #include <zebrafish/Common.h>
 #include <zebrafish/autodiff.h>
 
+#include <zebrafish/Logger.hpp>
+
 #include <Eigen/Dense>
 #include <Eigen/Core>
 #include <Eigen/Sparse>
@@ -26,7 +28,8 @@ namespace {
 
         auto timeStamp = std::chrono::system_clock::now();
         std::time_t time = std::chrono::system_clock::to_time_t(timeStamp);
-        std::cout << str << "       " << std::ctime(&time);
+        logger().info("{}    {}s", str, time);
+        // std::cout << str << "       " << std::ctime(&time);
     }
 }  // anonymous namespace
 
@@ -59,14 +62,14 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     int N, num;
     double centerX, centerY, centerZ, t;
     Eigen::VectorXd inputPts, vectorY;
-    
+
     // dimension of sample points
     Nz = image.size();
     Nx = image[0].rows();
     Ny = image[0].cols();
     N = Nx*Ny*Nz;
         std::cout << "Sample N= " << N << " Nx= " << Nx << " Ny= " << Ny << " Nz= " << Nz << std::endl;
-    
+
     // dimension of control points
     numX = ceil(Nx * xratio);
     numY = ceil(Ny * yratio);
@@ -125,7 +128,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     const std::string solverName = "Hypre";
     auto solver = polysolve::LinearSolver::create(solverName, "");
     const nlohmann::json params = {
-        {"max_iter", solverMaxIt}, 
+        {"max_iter", solverMaxIt},
         {"conv_tol", solverConvTol},
         {"tolerance", solverTol}
     };
@@ -162,7 +165,7 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
                 i = iz * Nx * Ny + iy * Nx + ix;  // iterating sample points
 
                 if (i % int(Nx*Ny*Nz*0.2) == 0) std::cout << "     " << i << " / " << Nx*Ny*Nz << std::endl;
-                
+
                 refIdx_x = floor(ix / gapX);
                 refIdx_y = floor(iy / gapY);
                 refIdx_z = floor(iz / gapZ);
@@ -271,7 +274,7 @@ void bspline::CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, Eige
 
 
 void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) const {
-// This function is temporarily deprecated 
+// This function is temporarily deprecated
 // Use the DScalar version instead
 
     assert(numX != 0 && numY != 0 && numZ != 0);
@@ -292,7 +295,7 @@ void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) con
         refIdx_z = floor(sample(i, 2) / gapZ) - 1;
         assert(refIdx_x >= 0 && refIdx_y >= 0 && refIdx_z >= 0);
         assert(refIdx_x <= numX-4 && refIdx_y <= numY-4 && refIdx_z <= numZ-4);
-        // 
+        //
         res(i) = 0;
         for (ix=0; ix<=3; ix++)
             for (iy=0; iy<=3; iy++)
@@ -330,9 +333,9 @@ void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) con
     t2 = 0.5 * t2*t2*t2 - t2*t2 + 2.0/3.0;
     t3 = - 0.5 * t3*t3*t3 - t3*t3 + 2.0/3.0;
     t4 = 1.0/6.0 * t4*t4*t4 + t4*t4 + 2 * t4 + 4.0/3.0;
-    BxArray << t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, 
+    BxArray << t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4,
                t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4;
-    
+
     // By
     t1 = sample(1) - truncSample(1) + 1;
     t2 = sample(1) - truncSample(1);
@@ -354,7 +357,7 @@ void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) con
     t2 = 0.5 * t2*t2*t2 - t2*t2 + 2.0/3.0;
     t3 = - 0.5 * t3*t3*t3 - t3*t3 + 2.0/3.0;
     t4 = 1.0/6.0 * t4*t4*t4 + t4*t4 + 2 * t4 + 4.0/3.0;
-    BzArray << t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, 
+    BzArray << t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2,
                t3, t3, t3, t3, t3, t3, t3, t3, t3, t3, t3, t3, t3, t3, t3, t3, t4, t4, t4, t4, t4, t4, t4, t4, t4, t4, t4, t4, t4, t4, t4, t4;
 
     // res = \sum{ yArray * BxArray * ByArray * BzArray }
@@ -364,8 +367,8 @@ void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) con
 
 
 void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sampleDS, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
-// NOTE: This interpolation function supports all valid query input 
-//       at the cost of some extra logics. 
+// NOTE: This interpolation function supports all valid query input
+//       at the cost of some extra logics.
 
     assert(numX != 0 && numY != 0 && numZ != 0);
 
@@ -400,7 +403,7 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sampleDS
                     ycoef = basisY(iy, refIdx_y)(sampleDS(i, 1));
                     zcoef = basisZ(iz, refIdx_z)(sampleDS(i, 2));
 
-                    res(i) += controlPoints(numX*numY*idx_z + numY*idx_x + idx_y) 
+                    res(i) += controlPoints(numX*numY*idx_z + numY*idx_x + idx_y)
                               * xcoef * ycoef * zcoef;
                 }
     }
