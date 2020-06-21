@@ -6,6 +6,8 @@
 
 #include <zebrafish/Logger.hpp>
 
+#include <igl/png/writePNG.h>
+
 #include <CLI/CLI.hpp>
 #include <Eigen/Dense>
 #include <Eigen/Core>

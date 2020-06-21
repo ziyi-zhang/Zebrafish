@@ -3,6 +3,9 @@
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
 #include <zebrafish/Logger.hpp>
+
+#include <igl/png/writePNG.h>
+
 #include <math.h>
 
 using namespace std;
