@@ -122,19 +122,14 @@ DScalar cylinder::EvaluateCylinder(const zebrafish::image_t &image, const zebraf
 
     int depth, i;
     DScalar resInner = DScalar(0.0), resExt = DScalar(0.0);
-    Eigen::Matrix<DScalar, Eigen::Dynamic, 3> query;
     Eigen::Matrix<DScalar, Eigen::Dynamic, 1> interpRes, temp;
     const int H = samplePoints.zArray.size();
     const int N = samplePoints.innerPoints.rows();
 
-    query.resize(N, 3);
     temp.resize(N, 1);
-    query.block(0, 0, N, 2) = samplePoints.innerPoints;
     for (depth=0; depth<H; depth++) {
 
-        temp.setConstant(N, DScalar(samplePoints.zArray(depth)));
-        query.block(0, 2, N, 1) = temp;  // set z to current depth
-        bsp.Interp3D(query, interpRes);  // interp this layer
+        bsp.Interp3D(samplePoints.innerPoints, DScalar(samplePoints.zArray(depth)), interpRes);  // interp this layer
 
         assert(samplePoints.weights.size() == interpRes.size());
         ////// DEBUG
@@ -150,12 +145,9 @@ DScalar cylinder::EvaluateCylinder(const zebrafish::image_t &image, const zebraf
             resInner = resInner + interpRes(i) * samplePoints.weights(i);
     }
 
-    query.block(0, 0, N, 2) = samplePoints.outerPoints;
     for (depth=0; depth<H; depth++) {
 
-        temp.setConstant(N, DScalar(samplePoints.zArray(depth)));
-        query.block(0, 2, N, 1) = temp;  // set z to current depth
-        bsp.Interp3D(query, interpRes);  // interp this layer
+        bsp.Interp3D(samplePoints.outerPoints, DScalar(samplePoints.zArray(depth)), interpRes);  // interp this layer
 
         assert(samplePoints.weights.size() == interpRes.size());
 

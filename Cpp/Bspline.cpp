@@ -1,7 +1,6 @@
 #include <zebrafish/Bspline.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/autodiff.h>
-
 #include <zebrafish/Logger.hpp>
 
 #include <Eigen/Dense>
@@ -23,6 +22,8 @@ namespace zebrafish {
 
 namespace {
 
+    /*
+    // No longer need this, use new logger instead
     void PrintTime(std::string str) {
     // print human readable time
 
@@ -31,6 +32,7 @@ namespace {
         logger().info("{}    {}s", str, time);
         // std::cout << str << "       " << std::ctime(&time);
     }
+    */
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -53,9 +55,9 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
 // Note: this function will only be called once for one 3D image
 
     assert(xratio <= 1 && yratio <= 1 && zratio <= 1);
-        std::cout << "====================================================" << std::endl;
-        std::cout << "B-Spline degree = " << degree << std::endl;
-        PrintTime("Start calculating control points...");
+        logger().info("====================================================");
+        logger().info("B-Spline degree = {}", degree);
+        logger().info("Start calculating control points...");
 
     DiffScalarBase::setVariableCount(3);  // x, y, r
 
@@ -68,14 +70,14 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     Nx = image[0].rows();
     Ny = image[0].cols();
     N = Nx*Ny*Nz;
-        std::cout << "Sample N= " << N << " Nx= " << Nx << " Ny= " << Ny << " Nz= " << Nz << std::endl;
+        logger().debug("Sample N= {} Nx= {} Ny= {} Nz= {}", N, Nx, Ny, Nz);
 
     // dimension of control points
     numX = ceil(Nx * xratio);
     numY = ceil(Ny * yratio);
     numZ = ceil(Nz * zratio);
     num = numX * numY * numZ;
-        std::cout << "Control num= " << num << " numX= " << numX << " numY= " << numY << " numZ= " << numZ << std::endl;
+        logger().debug("Control num= {} numX= {} numY= {} numZ={}", num, numX, numY, numZ);
 
     // A[i, j]: the evaluation of basis j for the i-th sample point
     Eigen::SparseMatrix<double> A(N, num);
@@ -91,8 +93,8 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
         gapY = double(Ny-1) / double(numY-1-1);
         gapZ = double(Nz-1) / double(numZ-1-1);
     }
-        std::cout << "gapX= " << gapX << " gapY= " << gapY << " gapZ= " << gapZ << std::endl;
-        std::cout << "gapX= " << gapX*resolutionX << "um gapY= " << gapY*resolutionY << "um gapZ= " << gapZ*resolutionZ << "um" << std::endl;
+        logger().debug("gapX = {}  gapY = {}  gapZ = {}", gapX, gapY, gapZ);
+        logger().debug("gapX = {}um  gapY = {}um  gapZ = {}um", gapX*resolutionX, gapY*resolutionY, gapZ*resolutionZ);
 
     // map 3D "image" to 1D "inputPts"
         // order matters! z -> y -> x
@@ -109,16 +111,16 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     CalcBasisFunc(basisZ, numZ, gapZ);
 
     // Calculate & fill the least square matrix A
-        PrintTime("Calculating & filling least square matrix...");
+        logger().info("Calculating & filling least square matrix...");
     CalcLeastSquareMat(A);
-        std::cout << "Least square matrix A size = " << A.rows() << " * " << A.cols() << std::endl;
-        std::cout << "A: # non-zero elements = " << A.nonZeros() << std::endl;
+        logger().debug("Least square matrix A size = {} * {}", A.rows(), A.cols());
+        logger().debug("A: # non-zero elements = {}", A.nonZeros());
 
     // calculate control points based on least square
-        PrintTime("Calculating A'*A and A'*y...");
+        logger().info("Calculating A'*A and A'*y...");
     AtransposeA = (A.transpose() * A).pruned();  // A' * A
-        std::cout << "A' * A size = " << AtransposeA.rows() << " * " << AtransposeA.cols() << std::endl;
-        std::cout << "A'A: # non-zero elements = " << AtransposeA.nonZeros() << std::endl;
+        logger().debug("A' * A size = {} * {}", AtransposeA.rows(), AtransposeA.cols());
+        logger().debug("A'A: # non-zero elements = {}", AtransposeA.nonZeros());
     vectorY.resize(N);
     vectorY = A.transpose() * inputPts;  // A' * y
 
@@ -133,19 +135,19 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
         {"tolerance", solverTol}
     };
     solver->setParameters(params);
-        PrintTime("Analyzing matrix pattern...");
+        logger().info("Analyzing matrix pattern...");
     solver->analyzePattern(AtransposeA, AtransposeA.rows());
-        PrintTime("Factorizing matrix...");
+        logger().info("Factorizing matrix...");
     solver->factorize(AtransposeA);
-        PrintTime("Solving linear system...");
+        logger().info("Solving linear system...");
     controlPoints.resize(num, 1);
     solver->solve(vectorY, controlPoints);
     /////////////// DEBUG ONLY ///////////
     // std::cout << ">>>>> control points >>>>>" << std::endl;
     // std::cout << controlPoints << std::endl;
     /////////////// DEBUG ONLY ///////////
-        PrintTime("Control points calculated...");
-        std::cout << "====================================================" << std::endl;
+        logger().info("Control points calculated...");
+        logger().info("====================================================");
 }
 
 
@@ -164,7 +166,9 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
 
                 i = iz * Nx * Ny + iy * Nx + ix;  // iterating sample points
 
-                if (i % int(Nx*Ny*Nz*0.2) == 0) std::cout << "     " << i << " / " << Nx*Ny*Nz << std::endl;
+                // progress bar
+                if (i % int(Nx*Ny*Nz*0.2) == 0) 
+                    logger().trace("{} / {}", i, Nx*Ny*Nz);
 
                 refIdx_x = floor(ix / gapX);
                 refIdx_y = floor(iy / gapY);
@@ -201,7 +205,7 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
                         }
                 ///////////// DEBUG ONLY
                 if (fabs(rowSum-1.0)> 1e-8)  // if (rowSum != 1.0)
-                    std::cout << "RowSum error: " << ix << " " << iy << " " << iz << " " << rowSum << std::endl;
+                    logger().error("RowSum error: ix={}, iy={}, iz={}, rowSum={}", ix, iy, iz, rowSum);
                 ///////////// DEBUG ONLY
             }
 }
@@ -366,7 +370,13 @@ void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) con
 }
 
 
-void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sampleDS, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
+void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sample, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
+    
+}
+
+
+
+void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sampleDS, const DScalar z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
 // NOTE: This interpolation function supports all valid query input
 //       at the cost of some extra logics.
 
@@ -375,7 +385,6 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sampleDS
     int i, ix, iy, iz, idx_x, idx_y, idx_z;
     DScalar xcoef, ycoef, zcoef;
     int refIdx_x, refIdx_y, refIdx_z;
-    double evalX1, evalX2, evalX3, evalX4, evalY1, evalY2, evalY3, evalY4, evalZ1, evalZ2, evalZ3, evalZ4;
 
     res.resize(sampleDS.rows(), 1);
     for (i=0; i<sampleDS.rows(); i++) {
@@ -383,14 +392,15 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sampleDS
         // Get reference index
         refIdx_x = floor(sampleDS(i, 0).getValue() / gapX);
         refIdx_y = floor(sampleDS(i, 1).getValue() / gapY);
-        refIdx_z = floor(sampleDS(i, 2).getValue() / gapZ);
+        refIdx_z = z.getValue() / gapZ;
+        // if the query point lies exactly at the end of the border
         if (refIdx_x == numX-1-(degree-1)) refIdx_x--;
         if (refIdx_y == numY-1-(degree-1)) refIdx_y--;
         if (refIdx_z == numZ-1-(degree-1)) refIdx_z--;
         assert(refIdx_x >= 0 && refIdx_y >= 0 && refIdx_z >= 0);
         assert(refIdx_x <= numX-(degree+1) && refIdx_y <= numY-(degree+1) && refIdx_z <= numZ-(degree+1));
         // Evaluate
-        res(i) = DScalar(0);
+        res(i) = DScalar(0.0);
         for (ix=0; ix<=degree; ix++)
             for (iy=0; iy<=degree; iy++)
                 for (iz=0; iz<=degree; iz++) {
@@ -401,7 +411,7 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sampleDS
 
                     xcoef = basisX(ix, refIdx_x)(sampleDS(i, 0));
                     ycoef = basisY(iy, refIdx_y)(sampleDS(i, 1));
-                    zcoef = basisZ(iz, refIdx_z)(sampleDS(i, 2));
+                    zcoef = basisZ(iz, refIdx_z)(z);
 
                     res(i) += controlPoints(numX*numY*idx_z + numY*idx_x + idx_y)
                               * xcoef * ycoef * zcoef;
