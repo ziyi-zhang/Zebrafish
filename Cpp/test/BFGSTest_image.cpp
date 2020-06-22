@@ -1,4 +1,4 @@
-// interp visualization
+// BFGS Test (real image space)
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
@@ -19,6 +19,47 @@ using namespace LBFGSpp;
 
 
 DECLARE_DIFFSCALAR_BASE();
+
+class CylinderEnergy {
+private:
+    const image_t &image;
+    bspline bsplineSolver;
+    cylinder cylinder;
+    int evalCount;
+
+public:
+    // constructor
+    CylinderEnergy(const image_t &image_) : image(image_) {
+
+        // prepare B-spline
+        bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7);
+    }
+
+    // evaluate
+    double operator()(const VectorXd& x, VectorXd& grad) {
+
+        // cout << "=============================" << endl;
+
+        if (!cylinder.SampleCylinder(image, bsplineSolver, x(0), x(1), 32, x(2), 3)) {
+            // cout << "F(" << x.transpose() << ")" << " - Invalid cylinder - " << endl;
+            grad.setZero();
+            return 1000;
+        }
+
+        DScalar ans = cylinder.EvaluateCylinder(image, bsplineSolver);
+        grad.resize(3, 1);
+        grad = ans.getGradient();
+        cout << evalCount++ << " " << x(0) << " " << x(1) << " " << x(2) << " " << ans.getValue() << endl;
+        // cout << "count = " << count++ << endl;
+        // cout << "F(" << x.transpose() << ") = " << ans.getValue() << endl;
+        // cout << "    Grad = " << grad.transpose() << endl;
+        return ans.getValue();
+    }
+
+    void ResetCount() {
+        evalCount = 0;
+    }
+};
 
 
 int main(int argc, char **argv) {
@@ -57,7 +98,7 @@ int main(int argc, char **argv) {
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         // img = img.block(305, 333, 638-306, 717-334);
-        img = img.block(305, 333, 24, 90);
+        img = img.block(305, 333, 30-5, 30-5);
     }
     cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
     // normalize all layers
@@ -71,26 +112,39 @@ int main(int argc, char **argv) {
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // main
-    // prepare B-spline
-    bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7);
+    CylinderEnergy energy(image);
 
-    Eigen::Matrix<DScalar, Eigen::Dynamic, 2> sample;
-    Eigen::Matrix<DScalar, Eigen::Dynamic, 1> res;
-    sample.resize(image[0].rows() * image[0].cols(), 2);
-    double x, y;
-    int count = 0;
-    for (x=0; x<image[0].rows(); x++)
-        for (y=0; y<image[0].cols(); y++) {
-            sample(count, 0) = DScalar(x);
-            sample(count, 1) = DScalar(y);
-            count++;
+    LBFGSParam<double> param;
+    param.epsilon = 1e-3;
+    param.max_iterations = 20;
+
+    LBFGSSolver<double> solver(param);
+    VectorXd xx(3, 1);
+
+    double delta = 6;
+    int i, j, it, x, y;
+    double res;
+
+    for (i=-delta; i<=delta; i++)
+        for (j=-delta; j<=delta; j++) {
+
+            x = 12 + i;
+            y = 11 + j;
+            xx(0) = x;
+            xx(1) = y;
+            xx(2) = 4;
+
+            // call optimizer
+            cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl;
+            energy.ResetCount();
+            it = solver.minimize(energy, xx, res);
+
+            cout << "<<<<< Summary <<<<<" << endl;
+            logger().info("Timer");
+            cout << "xres = " << xx.transpose() << endl;
+            cout << "iterations = " << it << endl;
         }
-    bsplineSolver.Interp3D(sample, DScalar(33), res);
 
-    // cout
-    int i;
-    for (i=0; i<res.rows(); i++) {
-        cout << sample(i, 0).getValue() << " " << sample(i, 1).getValue() << " " << res(i, 0).getValue() << endl;
-    }
+    // cout adjacent area
+
 }

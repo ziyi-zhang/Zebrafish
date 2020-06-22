@@ -1,3 +1,4 @@
+// BFGS Test (test space)
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
@@ -16,7 +17,7 @@ double func(double x, double y, double z) {
     // return x + y;
 
     // x^2 + y^2
-    return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
+    // return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
 
     // (x^2 + y^2)^(3/2)
     // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
@@ -30,6 +31,12 @@ double func(double x, double y, double z) {
 
     // (x^2 + y^2)^(5/2)
     // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 2.5);
+
+    // LBFGS test
+    if ((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5) > 9)
+        return 1;
+    else
+        return 0;
 }
 
 DECLARE_DIFFSCALAR_BASE();
@@ -51,7 +58,10 @@ public:
     // evaluate
     double operator()(const VectorXd& x, VectorXd& grad) {
 
-        if (!cylinder.SampleCylinder(image, bsplineSolver, x(0), x(1), 4, x(2), 3)) {
+        cout << "=============================" << endl;
+        cout << "F(" << x.transpose() << ")" << endl;
+
+        if (!cylinder.SampleCylinder(image, bsplineSolver, x(0), x(1), 32, x(2), 3)) {
             cout << "Invalid cylinder - ";
             grad.setZero();
             return 1000;
@@ -113,16 +123,11 @@ int main() {
 
     LBFGSParam<double> param;
     param.epsilon = 1e-3;
-    param.max_iterations = 100;
-    VectorXd lb = VectorXd::Constant(3, 0);
-    VectorXd ub = VectorXd::Constant(3, 30);
-    lb(2) = 2.0;
-    ub(2) = numeric_limits<double>::infinity();
-
+    param.max_iterations = 10;
 
     LBFGSSolver<double> solver(param);
     VectorXd xx(3, 1);
-    xx << 12, 15, 4;
+    xx << 13, 15, 4;
     int it;
     double res;
     it = solver.minimize(energy, xx, res);

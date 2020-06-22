@@ -16,8 +16,9 @@ private:
     Eigen::VectorXd controlPoints;  // [#points] control points array
     int Nx, Ny, Nz;  // the dimension of sample points (Nx * Ny * Nz == #pixels)
     int numX, numY, numZ;  // the dimension of control points (numX * numY * numZ == #control points)
+    // Eigen::Matrix< std::function<double(double)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisX, basisY, basisZ;
     Eigen::Matrix< std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisX, basisY, basisZ;
-        // matrix of pre-calculated lambda basis functions
+        // Pre-calculated lambda basis functions
     
     void CalcLeastSquareMat(Eigen::SparseMatrix<double> &A);
     void CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, int& numT, double& gapT);
