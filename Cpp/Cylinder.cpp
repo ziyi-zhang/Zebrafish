@@ -7,15 +7,6 @@ namespace zebrafish {
 
 namespace {
 
-void LoadQuadParas(Eigen::Matrix<double, Eigen::Dynamic, 2> &xyArray, Eigen::Matrix<double, Eigen::Dynamic, 1>& weightArray) {
-    switch (diskQuadMethod) {
-        #include <zebrafish/Quad.ipp>
-
-        default:
-            assert(false);
-    }
-}
-
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -168,9 +159,19 @@ DScalar cylinder::EvaluateCylinder(const zebrafish::image_t &image, const zebraf
 }
 
 
+void cylinder::LoadQuadParas() {
+    switch (diskQuadMethod) {
+        #include <zebrafish/Quad.ipp>
+
+        default:
+            assert(false);
+    }
+}
+
+
 cylinder::cylinder() {
 
-    LoadQuadParas(xyArray, weightArray);
+    LoadQuadParas();
 }
 
 

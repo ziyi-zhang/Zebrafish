@@ -55,6 +55,8 @@ public:
     DScalar EvaluateCylinder(const zebrafish::image_t &image, const zebrafish::bspline &bspline);
     /// Calculate the energy for this cylinder
 
+    void LoadQuadParas();
+    
     // maintenance methods
     cylinder();
     ~cylinder();

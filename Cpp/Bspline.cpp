@@ -93,7 +93,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
         gapY = double(Ny-1) / double(numY-1-1);
         gapZ = double(Nz-1) / double(numZ-1-1);
     }
-        logger().debug("gapX = {}  gapY = {}  gapZ = {}", gapX, gapY, gapZ);
+        logger().debug("gapX = {}px  gapY = {}px  gapZ = {}px", gapX, gapY, gapZ);
         logger().debug("gapX = {}um  gapY = {}um  gapZ = {}um", gapX*resolutionX, gapY*resolutionY, gapZ*resolutionZ);
 
     // map 3D "image" to 1D "inputPts"
@@ -371,7 +371,7 @@ void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) con
 
 
 void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sample, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
-    
+
 }
 
 

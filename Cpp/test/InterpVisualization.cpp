@@ -1,4 +1,4 @@
-// Cylinder TEST (image)
+// interp visualization
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
@@ -19,6 +19,7 @@ using namespace LBFGSpp;
 
 
 DECLARE_DIFFSCALAR_BASE();
+
 
 int main(int argc, char **argv) {
 
@@ -56,7 +57,7 @@ int main(int argc, char **argv) {
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         // img = img.block(305, 333, 638-306, 717-334);
-        img = img.block(305, 333, 30-5, 30-5);
+        img = img.block(305, 333, 24, 90);
     }
     cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
     // normalize all layers
@@ -70,26 +71,26 @@ int main(int argc, char **argv) {
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // main
-    int quadArray[] = {99, 0, 1, 2, 3, 4, 5, 6};
-
     // prepare B-spline
     bspline bsplineSolver;
     bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7);
 
-    // prepare cylinder
-    cylinder cylinder;
-    double xx = 12.3524, yy = 11.3772, rr = 2.80271;
+    Eigen::Matrix<DScalar, Eigen::Dynamic, 2> sample;
+    Eigen::Matrix<DScalar, Eigen::Dynamic, 1> res;
+    sample.resize(image[0].rows() * image[0].cols(), 2);
+    double x, y;
+    int count = 0;
+    for (x=0; x<image[0].rows(); x++)
+        for (y=0; y<image[0].cols(); y++) {
+            sample(count, 0) = DScalar(x);
+            sample(count, 1) = DScalar(y);
+            count++;
+        }
+    bsplineSolver.Interp3D(sample, DScalar(33), res);
 
-    for (int i=0; i<8; i++) {
-
-        diskQuadMethod = quadArray[i];
-        cylinder.LoadQuadParas();
-        if (!cylinder.SampleCylinder(image, bsplineSolver, xx, yy, 32, rr, 3))
-            cerr << "Invalid cylinder 1" << endl;
-        DScalar ans1 = cylinder.EvaluateCylinder(image, bsplineSolver);
-
-        cout.precision(10);
-        logger().info("QuadMethod = {}, eval = {}", diskQuadMethod, ans1.getValue());
-        cout << endl << flush;
+    // cout
+    int i;
+    for (i=0; i<res.rows(); i++) {
+        cout << sample(i, 0).getValue() << " " << sample(i, 1).getValue() << " " << res(i, 0).getValue() << endl;
     }
 }
