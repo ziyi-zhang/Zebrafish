@@ -1,8 +1,8 @@
 % helper function of CPP optimization test
 % Interp result vs. [x, y]
 
-fid = fopen('../../release/debug_interpVis_test.log');
-% fid = fopen('../../release/debug_interpVis_image.log');
+% fid = fopen('../../release/debug_interpVis_test.log');
+fid = fopen('../../release/debug_interpVis_image.log');
 status = 0;
 cacheVec = [];
 

@@ -1,7 +1,7 @@
 % helper function of CPP optimization test
 % convergence zone
 
-% fid = fopen('../../release/debug.log');
+% fid = fopen('../../release/debug_deg2_quad3_test.log');
 fid = fopen('../../release/debug_deg2_quad3_pt1.log');
 status = 0;
 count = 0;

@@ -1,7 +1,8 @@
 % helper function of CPP optimization test
 % Energy function vs. [x, y]
 
-fid = fopen('../../release/debug.log');
+% fid = fopen('../../release/debug_cylinderVis_test.log');
+fid = fopen('../../release/debug_cylinderVis_pt1.log');
 status = 0;
 cacheVec = [];
 
@@ -31,11 +32,9 @@ gap = 1;
 [Xq, Yq] = meshgrid(xmin:gap:xmax, ymin:gap:ymax);
 [X, Y] = meshgrid(xmin:xmax, ymin:ymax);
 Z = reshape(cacheVec(:, 3), ymax-ymin+1, xmax-xmin+1);
-%{
+
 Vq = interp2(X, Y, Z, Xq, Yq, 'spline');
 figure
 hold on
-surf(Xq, Yq, -Vq');
+surf(Xq, Yq, Vq);
 grid on
-%}
-surf(X, Y, -Z)

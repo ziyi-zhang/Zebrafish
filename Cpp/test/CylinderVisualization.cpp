@@ -1,4 +1,4 @@
-// interp visualization (test space)
+// cylinder energy visualization (test space)
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
@@ -48,45 +48,6 @@ double func(double x, double y, double z) {
 
 DECLARE_DIFFSCALAR_BASE();
 
-class CylinderEnergy {
-private:
-    const image_t &image;
-    bspline bsplineSolver;
-    cylinder cylinder;
-    int evalCount;
-
-public:
-    // constructor
-    CylinderEnergy(const image_t &image_) : image(image_) {
-
-        // prepare B-spline
-        bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7);
-    }
-
-    // evaluate
-    double operator()(const VectorXd& x, VectorXd& grad) {
-
-        if (!cylinder.SampleCylinder(image, bsplineSolver, x(0), x(1), 3, x(2), 3)) {
-            // cout << "Invalid cylinder - ";
-            grad.setZero();
-            return 1000;
-        }
-
-        DScalar ans = cylinder.EvaluateCylinder(image, bsplineSolver);
-        grad.resize(3, 1);
-        grad = ans.getGradient();
-        cout << evalCount++ << " " << x(0) << " " << x(1) << " " << x(2) << " " << ans.getValue() << endl;
-        cout << "grad = " << grad.transpose() << endl;
-        return ans.getValue();
-    }
-
-    void ResetCount() {
-        evalCount = 0;
-    }
-};
-
-
-
 int main(int argc, char **argv) {
 
     // logger
@@ -126,22 +87,22 @@ int main(int argc, char **argv) {
     bspline bsplineSolver;
     bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7);
 
+    // prepare cylinder
+    cylinder cylinder;
+
     Eigen::Matrix<DScalar, Eigen::Dynamic, 2> sample;
     Eigen::Matrix<DScalar, Eigen::Dynamic, 1> res;
     sample.resize(image[0].rows() * image[0].cols(), 2);
     int count = 0;
+    cout << ">>>>>>>>>>" << endl;
     for (x=0; x<image[0].rows(); x++)
         for (y=0; y<image[0].cols(); y++) {
-            sample(count, 0) = DScalar(x);
-            sample(count, 1) = DScalar(y);
-            count++;
-        }
-    bsplineSolver.Interp3D(sample, DScalar(3), res);
 
-    // cout
-    int i;
-    cout << ">>>>>>>>>>>" << endl;
-    for (i=0; i<res.rows(); i++) {
-        cout << sample(i, 0).getValue() << " " << sample(i, 1).getValue() << " " << res(i, 0).getValue() << endl;
-    }
+            if (!cylinder.SampleCylinder(image, bsplineSolver, x, y, 3, 3.95, 3))
+                // cerr << "Invalid cylinder" << endl;
+                continue;
+            DScalar ans1 = cylinder.EvaluateCylinder(image, bsplineSolver);
+
+            cout << x << " " << y << " " << ans1.getValue() << endl;
+        }
 }
