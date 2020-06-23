@@ -96,10 +96,10 @@ int main(int argc, char **argv) {
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         // img = img.block(305, 333, 638-306, 717-334);
-        // img = img.block(305, 333, 25, 25);  // pt1
+        img = img.block(305, 333, 25, 25);  // pt1
         // img = img.block(305, 350, 25, 25);  // pt2
         // img = img.block(305, 370, 25, 25);  // pt3
-        img = img.block(305, 389, 25, 25);  // pt4
+        // img = img.block(305, 389, 25, 25);  // pt4
     }
     cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
     // normalize all layers
@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
     double delta = 5;
     int i, j, it, x, y;
     double res;
-    int x0 = 13, y0 = 8;
+    int x0 = 12, y0 = 11;
     // pt1: 12 11
     // pt2: 11 9
     // pt3: 13 8
@@ -146,10 +146,10 @@ int main(int argc, char **argv) {
             it = solver.minimize(energy, xx, res);
 
             cout << "<<<<< Summary <<<<<" << endl << flush;
-            logger().info("Timer");
             cout << "s_start = " << x << " " << y << endl;
             cout << "xres = " << xx.transpose() << endl;
             cout << "iterations = " << it << endl;
+            logger().info("Timer");
         }
 
     logger().info("Timer");

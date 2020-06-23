@@ -1,16 +1,22 @@
-// BFGS Test (test space)
+// interp visualization (test space)
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
 #include <zebrafish/LBFGS.h>
 #include <zebrafish/autodiff.h>
 #include <zebrafish/Logger.hpp>
+#include <zebrafish/TiffReader.h>
+#include <zebrafish/Quantile.h>
 #include <math.h>
+#include <CLI/CLI.hpp>
+#include <string>
+#include <igl/png/writePNG.h>
 
 using namespace std;
 using namespace Eigen;
 using namespace zebrafish;
 using namespace LBFGSpp;
+
 
 double func(double x, double y, double z) {
 
@@ -38,6 +44,7 @@ double func(double x, double y, double z) {
     else
         return 0;
 }
+
 
 DECLARE_DIFFSCALAR_BASE();
 
@@ -79,7 +86,8 @@ public:
 };
 
 
-int main() {
+
+int main(int argc, char **argv) {
 
     // logger
     bool is_quiet = false;
@@ -92,7 +100,7 @@ int main() {
 
     image_t image;  // 30 * 30 * 10
     int sizeX, sizeY, sizeZ;
-    int x, y, z;
+    double x, y, z;
 
     sizeX = 30;  // 0, 1, ..., 29
     sizeY = 30;
@@ -110,50 +118,30 @@ int main() {
 
         image.push_back(layer);
         if (layer.maxCoeff() > maxPixel) maxPixel = layer.maxCoeff();
-    }
+    }   
 
-    // normalize it
-    /*
-    for (z=0; z<sizeZ; z++) {
-        
-        MatrixXd &layer = image[z];
-        layer.array() /= maxPixel;
-    }
-    */
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // main
+    // prepare B-spline
+    bspline bsplineSolver;
+    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7);
 
-    CylinderEnergy energy(image);
-
-    LBFGSParam<double> param;
-    param.epsilon = 1e-4;
-    param.max_iterations = 20;
-
-    LBFGSSolver<double> solver(param);
-    VectorXd xx(3, 1);
-
-    double delta = 4;
-    int i, j, it;
-    double res;
-    int x0 = 14, y0 = 14;
-
-    for (i=-delta; i<=delta; i++)
-        for (j=-delta; j<=delta; j++) {
-
-            x = x0 + i;
-            y = y0 + j;
-            xx(0) = x;  // starting point
-            xx(1) = y;
-            xx(2) = 4;
-
-            // call optimizer
-            cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl << flush;
-            energy.ResetCount();
-            it = solver.minimize(energy, xx, res);
-
-            cout << "<<<<< Summary <<<<<" << endl << flush;
-            cout << "s_start = " << x << " " << y << endl;
-            cout << "xres = " << xx.transpose() << endl;
-            cout << "iterations = " << it << endl;
+    Eigen::Matrix<DScalar, Eigen::Dynamic, 2> sample;
+    Eigen::Matrix<DScalar, Eigen::Dynamic, 1> res;
+    sample.resize(image[0].rows() * image[0].cols(), 2);
+    int count = 0;
+    for (x=0; x<image[0].rows(); x++)
+        for (y=0; y<image[0].cols(); y++) {
+            sample(count, 0) = DScalar(x);
+            sample(count, 1) = DScalar(y);
+            count++;
         }
+    bsplineSolver.Interp3D(sample, DScalar(3), res);
 
-    logger().info("Timer");
+    // cout
+    int i;
+    cout << ">>>>>>>>>>>" << endl;
+    for (i=0; i<res.rows(); i++) {
+        cout << sample(i, 0).getValue() << " " << sample(i, 1).getValue() << " " << res(i, 0).getValue() << endl;
+    }
 }

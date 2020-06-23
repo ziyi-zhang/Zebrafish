@@ -1,4 +1,4 @@
-// interp visualization (image)
+// BFGS Test (real image space)
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
@@ -19,6 +19,45 @@ using namespace LBFGSpp;
 
 
 DECLARE_DIFFSCALAR_BASE();
+
+class CylinderEnergy {
+private:
+    const image_t &image;
+    bspline bsplineSolver;
+    cylinder cylinder;
+    int evalCount;
+
+public:
+    // constructor
+    CylinderEnergy(const image_t &image_) : image(image_) {
+
+        // prepare B-spline
+        bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7);
+    }
+
+    // evaluate
+    double operator()(const VectorXd& x, VectorXd& grad) {
+
+        if (!cylinder.SampleCylinder(image, bsplineSolver, x(0), x(1), 32, x(2), 3)) {
+            // cout << "F(" << x.transpose() << ")" << " - Invalid cylinder - " << endl;
+            grad.setZero();
+            return 1.0;
+        }
+
+        DScalar ans = cylinder.EvaluateCylinder(image, bsplineSolver);
+        grad.resize(3, 1);
+        grad = ans.getGradient();
+        cout << evalCount++ << " " << x(0) << " " << x(1) << " " << x(2) << " " << ans.getValue() << endl;
+        // cout << "count = " << count++ << endl;
+        // cout << "F(" << x.transpose() << ") = " << ans.getValue() << endl;
+        // cout << "    Grad = " << grad.transpose() << endl;
+        return ans.getValue();
+    }
+
+    void ResetCount() {
+        evalCount = 0;
+    }
+};
 
 
 int main(int argc, char **argv) {
@@ -57,7 +96,10 @@ int main(int argc, char **argv) {
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         // img = img.block(305, 333, 638-306, 717-334);
-        img = img.block(305, 333, 24, 90);
+        img = img.block(305, 333, 25, 25);  // pt1
+        // img = img.block(305, 350, 25, 25);  // pt2
+        // img = img.block(305, 370, 25, 25);  // pt3
+        // img = img.block(305, 389, 25, 25);  // pt4
     }
     cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
     // normalize all layers
@@ -71,27 +113,44 @@ int main(int argc, char **argv) {
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // main
-    // prepare B-spline
-    bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7);
+    CylinderEnergy energy(image);
 
-    Eigen::Matrix<DScalar, Eigen::Dynamic, 2> sample;
-    Eigen::Matrix<DScalar, Eigen::Dynamic, 1> res;
-    sample.resize(image[0].rows() * image[0].cols(), 2);
-    double x, y;
-    int count = 0;
-    for (x=0; x<image[0].rows(); x++)
-        for (y=0; y<image[0].cols(); y++) {
-            sample(count, 0) = DScalar(x);
-            sample(count, 1) = DScalar(y);
-            count++;
+    LBFGSParam<double> param;
+    param.epsilon = 1e-3;
+    param.max_iterations = 20;
+
+    LBFGSSolver<double> solver(param);
+    VectorXd xx(3, 1);
+
+    double delta = 5;
+    int i, j, it, x, y;
+    double res;
+    int x0 = 12, y0 = 11;
+    // pt1: 12 11
+    // pt2: 11 9
+    // pt3: 13 8
+    // pt4: 13 8
+
+    for (i=-delta; i<=delta; i++)
+        for (j=-delta; j<=delta; j++) {
+
+            x = x0 + i;
+            y = y0 + j;
+            xx(0) = x;  // starting point
+            xx(1) = y;
+            xx(2) = 4;
+
+            // call optimizer
+            cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl << flush;
+            energy.ResetCount();
+            it = solver.minimize(energy, xx, res);
+
+            cout << "<<<<< Summary <<<<<" << endl << flush;
+            cout << "s_start = " << x << " " << y << endl;
+            cout << "xres = " << xx.transpose() << endl;
+            cout << "iterations = " << it << endl;
+            logger().info("Timer");
         }
-    bsplineSolver.Interp3D(sample, DScalar(33), res);
 
-    // cout
-    int i;
-    cout << ">>>>>>>>>>>" << endl;
-    for (i=0; i<res.rows(); i++) {
-        cout << sample(i, 0).getValue() << " " << sample(i, 1).getValue() << " " << res(i, 0).getValue() << endl;
-    }
+    logger().info("Timer");
 }
