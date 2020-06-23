@@ -78,18 +78,34 @@ int main(int argc, char **argv) {
 
     // prepare cylinder
     cylinder cylinder;
-    double xx = 12.3524, yy = 11.3772, rr = 2.80271;
+    double xx, yy, rr;
+    MatrixXd query;
+    int numQuery = 6;
+    query.resize(numQuery, 3);
+    query << 12.3524, 11.3772, 2.80271, 
+             13, 14, 3, 
+             10, 15, 3, 
+             8, 12, 4,
+             13, 10, 4,
+             14, 13, 4;
+    for (int j=0; j<numQuery; j++) {
 
-    for (int i=0; i<8; i++) {
+        xx = query(j, 0);
+        yy = query(j, 1);
+        rr = query(j, 2);
+        logger().info("===============");
 
-        diskQuadMethod = quadArray[i];
-        cylinder.LoadQuadParas();
-        if (!cylinder.SampleCylinder(image, bsplineSolver, xx, yy, 32, rr, 3))
-            cerr << "Invalid cylinder 1" << endl;
-        DScalar ans1 = cylinder.EvaluateCylinder(image, bsplineSolver);
+        double refEnergy;
+        for (int i=0; i<8; i++) {
 
-        cout.precision(10);
-        logger().info("QuadMethod = {}, eval = {}", diskQuadMethod, ans1.getValue());
-        cout << endl << flush;
+            diskQuadMethod = quadArray[i];
+            cylinder.LoadQuadParas();
+            if (!cylinder.SampleCylinder(image, bsplineSolver, xx, yy, 32, rr, 3))
+                cerr << "Invalid cylinder 1" << endl;
+            DScalar ans1 = cylinder.EvaluateCylinder(image, bsplineSolver);
+
+            if (i == 0) refEnergy = ans1.getValue();
+            logger().info("QuadMethod = {}, eval = {}, diff = {}", diskQuadMethod, ans1.getValue(), refEnergy-ans1.getValue());
+        }
     }
 }

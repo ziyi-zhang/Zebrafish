@@ -38,12 +38,10 @@ public:
     // evaluate
     double operator()(const VectorXd& x, VectorXd& grad) {
 
-        // cout << "=============================" << endl;
-
         if (!cylinder.SampleCylinder(image, bsplineSolver, x(0), x(1), 32, x(2), 3)) {
             // cout << "F(" << x.transpose() << ")" << " - Invalid cylinder - " << endl;
             grad.setZero();
-            return 1000;
+            return 1.0;
         }
 
         DScalar ans = cylinder.EvaluateCylinder(image, bsplineSolver);
@@ -98,7 +96,10 @@ int main(int argc, char **argv) {
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         // img = img.block(305, 333, 638-306, 717-334);
-        img = img.block(305, 333, 30-5, 30-5);
+        // img = img.block(305, 333, 25, 25);  // pt1
+        // img = img.block(305, 350, 25, 25);  // pt2
+        // img = img.block(305, 370, 25, 25);  // pt3
+        img = img.block(305, 389, 25, 25);  // pt4
     }
     cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
     // normalize all layers
@@ -121,30 +122,35 @@ int main(int argc, char **argv) {
     LBFGSSolver<double> solver(param);
     VectorXd xx(3, 1);
 
-    double delta = 6;
+    double delta = 5;
     int i, j, it, x, y;
     double res;
+    int x0 = 13, y0 = 8;
+    // pt1: 12 11
+    // pt2: 11 9
+    // pt3: 13 8
+    // pt4: 13 8
 
     for (i=-delta; i<=delta; i++)
         for (j=-delta; j<=delta; j++) {
 
-            x = 12 + i;
-            y = 11 + j;
-            xx(0) = x;
+            x = x0 + i;
+            y = y0 + j;
+            xx(0) = x;  // starting point
             xx(1) = y;
             xx(2) = 4;
 
             // call optimizer
-            cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl;
+            cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl << flush;
             energy.ResetCount();
             it = solver.minimize(energy, xx, res);
 
-            cout << "<<<<< Summary <<<<<" << endl;
+            cout << "<<<<< Summary <<<<<" << endl << flush;
             logger().info("Timer");
+            cout << "s_start = " << x << " " << y << endl;
             cout << "xres = " << xx.transpose() << endl;
             cout << "iterations = " << it << endl;
         }
 
     // cout adjacent area
-
 }

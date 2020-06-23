@@ -1,12 +1,14 @@
 % helper function of CPP optimization test
 % convergence zone
 
-fid = fopen('../../release/debug_deg2_convZone.log');
+fid = fopen('../../release/debug.log');
 status = 0;
+count = 0;
 cacheVec = [];
 
 figure
 hold on
+grid on
 while ~feof(fid)
 
     line = fgetl(fid);
@@ -32,5 +34,8 @@ while ~feof(fid)
         plot(cacheVec(:, 2), cacheVec(:, 3), 'LineStyle', '-', 'Marker', '.');
         cacheVec = [];
         status = 0;
+        count = count + 1;
     end
 end
+
+fprintf("Count = %d\n", count);
