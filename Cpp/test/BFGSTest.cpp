@@ -33,7 +33,7 @@ double func(double x, double y, double z) {
     // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 2.5);
 
     // LBFGS test
-    if ((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5) > 9)
+    if ((x-14.25)*(x-14.25) + (y-14.85)*(y-14.85) > 16)
         return 1;
     else
         return 0;
@@ -46,6 +46,7 @@ private:
     const image_t &image;
     bspline bsplineSolver;
     cylinder cylinder;
+    int evalCount;
 
 public:
     // constructor
@@ -58,11 +59,8 @@ public:
     // evaluate
     double operator()(const VectorXd& x, VectorXd& grad) {
 
-        cout << "=============================" << endl;
-        cout << "F(" << x.transpose() << ")" << endl;
-
-        if (!cylinder.SampleCylinder(image, bsplineSolver, x(0), x(1), 32, x(2), 3)) {
-            cout << "Invalid cylinder - ";
+        if (!cylinder.SampleCylinder(image, bsplineSolver, x(0), x(1), 3, x(2), 3)) {
+            // cout << "Invalid cylinder - ";
             grad.setZero();
             return 1000;
         }
@@ -70,9 +68,13 @@ public:
         DScalar ans = cylinder.EvaluateCylinder(image, bsplineSolver);
         grad.resize(3, 1);
         grad = ans.getGradient();
-        cout << "F(" << x.transpose() << ") = " << ans.getValue() << endl;
-        cout << "    Grad = " << grad.transpose() << endl;
+        cout << evalCount++ << " " << x(0) << " " << x(1) << " " << x(2) << " " << ans.getValue() << endl;
+        cout << "grad = " << grad.transpose() << endl;
         return ans.getValue();
+    }
+
+    void ResetCount() {
+        evalCount = 0;
     }
 };
 
@@ -122,16 +124,36 @@ int main() {
     CylinderEnergy energy(image);
 
     LBFGSParam<double> param;
-    param.epsilon = 1e-3;
-    param.max_iterations = 10;
+    param.epsilon = 1e-4;
+    param.max_iterations = 20;
 
     LBFGSSolver<double> solver(param);
     VectorXd xx(3, 1);
-    xx << 13, 15, 4;
-    int it;
-    double res;
-    it = solver.minimize(energy, xx, res);
 
-    cout << "iterations = " << it << endl;
-    cout << "Fmin = " << res << endl;
+    double delta = 4;
+    int i, j, it;
+    double res;
+    int x0 = 14, y0 = 14;
+
+    for (i=-delta; i<=delta; i++)
+        for (j=-delta; j<=delta; j++) {
+
+            x = x0 + i;
+            y = y0 + j;
+            xx(0) = x;  // starting point
+            xx(1) = y;
+            xx(2) = 4;
+
+            // call optimizer
+            cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl << flush;
+            energy.ResetCount();
+            it = solver.minimize(energy, xx, res);
+
+            cout << "<<<<< Summary <<<<<" << endl << flush;
+            cout << "s_start = " << x << " " << y << endl;
+            cout << "xres = " << xx.transpose() << endl;
+            cout << "iterations = " << it << endl;
+        }
+
+    logger().info("Timer");
 }

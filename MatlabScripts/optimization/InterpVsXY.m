@@ -1,7 +1,8 @@
 % helper function of CPP optimization test
-% Energy function vs. [x, y]
+% Interp result vs. [x, y]
 
-fid = fopen('../../release/debug.log');
+fid = fopen('../../release/debug_interpVis_test.log');
+% fid = fopen('../../release/debug_interpVis_image.log');
 status = 0;
 cacheVec = [];
 
@@ -14,7 +15,7 @@ while ~feof(fid)
         status = 1;
         continue;
     end
-       
+
     if status == 1
         % read another line
         rawVec = sscanf(line, "%f");
@@ -31,11 +32,11 @@ gap = 1;
 [Xq, Yq] = meshgrid(xmin:gap:xmax, ymin:gap:ymax);
 [X, Y] = meshgrid(xmin:xmax, ymin:ymax);
 Z = reshape(cacheVec(:, 3), ymax-ymin+1, xmax-xmin+1);
-%{
 Vq = interp2(X, Y, Z, Xq, Yq, 'spline');
 figure
 hold on
-surf(Xq, Yq, -Vq');
+surf(Xq, Yq, -Vq);
 grid on
-%}
-surf(X, Y, -Z)
+
+% axis equal
+set(gca,'DataAspectRatio',[1 1 1/25])

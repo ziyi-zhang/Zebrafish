@@ -152,5 +152,5 @@ int main(int argc, char **argv) {
             cout << "iterations = " << it << endl;
         }
 
-    // cout adjacent area
+    logger().info("Timer");
 }
