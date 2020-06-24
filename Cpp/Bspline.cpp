@@ -22,17 +22,6 @@ namespace zebrafish {
 
 namespace {
 
-    /*
-    // No longer need this, use new logger instead
-    void PrintTime(std::string str) {
-    // print human readable time
-
-        auto timeStamp = std::chrono::system_clock::now();
-        std::time_t time = std::chrono::system_clock::to_time_t(timeStamp);
-        logger().info("{}    {}s", str, time);
-        // std::cout << str << "       " << std::ctime(&time);
-    }
-    */
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
