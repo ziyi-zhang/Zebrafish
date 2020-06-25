@@ -56,9 +56,9 @@ void interpolate(const Func &func, int &degree, double &mean_error, double &medi
     sizeZ = 25;
 
     // user input
-    resolutionX = 0.325;
-    resolutionY = 0.325;
-    resolutionZ = 0.5;
+    // resolutionX = 0.325;
+    // resolutionY = 0.325;
+    // resolutionZ = 0.5;
 
     // generate sample grid (3D)
     double maxPixel = 0;
@@ -88,7 +88,7 @@ void interpolate(const Func &func, int &degree, double &mean_error, double &medi
 
     // prepare B-spline
     bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 1);
+    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 1, 2);
 
     // random
     srand(time(NULL));

@@ -26,22 +26,48 @@ namespace {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void bspline::CalcControlPts_um(const image_t &image, const double distX, const double distY, const double distZ) {
+void bspline::SetResolution(const double resX, const double resY, const double resZ) {
 
-    double xratio, yratio, zratio;
-
-    xratio = resolutionX / distX;  // if resolution is 1um, want 2um, the ratio should be 0.5
-    yratio = resolutionY / distY;
-    zratio = resolutionZ / distZ;
-    assert(xratio > 0 && yratio > 0 && zratio > 0);
-    assert(xratio <= 1 && yratio <= 1 && zratio <= 1);
-
-    CalcControlPts(image, xratio, yratio, zratio);
+    resolutionX = resX;
+    resolutionY = resY;
+    resolutionZ = resZ;
 }
 
 
-void bspline::CalcControlPts(const image_t &image, const double xratio, const double yratio, const double zratio) {
-// Note: this function will only be called once for one 3D image
+void bspline::CalcControlPts_um(const image_t &image, const double distX, const double distY, const double distZ, const int degree) {
+
+    double xratio, yratio, zratio;
+
+    assert(degree == 2 || degree == 3);
+
+    // dimension of sample points
+    Nz = image.size();
+    Nx = image[0].rows();
+    Ny = image[0].cols();
+    /// Note: Why the calculation of ratio for degree 2 & 3 B-spline are different?
+    ///       Clamped B-spline => different #multiplicity
+    if (degree == 3) {
+        numX = round(resolutionX / distX * (double(Nx) - 1) + 3.0);
+        numY = round(resolutionY / distY * (double(Ny) - 1) + 3.0);
+        numZ = round(resolutionZ / distZ * (double(Nz) - 1) + 3.0);
+    } else {
+        numX = round(resolutionX / distX * (double(Nx) - 1) + 2.0);
+        numY = round(resolutionY / distY * (double(Ny) - 1) + 2.0);
+        numZ = round(resolutionZ / distZ * (double(Nz) - 1) + 2.0);
+    }
+    xratio = (double(numX) - 0.5) / double(Nx);
+    yratio = (double(numY) - 0.5) / double(Ny);
+    zratio = (double(numZ) - 0.5) / double(Nz);
+
+    assert(xratio > 0 && yratio > 0 && zratio > 0);
+    assert(xratio <= 1 && yratio <= 1 && zratio <= 1);
+
+    CalcControlPts(image, xratio, yratio, zratio, degree);
+}
+
+
+void bspline::CalcControlPts(const image_t &image, const double xratio, const double yratio, const double zratio, const int degree_) {
+// Note: this function will only be called once for each 3D image
 
     assert(xratio <= 1 && yratio <= 1 && zratio <= 1);
         logger().info("====================================================");
@@ -55,18 +81,15 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     Eigen::VectorXd inputPts, vectorY;
 
     // dimension of sample points
-    Nz = image.size();
-    Nx = image[0].rows();
-    Ny = image[0].cols();
     N = Nx*Ny*Nz;
-        logger().debug("Sample N= {} Nx= {} Ny= {} Nz= {}", N, Nx, Ny, Nz);
+        logger().debug("Sample points:  N= {} Nx= {} Ny= {} Nz= {}", N, Nx, Ny, Nz);
 
     // dimension of control points
     numX = ceil(Nx * xratio);
     numY = ceil(Ny * yratio);
     numZ = ceil(Nz * zratio);
     num = numX * numY * numZ;
-        logger().debug("Control num= {} numX= {} numY= {} numZ={}", num, numX, numY, numZ);
+        logger().debug("Control points: num= {} numX= {} numY= {} numZ={}", num, numX, numY, numZ);
 
     // A[i, j]: the evaluation of basis j for the i-th sample point
     Eigen::SparseMatrix<double> A(N, num);
@@ -82,6 +105,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
         gapY = double(Ny-1) / double(numY-1-1);
         gapZ = double(Nz-1) / double(numZ-1-1);
     }
+        logger().debug("xratio = {}  yratio = {}  zratio = {}", xratio, yratio, zratio);
         logger().debug("gapX = {}px  gapY = {}px  gapZ = {}px", gapX, gapY, gapZ);
         logger().debug("gapX = {}um  gapY = {}um  gapZ = {}um", gapX*resolutionX, gapY*resolutionY, gapZ*resolutionZ);
 
@@ -415,11 +439,20 @@ bspline::bspline() {
     numX = 0;
     numY = 0;
     numZ = 0;
+    resolutionX = 0;
+    resolutionY = 0;
+    resolutionZ = 0;
 }
 
 
 bspline::~bspline() {
 
 }
+
+/////////////////////////////////////////////////////
+// Static member variable
+double bspline::resolutionX = 0.0;
+double bspline::resolutionY = 0.0;
+double bspline::resolutionZ = 0.0;
 
 }  // namespace zebrafish

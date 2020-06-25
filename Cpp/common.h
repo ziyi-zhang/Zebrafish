@@ -26,10 +26,6 @@ extern int degree;            // B-spline degree
                               // "3" for cubic basis function
                               // "2" for quadratic basis function
 
-// image info
-extern double resolutionX;    // The distance between two pixels in X-direction (in micrometers)
-extern double resolutionY;
-extern double resolutionZ;
 
 // hypre solver
 extern int solverMaxIt;       // Hypre solver max iterations
