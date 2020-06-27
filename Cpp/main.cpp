@@ -82,8 +82,7 @@ int main() {
     // prepare B-spline
     bspline bsplineSolver;
     bsplineSolver.SetResolution(0.325, 0.325, 0.5);
-    // bsplineSolver.CalcControlPts(image, 0.7, 0.7, 1);
-    bsplineSolver.CalcControlPts_um(image, 0.8, 0.8, 0.8, 2);
+    bsplineSolver.CalcControlPts_um(image, 0.8, 0.8, 0.8, 3);
 
     // random
     srand(time(NULL));

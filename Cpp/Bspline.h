@@ -22,7 +22,7 @@ private:
     Eigen::Matrix< std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisX, basisY, basisZ;
         // Pre-calculated lambda basis functions (double & DScalar)
 
-    void CalcLeastSquareMat(Eigen::SparseMatrix<double> &A);
+    void CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A);
     template <typename T>
     void CalcBasisFunc(Eigen::Matrix< std::function<T(T)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, 
                        const int& numT, const double& gapT);

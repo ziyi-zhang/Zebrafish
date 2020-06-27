@@ -14,8 +14,6 @@
 #include <iostream>
 #include <algorithm>
 #include <array>
-#include <chrono>
-#include <ctime>
 
 
 namespace zebrafish {
@@ -95,8 +93,12 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
         logger().debug("Control points: num= {} numX= {} numY= {} numZ={}", num, numX, numY, numZ);
 
     // A[i, j]: the evaluation of basis j for the i-th sample point
-    Eigen::SparseMatrix<double> A(N, num);
-    Eigen::SparseMatrix<double> AtransposeA(num, num);
+    Eigen::SparseMatrix<double, Eigen::RowMajor> A(N, num);
+    Eigen::SparseMatrix<double, Eigen::RowMajor> AtransposeA(num, num);
+    // Reserve space for least square matrix
+    // At most (degree^3) non-zero elements per row
+    // This step is critical for efficiency
+    A.reserve(Eigen::VectorXi::Constant(A.rows(), (degree==2 ? 27 : 64)));
 
     // the interval between two control points along a direction
     if (degree == 3) {
@@ -172,11 +174,11 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
 }
 
 
-void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
+void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A) {
 
     int i, j, ix, iy, iz, jx, jy, jz, refIdx_x, refIdx_y, refIdx_z;
     int jxMin, jxMax, jyMin, jyMax, jzMin, jzMax;
-    double rowSum, t, t1, t2, t3;
+    double t, t1, t2, t3;
 
     // order matters!
     // for column (j): z -> x -> y
@@ -198,16 +200,7 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
                 if (refIdx_x == numX-1-(degree-1)) refIdx_x--;
                 if (refIdx_y == numY-1-(degree-1)) refIdx_y--;
                 if (refIdx_z == numZ-1-(degree-1)) refIdx_z--;
-                /*
-                // This is not necessary anymore because clamped B-spline has wider gap
-                jxMin = std::max(0, refIdx_x);
-                jxMax = std::min(numX-1, refIdx_x+3);
-                jyMin = std::max(0, refIdx_y);
-                jyMax = std::min(numY-1, refIdx_y+3);
-                jzMin = std::max(0, refIdx_z);
-                jzMax = std::min(numZ-1, refIdx_z+3);
-                */
-                rowSum = 0.0;
+
                 for (jz=refIdx_z; jz<=refIdx_z+degree; jz++)
                     for (jx=refIdx_x; jx<=refIdx_x+degree; jx++)
                         for (jy=refIdx_y; jy<=refIdx_y+degree; jy++) {
@@ -218,15 +211,12 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
                             t3 = basisZd(jz-refIdx_z, refIdx_z)(iz);
                             t = t1 * t2 * t3;
 
-                            if (fabs(t) > 0.000000) {
-                                rowSum += t;
-                                A.insert(i, j) = t;  // direct insertion
-                                // printf("%d %d : %.5f\n", i, j, t);  // DEBUG only
-                            }
+                            if (fabs(t) > 0.000000)
+                                A.insert(i, j) = t;  // O(1) insertion (space has been reserved)
                         }
                 ///////////// DEBUG ONLY
-                if (fabs(rowSum-1.0)> 1e-8)  // if (rowSum != 1.0)
-                    logger().error("RowSum error: ix={}, iy={}, iz={}, rowSum={}", ix, iy, iz, rowSum);
+                // if (fabs(rowSum-1.0)> 1e-8)  // if (rowSum != 1.0)
+                //    logger().error("RowSum error: ix={}, iy={}, iz={}, rowSum={}", ix, iy, iz, rowSum);
                 ///////////// DEBUG ONLY
             }
 }
@@ -310,44 +300,6 @@ void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) con
 // This function is temporarily deprecated
 // Use the DScalar version instead
 
-    assert(numX != 0 && numY != 0 && numZ != 0);
-
-    int i, ix, iy, iz, idx_x, idx_y, idx_z;
-    double xcoef, ycoef, zcoef;
-    int refIdx_x, refIdx_y, refIdx_z;
-    double evalX1, evalX2, evalX3, evalX4, evalY1, evalY2, evalY3, evalY4, evalZ1, evalZ2, evalZ3, evalZ4;
-    Eigen::MatrixX3d truncSample = sample.array().floor();
-    Eigen::MatrixX3d baseIdx = truncSample.array() - 1.0;
-
-    res.resize(sample.rows(), 1);
-    for (i=0; i<sample.rows(); i++) {
-
-        // Get reference index
-        refIdx_x = floor(sample(i, 0) / gapX) - 1;
-        refIdx_y = floor(sample(i, 1) / gapY) - 1;
-        refIdx_z = floor(sample(i, 2) / gapZ) - 1;
-        assert(refIdx_x >= 0 && refIdx_y >= 0 && refIdx_z >= 0);
-        assert(refIdx_x <= numX-4 && refIdx_y <= numY-4 && refIdx_z <= numZ-4);
-        //
-        res(i) = 0;
-        for (ix=0; ix<=3; ix++)
-            for (iy=0; iy<=3; iy++)
-                for (iz=0; iz<=3; iz++) {
-
-                    idx_x = refIdx_x + ix;
-                    idx_y = refIdx_y + iy;
-                    idx_z = refIdx_z + iz;
-
-                    /*
-                    xcoef = CubicBasis( (sample(i, 0)-centersX(idx_x)) / gapX );
-                    ycoef = CubicBasis( (sample(i, 1)-centersY(idx_y)) / gapY );
-                    zcoef = CubicBasis( (sample(i, 2)-centersZ(idx_z)) / gapZ );
-
-                    res(i) += controlPoints(numX*numY*idx_z + numY*idx_x + idx_y) * xcoef * ycoef * zcoef;
-                    */
-                }
-    }
-
     /*
     // yArray
     const Eigen::Matrix4d &z1layer = image[baseIdx(2)  ].block<4, 4>(baseIdx(0), baseIdx(1));
@@ -397,6 +349,52 @@ void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) con
     res(0) = (yArray * BxArray * ByArray * BzArray).sum();
     */
 }
+
+
+/*
+void bspline::Interp3D_deg2_mat(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sampleDS, const double z, Eigen::Matrix<double, Eigen::Dynamic, 1> &res) const {
+// 
+
+    assert(numX != 0 && numY != 0 && numZ != 0);
+
+    int i, ix, iy, iz;
+    double xcoef, ycoef, zcoef;
+    int refIdx_x, refIdx_y, refIdx_z = floor(z / gapZ);
+
+    res.resize(sampleDS.rows(), 1);
+    for (i=0; i<sampleDS.rows(); i++) {
+
+        // Get reference index
+        refIdx_x = floor(sampleDS(i, 0) / gapX);
+        refIdx_y = floor(sampleDS(i, 1) / gapY);
+
+
+        // if the query point lies exactly at the end of the border
+        /// NOTE: in practice, we will never query those points
+        ///       but this function is for test/debug purpose
+        if (refIdx_x == numX-1-(degree-1)) refIdx_x--;
+        if (refIdx_y == numY-1-(degree-1)) refIdx_y--;
+        if (refIdx_z == numZ-1-(degree-1)) refIdx_z--;
+
+
+        assert(refIdx_x >= 0 && refIdx_y >= 0 && refIdx_z >= 0);
+        assert(refIdx_x <= numX-(degree+1) && refIdx_y <= numY-(degree+1) && refIdx_z <= numZ-(degree+1));
+
+        // Evaluate
+        res(i) = 0.0;
+        for (ix=0; ix<=degree; ix++)
+            for (iy=0; iy<=degree; iy++)
+                for (iz=0; iz<=degree; iz++) {
+
+                    xcoef = basisXd(ix, refIdx_x)(sampleDS(i, 0));
+                    ycoef = basisYd(iy, refIdx_y)(sampleDS(i, 1));
+                    zcoef = basisZd(iz, refIdx_z)(z);
+
+                    res(i) += xcoef * ycoef * zcoef;
+                }
+    }
+}
+*/
 
 
 double bspline::Interp3D(const double x, const double y, const double z) const {
