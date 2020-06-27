@@ -17,7 +17,9 @@ private:
     int Nx, Ny, Nz;         // the dimension of sample points (Nx * Ny * Nz == #pixels)
     int numX, numY, numZ;   // the dimension of control points (numX * numY * numZ == #control points)
     static double resolutionX, resolutionY, resolutionZ;  // The distance between two pixels (in micrometers)
-    
+    int solverMaxIt;                  // Hypre solver max iterations
+    double solverConvTol, solverTol;  // Hypre solver "convergence tolerance" and "tolerance"
+
     Eigen::Matrix< std::function<double(double)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisXd, basisYd, basisZd;
     Eigen::Matrix< std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisX, basisY, basisZ;
         // Pre-calculated lambda basis functions (double & DScalar)

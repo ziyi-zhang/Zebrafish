@@ -23,11 +23,6 @@ typedef DScalar1<double, gradient_t> DScalar;
 //////////////////////
 
 
-// hypre solver
-extern int solverMaxIt;       // Hypre solver max iterations
-extern double solverConvTol;  // Hypre solver convergence tolerance
-extern double solverTol;      // Hypre solver tolerance
-
 // pre-process
 extern double pixelQuantile;  // pixels with value larger than this quantile will be trimmed
 

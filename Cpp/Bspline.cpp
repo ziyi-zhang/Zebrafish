@@ -148,7 +148,8 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     vectorY = A.transpose() * inputPts;  // A' * y
 
     // solve linear system for control points
-        // Eigen::SimplicialCholesky<Eigen::SparseMatrix<double> > chol(AtransposeA);  // performs Cholesky factorization
+        // Deprecated eigen solver
+        // Eigen::SimplicialCholesky<Eigen::SparseMatrix<double> > chol(AtransposeA);
         // controlPoints = chol.solve(vectorY);
     const std::string solverName = "Hypre";
     auto solver = polysolve::LinearSolver::create(solverName, "");
@@ -187,7 +188,8 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A
         for (iy=0; iy<=Ny-1; iy++)
             for (ix=0; ix<=Nx-1; ix++) {
 
-                i = iz * Nx * Ny + iy * Nx + ix;  // iterating sample points
+                // iterating sample points
+                i = iz * Nx * Ny + iy * Nx + ix;
 
                 // progress bar
                 if (i % int(Nx*Ny*Nz*0.2) == 0) 
@@ -196,7 +198,7 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A
                 refIdx_x = floor(ix / gapX);
                 refIdx_y = floor(iy / gapY);
                 refIdx_z = floor(iz / gapZ);
-                // if the query point lies exactly at the end of the border
+                // if the query point lies exactly at one edge of the input grid
                 if (refIdx_x == numX-1-(degree-1)) refIdx_x--;
                 if (refIdx_y == numY-1-(degree-1)) refIdx_y--;
                 if (refIdx_z == numZ-1-(degree-1)) refIdx_z--;
@@ -205,13 +207,14 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A
                     for (jx=refIdx_x; jx<=refIdx_x+degree; jx++)
                         for (jy=refIdx_y; jy<=refIdx_y+degree; jy++) {
 
-                            j = jz * numX * numY + jx * numY + jy;  // iterating control points' basis function
+                            // iterating control points' basis function
+                            j = jz * numX * numY + jx * numY + jy;
                             t1 = basisXd(jx-refIdx_x, refIdx_x)(ix);
                             t2 = basisYd(jy-refIdx_y, refIdx_y)(iy);
                             t3 = basisZd(jz-refIdx_z, refIdx_z)(iz);
                             t = t1 * t2 * t3;
 
-                            if (fabs(t) > 0.000000)
+                            if (fabs(t) > 2e-15)
                                 A.insert(i, j) = t;  // O(1) insertion (space has been reserved)
                         }
                 ///////////// DEBUG ONLY
@@ -446,8 +449,8 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sampleDS
         refIdx_y = floor(sampleDS(i, 1).getValue() / gapY);
         refIdx_z = z.getValue() / gapZ;
 
-        // if the query point lies exactly at the end of the border
-        /// NOTE: in practice, we will never query those points
+        // if the query point lies exactly at one edge of the input grid
+        /// NOTE: in practice, we will never query those edges
         ///       but this function is for test/debug purpose
         if (refIdx_x == numX-1-(degree-1)) refIdx_x--;
         if (refIdx_y == numY-1-(degree-1)) refIdx_y--;
@@ -541,6 +544,10 @@ bspline::bspline() {
     numX = 0;
     numY = 0;
     numZ = 0;
+    // Hypre solver by default very high accuracy
+    solverMaxIt = 20000;    // 1000
+    solverConvTol = 1e-15;  // 1e-10
+    solverTol = 1e-15;      // 1e-10
 }
 
 
