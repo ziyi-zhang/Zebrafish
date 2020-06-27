@@ -383,10 +383,29 @@ void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) con
 }
 
 
-void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 3> &sample, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
+double bspline::Interp3D(const double x, const double y, const double z) const {
 
+    Eigen::Matrix<DScalar, Eigen::Dynamic, 2> sample;
+    sample.resize(1, 2);
+    DScalar z_;
+    Eigen::Matrix<DScalar, Eigen::Dynamic, 1> resArr;
+    resArr.resize(1, 1);
+
+        sample << DScalar(x), DScalar(y);
+        z_ = DScalar(z);
+
+    Interp3D(sample, z_, resArr);
+    return resArr(0).getValue();
 }
 
+
+/*
+template <typename T>
+void bspline::Interp3D(const Eigen::Matrix<T, Eigen::Dynamic, 3> &sample, Eigen::Matrix<T, Eigen::Dynamic, 1> &res) const {
+
+    assert(false);
+}
+*/
 
 
 void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sampleDS, const DScalar z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
@@ -439,9 +458,6 @@ bspline::bspline() {
     numX = 0;
     numY = 0;
     numZ = 0;
-    resolutionX = 0;
-    resolutionY = 0;
-    resolutionZ = 0;
 }
 
 

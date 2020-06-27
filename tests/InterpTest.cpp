@@ -120,7 +120,7 @@ void interpolate(const Func &func, int &degree, double &mean_error, double &medi
         in << DScalar(x), DScalar(y), DScalar(z);
         Eigen::Matrix<DScalar, Eigen::Dynamic, 1> out;
 
-        bsplineSolver.Interp3D(in, out);
+        // bsplineSolver.Interp3D(in, out);
         err = func(x, y, z) - out(0).getValue();
         // cout << err << endl;
         err = fabs(err);

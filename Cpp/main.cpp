@@ -109,13 +109,10 @@ int main() {
         // x = 0; y = 0; z = 5;
         // cout << x << " " << y << " " << z << ":      ";
 
-        Eigen::Matrix<DScalar, Eigen::Dynamic, 3> in;
-        in.resize(1, 3);
-        in << DScalar(x), DScalar(y), DScalar(z);
-        Eigen::Matrix<DScalar, Eigen::Dynamic, 1> out;
+        double out;
 
-        bsplineSolver.Interp3D(in, out);
-        err = func(x, y, z) - out(0).getValue();
+        out = bsplineSolver.Interp3D(x, y, z);
+        err = func(x, y, z) - out;
         // cout << err << endl;
         err = fabs(err);
 
