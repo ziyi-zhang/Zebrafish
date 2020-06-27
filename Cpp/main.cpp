@@ -97,7 +97,7 @@ int main() {
 
     // interp test
     double err, sumerr = 0, minerr = 1.0, maxerr = 0.0;
-    int trialNum = 500;
+    int trialNum = 2000;
     for (int i = 0; i<trialNum; i++) {
 
         x = unif(re);
@@ -136,7 +136,9 @@ int main() {
         }
     }
 
-    cout << "Degree = " << degree << endl;
+    // interp test report
+    cout << "Degree = " << bsplineSolver.degree << endl;
+    cout << "Interp trial number = " << trialNum << endl;
     cout << "Mean error = " << sumerr / double(trialNum) << endl;
     cout << "Median error = " << l.top() << endl;
     cout << "Min  error = " << minerr << endl;

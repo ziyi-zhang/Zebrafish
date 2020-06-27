@@ -14,17 +14,23 @@ class bspline {
 
 private:
     Eigen::VectorXd controlPoints;  // [#points] control points value
-    int Nx, Ny, Nz;  // the dimension of sample points (Nx * Ny * Nz == #pixels)
-    int numX, numY, numZ;  // the dimension of control points (numX * numY * numZ == #control points)
+    int Nx, Ny, Nz;         // the dimension of sample points (Nx * Ny * Nz == #pixels)
+    int numX, numY, numZ;   // the dimension of control points (numX * numY * numZ == #control points)
     static double resolutionX, resolutionY, resolutionZ;  // The distance between two pixels (in micrometers)
+    
     Eigen::Matrix< std::function<double(double)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisXd, basisYd, basisZd;
     Eigen::Matrix< std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisX, basisY, basisZ;
         // Pre-calculated lambda basis functions (double & DScalar)
 
     void CalcLeastSquareMat(Eigen::SparseMatrix<double> &A);
-    void CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, int& numT, double& gapT);
+    template <typename T>
+    void CalcBasisFunc(Eigen::Matrix< std::function<T(T)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, 
+                       const int& numT, const double& gapT);
 
 public:
+    int degree;  // B-spline degree
+                 // "2" for quadratic clamped B-spline
+                 // "3" for cubic clamped B-spline
     double gapX, gapY, gapZ;  // the interval between two control points along a direction
 
     void SetResolution(const double resX, const double resY, const double resZ);
@@ -45,14 +51,10 @@ public:
     /// @param[in]   degree     { the degree of B-spline. Can be 2 or 3. }
 
     void Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) const;
-    double Interp3D(const double x, const double y, const double z) const;
     DScalar Interp3D(const DScalar &x, const DScalar &y, const DScalar &z) const;
-    /*
-    template <typename T>
-    void Interp3D(const Eigen::Matrix<T, Eigen::Dynamic, 3> &sample, Eigen::Matrix<T, Eigen::Dynamic, 1> &res) const;
-    */
-    template <typename T>
-    void Interp3D(const Eigen::Matrix<T, Eigen::Dynamic, 2> &sample, const T z, Eigen::Matrix<T, Eigen::Dynamic, 1> &res) const;
+    double Interp3D(const double x, const double y, const double z) const;
+    void Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, const DScalar z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const;
+    void Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<double, Eigen::Dynamic, 1> &res) const;
     /// Calculate the interpolated B-spline result at "sample" points.
     /// Note: this function does not check for input validity
     ///

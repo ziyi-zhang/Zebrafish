@@ -21,10 +21,6 @@ typedef DScalar1<double, gradient_t> DScalar;
 //////////////////////
 // global variables //
 //////////////////////
-// Bspline
-extern int degree;            // B-spline degree
-                              // "3" for cubic basis function
-                              // "2" for quadratic basis function
 
 
 // hypre solver

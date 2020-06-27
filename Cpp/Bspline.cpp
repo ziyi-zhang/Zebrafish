@@ -34,19 +34,18 @@ void bspline::SetResolution(const double resX, const double resY, const double r
 }
 
 
-void bspline::CalcControlPts_um(const image_t &image, const double distX, const double distY, const double distZ, const int degree) {
+void bspline::CalcControlPts_um(const image_t &image, const double distX, const double distY, const double distZ, const int degree_) {
+
+    assert(degree_ == 2 || degree_ == 3);
 
     double xratio, yratio, zratio;
-
-    assert(degree == 2 || degree == 3);
-
     // dimension of sample points
     Nz = image.size();
     Nx = image[0].rows();
     Ny = image[0].cols();
     /// Note: Why the calculation of ratio for degree 2 & 3 B-spline are different?
     ///       Clamped B-spline => different #multiplicity
-    if (degree == 3) {
+    if (degree_ == 3) {
         numX = round(resolutionX / distX * (double(Nx) - 1) + 3.0);
         numY = round(resolutionY / distY * (double(Ny) - 1) + 3.0);
         numZ = round(resolutionZ / distZ * (double(Nz) - 1) + 3.0);
@@ -62,7 +61,7 @@ void bspline::CalcControlPts_um(const image_t &image, const double distX, const 
     assert(xratio > 0 && yratio > 0 && zratio > 0);
     assert(xratio <= 1 && yratio <= 1 && zratio <= 1);
 
-    CalcControlPts(image, xratio, yratio, zratio, degree);
+    CalcControlPts(image, xratio, yratio, zratio, degree_);
 }
 
 
@@ -70,6 +69,10 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
 // Note: this function will only be called once for each 3D image
 
     assert(xratio <= 1 && yratio <= 1 && zratio <= 1);
+    assert(degree_ == 2 || degree_ == 3);
+
+    // register B-spline degree to class member variable
+    degree = degree_;
         logger().info("====================================================");
         logger().info("B-Spline degree = {}", degree);
         logger().info("Start calculating control points...");
@@ -119,9 +122,14 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     }
 
     // Calculate basis function lookup table
-    CalcBasisFunc(basisX, numX, gapX);
-    CalcBasisFunc(basisY, numY, gapY);
-    CalcBasisFunc(basisZ, numZ, gapZ);
+    // DScalar version
+    CalcBasisFunc<DScalar>(basisX, numX, gapX);
+    CalcBasisFunc<DScalar>(basisY, numY, gapY);
+    CalcBasisFunc<DScalar>(basisZ, numZ, gapZ);
+    // double version
+    CalcBasisFunc<double>(basisXd, numX, gapX);
+    CalcBasisFunc<double>(basisYd, numY, gapY);
+    CalcBasisFunc<double>(basisZd, numZ, gapZ);
 
     // Calculate & fill the least square matrix A
         logger().info("Calculating & filling least square matrix...");
@@ -205,9 +213,9 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
                         for (jy=refIdx_y; jy<=refIdx_y+degree; jy++) {
 
                             j = jz * numX * numY + jx * numY + jy;  // iterating control points' basis function
-                            t1 = basisX(jx-refIdx_x, refIdx_x)(DScalar(ix)).getValue();
-                            t2 = basisY(jy-refIdx_y, refIdx_y)(DScalar(iy)).getValue();
-                            t3 = basisZ(jz-refIdx_z, refIdx_z)(DScalar(iz)).getValue();
+                            t1 = basisXd(jx-refIdx_x, refIdx_x)(ix);
+                            t2 = basisYd(jy-refIdx_y, refIdx_y)(iy);
+                            t3 = basisZd(jz-refIdx_z, refIdx_z)(iz);
                             t = t1 * t2 * t3;
 
                             if (fabs(t) > 0.000000) {
@@ -224,8 +232,9 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double> &A) {
 }
 
 
-void bspline::CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, int& numT, double& gapT) {
-// NOTE: "T" can be "X", "Y" or "Z"
+template <typename T>
+void bspline::CalcBasisFunc(Eigen::Matrix< std::function<T (T) >, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, const int &numT, const double &gapT) {
+// NOTE: "basisT" can be "basisX", "basisY" or "basisZ"
 
     if (degree == 3) {  // cubic basis
 
@@ -234,32 +243,32 @@ void bspline::CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, Eige
         basisT.resize(4, numT-1-2);
         // first 3 columns
             // cubic [11112]
-        basisT(0, 0) = [&gapT](DScalar x) {x = x/gapT; return - (x-1.0)*(x-1.0)*(x-1.0);};
+        basisT(0, 0) = [&gapT](T x) {x = x/gapT; return - (x-1.0)*(x-1.0)*(x-1.0);};
             // cubic [11123]
-        basisT(1, 0) = [&gapT](DScalar x) {x = x/gapT; return (7.0/4.0)*x*x*x - (9.0/2.0)*x*x + 3.0*x;};
-        basisT(0, 1) = [&gapT](DScalar x) {x = x/gapT; return -(1.0/4.0)*x*x*x + (3.0/2.0)*x*x - 3.0*x + 2.0;};
+        basisT(1, 0) = [&gapT](T x) {x = x/gapT; return (7.0/4.0)*x*x*x - (9.0/2.0)*x*x + 3.0*x;};
+        basisT(0, 1) = [&gapT](T x) {x = x/gapT; return -(1.0/4.0)*x*x*x + (3.0/2.0)*x*x - 3.0*x + 2.0;};
             // cubic [11234]
-        basisT(2, 0) = [&gapT](DScalar x) {x = x/gapT; return -(11.0/12.0)*x*x*x + (3.0/2.0)*x*x;};
-        basisT(1, 1) = [&gapT](DScalar x) {x = x/gapT; return (7.0/12.0)*x*x*x - 3.0*x*x + 9.0/2.0*x - (3.0/2.0);};
-        basisT(0, 2) = [&gapT](DScalar x) {x = x/gapT; return -(1.0/6.0)*x*x*x + (3.0/2.0)*x*x - (9.0/2.0)*x + (9.0/2.0);};
+        basisT(2, 0) = [&gapT](T x) {x = x/gapT; return -(11.0/12.0)*x*x*x + (3.0/2.0)*x*x;};
+        basisT(1, 1) = [&gapT](T x) {x = x/gapT; return (7.0/12.0)*x*x*x - 3.0*x*x + 9.0/2.0*x - (3.0/2.0);};
+        basisT(0, 2) = [&gapT](T x) {x = x/gapT; return -(1.0/6.0)*x*x*x + (3.0/2.0)*x*x - (9.0/2.0)*x + (9.0/2.0);};
         // last 3 columns
             // cubic [11112]
-        basisT(3, numT-4) = [&](DScalar x) {x = numT-3-x/gapT; return - (x-1.0)*(x-1.0)*(x-1.0);};
+        basisT(3, numT-4) = [&](T x) {x = numT-3-x/gapT; return - (x-1.0)*(x-1.0)*(x-1.0);};
             // cubic [11123]
-        basisT(2, numT-4) = [&](DScalar x) {x = numT-3-x/gapT; return (7.0/4.0)*x*x*x - (9.0/2.0)*x*x + 3.0*x;};
-        basisT(3, numT-5) = [&](DScalar x) {x = numT-3-x/gapT; return -(1.0/4.0)*x*x*x + (3.0/2.0)*x*x - 3.0*x + 2.0;};
+        basisT(2, numT-4) = [&](T x) {x = numT-3-x/gapT; return (7.0/4.0)*x*x*x - (9.0/2.0)*x*x + 3.0*x;};
+        basisT(3, numT-5) = [&](T x) {x = numT-3-x/gapT; return -(1.0/4.0)*x*x*x + (3.0/2.0)*x*x - 3.0*x + 2.0;};
             // cubic [11234]
-        basisT(1, numT-4) = [&](DScalar x) {x = numT-3-x/gapT; return -(11.0/12.0)*x*x*x + (3.0/2.0)*x*x;};
-        basisT(2, numT-5) = [&](DScalar x) {x = numT-3-x/gapT; return (7.0/12.0)*x*x*x - 3.0*x*x + 9.0/2.0*x - (3.0/2.0);};
-        basisT(3, numT-6) = [&](DScalar x) {x = numT-3-x/gapT; return -(1.0/6.0)*x*x*x + (3.0/2.0)*x*x - (9.0/2.0)*x + (9.0/2.0);};
+        basisT(1, numT-4) = [&](T x) {x = numT-3-x/gapT; return -(11.0/12.0)*x*x*x + (3.0/2.0)*x*x;};
+        basisT(2, numT-5) = [&](T x) {x = numT-3-x/gapT; return (7.0/12.0)*x*x*x - 3.0*x*x + 9.0/2.0*x - (3.0/2.0);};
+        basisT(3, numT-6) = [&](T x) {x = numT-3-x/gapT; return -(1.0/6.0)*x*x*x + (3.0/2.0)*x*x - (9.0/2.0)*x + (9.0/2.0);};
         // middle columns
             // cubic [12345]
         for (int i=2; i<=numT-5; i++) {
             // [&gapT, i]: gapT capture by reference & i capture by copy
-            basisT(3, i-2) = [&gapT, i](DScalar x) {x = x/gapT-i; return (1.0/6.0)*x*x*x + x*x + 2.0*x + (4.0/3.0);};
-            basisT(2, i-1) = [&gapT, i](DScalar x) {x = x/gapT-i; return -(1.0/2.0)*x*x*x - x*x + (2.0/3.0);};
-            basisT(1, i  ) = [&gapT, i](DScalar x) {x = x/gapT-i; return (1.0/2.0)*x*x*x - x*x + (2.0/3.0);};
-            basisT(0, i+1) = [&gapT, i](DScalar x) {x = x/gapT-i; return -(1.0/6.0)*x*x*x + x*x - 2.0*x + (4.0/3.0);};
+            basisT(3, i-2) = [&gapT, i](T x) {x = x/gapT-i; return (1.0/6.0)*x*x*x + x*x + 2.0*x + (4.0/3.0);};
+            basisT(2, i-1) = [&gapT, i](T x) {x = x/gapT-i; return -(1.0/2.0)*x*x*x - x*x + (2.0/3.0);};
+            basisT(1, i  ) = [&gapT, i](T x) {x = x/gapT-i; return (1.0/2.0)*x*x*x - x*x + (2.0/3.0);};
+            basisT(0, i+1) = [&gapT, i](T x) {x = x/gapT-i; return -(1.0/6.0)*x*x*x + x*x - 2.0*x + (4.0/3.0);};
         }
     } else if (degree == 2) {  // quadratic basis
 
@@ -268,26 +277,33 @@ void bspline::CalcBasisFunc(Eigen::Matrix< std::function<DScalar(DScalar)>, Eige
         basisT.resize(3, numT-1-1);
         // first 2 columns
             // quadratic [1112]
-        basisT(0, 0) = [&](DScalar x) {x = x/gapT; return (x-1.0)*(x-1.0);};
+        basisT(0, 0) = [&](T x) {x = x/gapT; return (x-1.0)*(x-1.0);};
             // quadratic [1123]
         // Why minus one? the basis function is from -1, see notes
-        basisT(1, 0) = [&](DScalar x) {x = x/gapT-1; return -(3.0/2.0)*x*x - x + (1.0/2.0);};
-        basisT(0, 1) = [&](DScalar x) {x = x/gapT-1; return (1.0/2.0)*x*x - x + (1.0/2.0);};
+        basisT(1, 0) = [&](T x) {x = x/gapT-1; return -(3.0/2.0)*x*x - x + (1.0/2.0);};
+        basisT(0, 1) = [&](T x) {x = x/gapT-1; return (1.0/2.0)*x*x - x + (1.0/2.0);};
         // last 2 columns
             // quadratic [1112]
-        basisT(2, numT-3) = [&](DScalar x) {x = numT-2-x/gapT; return (x-1.0)*(x-1.0);};
+        basisT(2, numT-3) = [&](T x) {x = numT-2-x/gapT; return (x-1.0)*(x-1.0);};
             // quadratic [1123]
-        basisT(1, numT-3) = [&](DScalar x) {x = numT-2-x/gapT-1; return -(3.0/2.0)*x*x - x + (1.0/2.0);};
-        basisT(2, numT-4) = [&](DScalar x) {x = numT-2-x/gapT-1; return (1.0/2.0)*x*x - x + (1.0/2.0);};
+        basisT(1, numT-3) = [&](T x) {x = numT-2-x/gapT-1; return -(3.0/2.0)*x*x - x + (1.0/2.0);};
+        basisT(2, numT-4) = [&](T x) {x = numT-2-x/gapT-1; return (1.0/2.0)*x*x - x + (1.0/2.0);};
         // middle columns
             // quadratic [1234]
         for (int i=1; i<=numT-4; i++) {
-            basisT(2, i-1) = [&gapT, i](DScalar x) {x = x/gapT-i; return (1.0/2.0)*x*x + x + (1.0/2.0);};
-            basisT(1, i  ) = [&gapT, i](DScalar x) {x = x/gapT-i; return -x*x + x + (1.0/2.0);};
-            basisT(0, i+1) = [&gapT, i](DScalar x) {x = x/gapT-i; return (1.0/2.0)*x*x - 2.0*x + 2.0;};
+            basisT(2, i-1) = [&gapT, i](T x) {x = x/gapT-i; return (1.0/2.0)*x*x + x + (1.0/2.0);};
+            basisT(1, i  ) = [&gapT, i](T x) {x = x/gapT-i; return -x*x + x + (1.0/2.0);};
+            basisT(0, i+1) = [&gapT, i](T x) {x = x/gapT-i; return (1.0/2.0)*x*x - 2.0*x + 2.0;};
         }
     }
 }
+// explicit template instantiation
+template void bspline::CalcBasisFunc(Eigen::Matrix< std::function<DScalar (DScalar) >, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, const int &numT, const double &gapT);
+template void bspline::CalcBasisFunc(Eigen::Matrix< std::function<double (double) >, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, const int &numT, const double &gapT);
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Interp3D
 
 
 void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) const {
@@ -384,22 +400,22 @@ void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) con
 
 
 double bspline::Interp3D(const double x, const double y, const double z) const {
+// This function is only used for test/debug purpose. Do NOT optimize this.
 
-    Eigen::Matrix<DScalar, Eigen::Dynamic, 2> sample;
+    Eigen::Matrix<double, Eigen::Dynamic, 2> sample;
     sample.resize(1, 2);
-    DScalar z_;
-    Eigen::Matrix<DScalar, Eigen::Dynamic, 1> resArr;
+    Eigen::Matrix<double, Eigen::Dynamic, 1> resArr;
     resArr.resize(1, 1);
 
-        sample << DScalar(x), DScalar(y);
-        z_ = DScalar(z);
+    sample << x, y;
 
-    Interp3D<DScalar>(sample, z_, resArr);
-    return resArr(0).getValue();
+    Interp3D(sample, z, resArr);
+    return resArr(0);
 }
 
 
 DScalar bspline::Interp3D(const DScalar &x, const DScalar &y, const DScalar &z) const {
+// This function is only used for test/debug purpose. Do NOT optimize this.
 
     Eigen::Matrix<DScalar, Eigen::Dynamic, 2> sample;
     sample.resize(1, 2);
@@ -408,23 +424,14 @@ DScalar bspline::Interp3D(const DScalar &x, const DScalar &y, const DScalar &z) 
 
     sample << x, y;
 
-    Interp3D<DScalar>(sample, z, resArr);
+    Interp3D(sample, z, resArr);
     return resArr(0);
 }
 
 
-/*
-template <typename T>
-void bspline::Interp3D(const Eigen::Matrix<T, Eigen::Dynamic, 3> &sample, Eigen::Matrix<T, Eigen::Dynamic, 1> &res) const {
-
-    assert(false);
-}
-*/
-
-
-template <typename T>
-void bspline::Interp3D(const Eigen::Matrix<T, Eigen::Dynamic, 2> &sampleDS, const T z, Eigen::Matrix<T, Eigen::Dynamic, 1> &res) const {
-// NOTE: This interpolation function supports all valid query input
+void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sampleDS, const DScalar z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
+// This function is only used for test/debug purpose. Do NOT optimize this.
+// NOTE: This interpolation function can query all valid points in the sample grid
 //       at the cost of some extra logics.
 
     assert(numX != 0 && numY != 0 && numZ != 0);
@@ -440,12 +447,17 @@ void bspline::Interp3D(const Eigen::Matrix<T, Eigen::Dynamic, 2> &sampleDS, cons
         refIdx_x = floor(sampleDS(i, 0).getValue() / gapX);
         refIdx_y = floor(sampleDS(i, 1).getValue() / gapY);
         refIdx_z = z.getValue() / gapZ;
+
         // if the query point lies exactly at the end of the border
+        /// NOTE: in practice, we will never query those points
+        ///       but this function is for test/debug purpose
         if (refIdx_x == numX-1-(degree-1)) refIdx_x--;
         if (refIdx_y == numY-1-(degree-1)) refIdx_y--;
         if (refIdx_z == numZ-1-(degree-1)) refIdx_z--;
+
         assert(refIdx_x >= 0 && refIdx_y >= 0 && refIdx_z >= 0);
         assert(refIdx_x <= numX-(degree+1) && refIdx_y <= numY-(degree+1) && refIdx_z <= numZ-(degree+1));
+
         // Evaluate
         res(i) = DScalar(0.0);
         for (ix=0; ix<=degree; ix++)
@@ -467,8 +479,66 @@ void bspline::Interp3D(const Eigen::Matrix<T, Eigen::Dynamic, 2> &sampleDS, cons
 }
 
 
+void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<double, Eigen::Dynamic, 1> &res) const {
+// This function is only used for test/debug purpose. Do NOT optimize this.
+// NOTE: This interpolation function can query all valid points in the sample grid
+//       at the cost of some extra logics.
+// NOTE: This is the "double" version of above "DScalar" version Interp3D function.
+//       Did not use "template" here because (1) we need to use different basis vectors
+//       (2) "DScalar" needs to call "getValue()" member function
+
+    assert(numX != 0 && numY != 0 && numZ != 0);
+
+    int i, ix, iy, iz, idx_x, idx_y, idx_z;
+    double xcoef, ycoef, zcoef;
+    int refIdx_x, refIdx_y, refIdx_z;
+
+    res.resize(sample.rows(), 1);
+    for (i=0; i<sample.rows(); i++) {
+
+        // Get reference index
+        refIdx_x = floor(sample(i, 0) / gapX);
+        refIdx_y = floor(sample(i, 1) / gapY);
+        refIdx_z = z / gapZ;
+
+        // if the query point lies exactly at the end of the border
+        /// NOTE: in practice, we will never query those points
+        ///       but this function is for test/debug purpose
+        if (refIdx_x == numX-1-(degree-1)) refIdx_x--;
+        if (refIdx_y == numY-1-(degree-1)) refIdx_y--;
+        if (refIdx_z == numZ-1-(degree-1)) refIdx_z--;
+
+        assert(refIdx_x >= 0 && refIdx_y >= 0 && refIdx_z >= 0);
+        assert(refIdx_x <= numX-(degree+1) && refIdx_y <= numY-(degree+1) && refIdx_z <= numZ-(degree+1));
+
+        // Evaluate
+        res(i) = 0.0;
+        for (ix=0; ix<=degree; ix++)
+            for (iy=0; iy<=degree; iy++)
+                for (iz=0; iz<=degree; iz++) {
+
+                    idx_x = refIdx_x + ix;
+                    idx_y = refIdx_y + iy;
+                    idx_z = refIdx_z + iz;
+
+                    xcoef = basisXd(ix, refIdx_x)(sample(i, 0));
+                    ycoef = basisYd(iy, refIdx_y)(sample(i, 1));
+                    zcoef = basisZd(iz, refIdx_z)(z);
+
+                    res(i) += controlPoints(numX*numY*idx_z + numY*idx_x + idx_y)
+                              * xcoef * ycoef * zcoef;
+                }
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// maintenance methods
+
+
 bspline::bspline() {
 
+    degree = 0;
     controlPoints.setZero();
     numX = 0;
     numY = 0;

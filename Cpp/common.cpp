@@ -2,9 +2,6 @@
 
 namespace zebrafish {
 
-// Bspline
-int degree = 2;
-
 // hypre solver
 int solverMaxIt = 20000;  // 1000
 double solverConvTol = 1e-15;  // 1e-10
