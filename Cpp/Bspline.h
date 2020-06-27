@@ -46,11 +46,13 @@ public:
 
     void Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) const;
     double Interp3D(const double x, const double y, const double z) const;
+    DScalar Interp3D(const DScalar &x, const DScalar &y, const DScalar &z) const;
     /*
     template <typename T>
     void Interp3D(const Eigen::Matrix<T, Eigen::Dynamic, 3> &sample, Eigen::Matrix<T, Eigen::Dynamic, 1> &res) const;
     */
-    void Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, const DScalar z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const;
+    template <typename T>
+    void Interp3D(const Eigen::Matrix<T, Eigen::Dynamic, 2> &sample, const T z, Eigen::Matrix<T, Eigen::Dynamic, 1> &res) const;
     /// Calculate the interpolated B-spline result at "sample" points.
     /// Note: this function does not check for input validity
     ///

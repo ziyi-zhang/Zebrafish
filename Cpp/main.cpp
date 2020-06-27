@@ -99,7 +99,7 @@ int main() {
     double err, sumerr = 0, minerr = 1.0, maxerr = 0.0;
     int trialNum = 500;
     for (int i = 0; i<trialNum; i++) {
-        
+
         x = unif(re);
         y = unif(re);
         z = unif(re);

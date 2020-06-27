@@ -394,8 +394,22 @@ double bspline::Interp3D(const double x, const double y, const double z) const {
         sample << DScalar(x), DScalar(y);
         z_ = DScalar(z);
 
-    Interp3D(sample, z_, resArr);
+    Interp3D<DScalar>(sample, z_, resArr);
     return resArr(0).getValue();
+}
+
+
+DScalar bspline::Interp3D(const DScalar &x, const DScalar &y, const DScalar &z) const {
+
+    Eigen::Matrix<DScalar, Eigen::Dynamic, 2> sample;
+    sample.resize(1, 2);
+    Eigen::Matrix<DScalar, Eigen::Dynamic, 1> resArr;
+    resArr.resize(1, 1);
+
+    sample << x, y;
+
+    Interp3D<DScalar>(sample, z, resArr);
+    return resArr(0);
 }
 
 
@@ -408,7 +422,8 @@ void bspline::Interp3D(const Eigen::Matrix<T, Eigen::Dynamic, 3> &sample, Eigen:
 */
 
 
-void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sampleDS, const DScalar z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
+template <typename T>
+void bspline::Interp3D(const Eigen::Matrix<T, Eigen::Dynamic, 2> &sampleDS, const T z, Eigen::Matrix<T, Eigen::Dynamic, 1> &res) const {
 // NOTE: This interpolation function supports all valid query input
 //       at the cost of some extra logics.
 
