@@ -52,11 +52,6 @@ int main() {
     sizeY = 30;
     sizeZ = 10;
 
-    // user input
-    resolutionX = 0.325;
-    resolutionY = 0.325;
-    resolutionZ = 0.5;
-
     // generate sample grid (3D)
     double maxPixel = 0;
     for (z=0; z<sizeZ; z++) {
@@ -70,19 +65,11 @@ int main() {
         image.push_back(layer);
         if (layer.maxCoeff() > maxPixel) maxPixel = layer.maxCoeff();
     }
-
-    // normalize it
-    /*
-    for (z=0; z<sizeZ; z++) {
-
-        MatrixXd &layer = image[z];
-        layer.array() /= maxPixel;
-    }
-    */
-
     // prepare B-spline
+    const int bsplineDegree = 2;
     bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 1);
+    bsplineSolver.SetResolution(0.325, 0.325, 0.5);
+    bsplineSolver.CalcControlPts_um(image, 0.6, 0.6, 0.6, bsplineDegree);
 
     // prepare cylinder
     cylinder cylinder;

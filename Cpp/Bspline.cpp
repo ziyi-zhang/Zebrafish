@@ -304,10 +304,9 @@ template void bspline::CalcBasisFunc(Eigen::Matrix< std::function<double  (doubl
 
 void bspline::CreateControlPtsCache() {
 
-    const int N = (numX-2) * (numY-2) * (numZ-2);
+    const int N = numX * numY * numZ;
     int ix, iy, iz, i, jx, jy, jz, j, idx;
-    std::cout << controlPoints.size() << " " << numX << " " << numY << " " << numZ << std::endl;
-    logger().debug("Cached control point size: #doubles = {}Mb", N * 27.0 * 8 / 1e6);
+    logger().debug("Cached control point size: {}Mb", N * 27.0 * 8 / 1e6);
     controlPointsCache.resize(27, N);
     
     for (iz=0; iz<numZ-2; iz++)
@@ -322,7 +321,7 @@ void bspline::CreateControlPtsCache() {
 
                             j = jz * 9 + jx * 3 + jy;
                             idx = i + jz*numX*numY + jx*numY + jy;
-                            
+
                             controlPointsCache(j, i) = controlPoints(idx);
                         }
             }
@@ -421,7 +420,7 @@ void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, c
     assert(degree == 2 || degree == 3);
     assert(numX != 0 && numY != 0 && numZ != 0);
 
-    int i, ix, iy, iz, t, idx;
+    int i, ix, iy, iz, idx;
     static std::array<double, 4> basisX_t, basisY_t, basisZ_t;
     int refIdx_x, refIdx_y, refIdx_z = floor(z / gapZ);
 
@@ -461,18 +460,48 @@ void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, c
         }
 
         // loop to calculate summation
-        t = 0;
         idx = numX*numY*refIdx_z + numY*refIdx_x + refIdx_y;
+        /*
         for (iz=0; iz<=degree; iz++)
             for (ix=0; ix<=degree; ix++)
                 for (iy=0; iy<=degree; iy++) {
 
-                    // res(i) += controlPoints(numX*numY*(refIdx_z+iz) + numY*(refIdx_x+ix) + (refIdx_y+iy)) *
-                    //          basisX_t[ix] * basisY_t[iy] * basisZ_t[iz];
-                    res(i) += controlPointsCache(t, idx) *
+                    res(i) += controlPoints(numX*numY*(refIdx_z+iz) + numY*(refIdx_x+ix) + (refIdx_y+iy)) *
                               basisX_t[ix] * basisY_t[iy] * basisZ_t[iz];
-                    t++;
+                    //res(i) += controlPointsCache(t, idx) *
+                    //          basisX_t[ix] * basisY_t[iy] * basisZ_t[iz];
                 }
+        */
+
+        // use control point cache instead
+        res(i) = 
+            controlPointsCache(0 , idx) * basisX_t[0] * basisY_t[0] * basisZ_t[0] + 
+            controlPointsCache(1 , idx) * basisX_t[0] * basisY_t[1] * basisZ_t[0] + 
+            controlPointsCache(2 , idx) * basisX_t[0] * basisY_t[2] * basisZ_t[0] + 
+            controlPointsCache(3 , idx) * basisX_t[1] * basisY_t[0] * basisZ_t[0] + 
+            controlPointsCache(4 , idx) * basisX_t[1] * basisY_t[1] * basisZ_t[0] + 
+            controlPointsCache(5 , idx) * basisX_t[1] * basisY_t[2] * basisZ_t[0] + 
+            controlPointsCache(6 , idx) * basisX_t[2] * basisY_t[0] * basisZ_t[0] + 
+            controlPointsCache(7 , idx) * basisX_t[2] * basisY_t[1] * basisZ_t[0] + 
+            controlPointsCache(8 , idx) * basisX_t[2] * basisY_t[2] * basisZ_t[0] + 
+            controlPointsCache(9 , idx) * basisX_t[0] * basisY_t[0] * basisZ_t[1] + 
+            controlPointsCache(10, idx) * basisX_t[0] * basisY_t[1] * basisZ_t[1] + 
+            controlPointsCache(11, idx) * basisX_t[0] * basisY_t[2] * basisZ_t[1] + 
+            controlPointsCache(12, idx) * basisX_t[1] * basisY_t[0] * basisZ_t[1] + 
+            controlPointsCache(13, idx) * basisX_t[1] * basisY_t[1] * basisZ_t[1] + 
+            controlPointsCache(14, idx) * basisX_t[1] * basisY_t[2] * basisZ_t[1] + 
+            controlPointsCache(15, idx) * basisX_t[2] * basisY_t[0] * basisZ_t[1] + 
+            controlPointsCache(16, idx) * basisX_t[2] * basisY_t[1] * basisZ_t[1] + 
+            controlPointsCache(17, idx) * basisX_t[2] * basisY_t[2] * basisZ_t[1] + 
+            controlPointsCache(18, idx) * basisX_t[0] * basisY_t[0] * basisZ_t[2] + 
+            controlPointsCache(19, idx) * basisX_t[0] * basisY_t[1] * basisZ_t[2] + 
+            controlPointsCache(20, idx) * basisX_t[0] * basisY_t[2] * basisZ_t[2] + 
+            controlPointsCache(21, idx) * basisX_t[1] * basisY_t[0] * basisZ_t[2] + 
+            controlPointsCache(22, idx) * basisX_t[1] * basisY_t[1] * basisZ_t[2] + 
+            controlPointsCache(23, idx) * basisX_t[1] * basisY_t[2] * basisZ_t[2] + 
+            controlPointsCache(24, idx) * basisX_t[2] * basisY_t[0] * basisZ_t[2] + 
+            controlPointsCache(25, idx) * basisX_t[2] * basisY_t[1] * basisZ_t[2] + 
+            controlPointsCache(26, idx) * basisX_t[2] * basisY_t[2] * basisZ_t[2];
     }
 }
 

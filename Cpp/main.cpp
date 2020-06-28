@@ -8,6 +8,7 @@
 #include <random>
 #include <queue>
 #include <vector>
+#include <chrono>
 
 using namespace std;
 using namespace Eigen;
@@ -52,9 +53,9 @@ int main() {
     int sizeX, sizeY, sizeZ, i;
     double x, y, z;
 
-    sizeX = 25;  // 0, 1, ..., 29
-    sizeY = 25;
-    sizeZ = 25;
+    sizeX = 100;  // 0, 1, ..., 29
+    sizeY = 100;
+    sizeZ = 30;
 
     // generate sample grid (3D)
     double maxPixel = 0;
@@ -69,7 +70,6 @@ int main() {
         image.push_back(layer);
         if (layer.maxCoeff() > maxPixel) maxPixel = layer.maxCoeff();
     }
-
     // prepare B-spline
     const int bsplineDegree = 2;
     bspline bsplineSolver;
@@ -88,7 +88,7 @@ int main() {
 
     // interp test
     double err, sumerr = 0, minerr = 1.0, maxerr = 0.0;
-    const int trialNum = 10000000;
+    const int trialNum = 1e7;
     array<double, trialNum> theoryOut;
     Matrix<double, Dynamic, 2> sampleInput;
     Matrix<double, Dynamic, 1> sampleOutput;
