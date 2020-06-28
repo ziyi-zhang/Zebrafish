@@ -170,10 +170,13 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
         logger().info("Solving linear system...");
     controlPoints.resize(num, 1);
     solver->solve(vectorY, controlPoints);
-    /////////////// DEBUG ONLY ///////////
-    // std::cout << ">>>>> control points >>>>>" << std::endl;
-    // std::cout << controlPoints << std::endl;
-    /////////////// DEBUG ONLY ///////////
+        /////////////// DEBUG ONLY ///////////
+        // std::cout << ">>>>> control points >>>>>" << std::endl;
+        // std::cout << controlPoints << std::endl;
+        // std::cout << "<<<<< control points <<<<<" << std::endl;
+        /////////////// DEBUG ONLY ///////////
+        logger().info("Creating control points cache...");
+    CreateControlPtsCache();
         logger().info("Control points calculated...");
         logger().info("====================================================");
 }
@@ -299,8 +302,36 @@ template void bspline::CalcBasisFunc(Eigen::Matrix< std::function<DScalar (DScal
 template void bspline::CalcBasisFunc(Eigen::Matrix< std::function<double  (double)  >, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, const int &numT, const double &gapT);
 
 
+void bspline::CreateControlPtsCache() {
+
+    const int N = (numX-2) * (numY-2) * (numZ-2);
+    int ix, iy, iz, i, jx, jy, jz, j, idx;
+    std::cout << controlPoints.size() << " " << numX << " " << numY << " " << numZ << std::endl;
+    logger().debug("Cached control point size: #doubles = {}Mb", N * 27.0 * 8 / 1e6);
+    controlPointsCache.resize(27, N);
+    
+    for (iz=0; iz<numZ-2; iz++)
+        for (ix=0; ix<numX-2; ix++)
+            for (iy=0; iy<numY-2; iy++) {
+
+                i = iz * numX * numY + ix * numY + iy;
+
+                for (jz=0; jz<=2; jz++)
+                    for (jx=0; jx<=2; jx++)
+                        for (jy=0; jy<=2; jy++) {
+
+                            j = jz * 9 + jx * 3 + jy;
+                            idx = i + jz*numX*numY + jx*numY + jy;
+                            
+                            controlPointsCache(j, i) = controlPoints(idx);
+                        }
+            }
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // Interp3D
+
 
 template <typename T>
 T bspline::Interp3D(const T &x, const T &y, const T &z) const {
@@ -390,7 +421,7 @@ void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, c
     assert(degree == 2 || degree == 3);
     assert(numX != 0 && numY != 0 && numZ != 0);
 
-    int i, ix, iy, iz;
+    int i, ix, iy, iz, t, idx;
     static std::array<double, 4> basisX_t, basisY_t, basisZ_t;
     int refIdx_x, refIdx_y, refIdx_z = floor(z / gapZ);
 
@@ -430,12 +461,17 @@ void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, c
         }
 
         // loop to calculate summation
+        t = 0;
+        idx = numX*numY*refIdx_z + numY*refIdx_x + refIdx_y;
         for (iz=0; iz<=degree; iz++)
             for (ix=0; ix<=degree; ix++)
                 for (iy=0; iy<=degree; iy++) {
 
-                    res(i) += controlPoints(numX*numY*(refIdx_z+iz) + numY*(refIdx_x+ix) + (refIdx_y+iy)) *
+                    // res(i) += controlPoints(numX*numY*(refIdx_z+iz) + numY*(refIdx_x+ix) + (refIdx_y+iy)) *
+                    //          basisX_t[ix] * basisY_t[iy] * basisZ_t[iz];
+                    res(i) += controlPointsCache(t, idx) *
                               basisX_t[ix] * basisY_t[iy] * basisZ_t[iz];
+                    t++;
                 }
     }
 }
@@ -449,6 +485,7 @@ bspline::bspline() {
 
     degree = 0;
     controlPoints.setZero();
+    controlPointsCache.setZero();
     numX = 0;
     numY = 0;
     numZ = 0;

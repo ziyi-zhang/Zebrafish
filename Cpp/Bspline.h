@@ -13,6 +13,7 @@ namespace zebrafish {
 class bspline {
 
 private:
+    Eigen::MatrixXd controlPointsCache;
     Eigen::VectorXd controlPoints;  // [#points] control points value
     int Nx, Ny, Nz;         // the dimension of sample points (Nx * Ny * Nz == #pixels)
     int numX, numY, numZ;   // the dimension of control points (numX * numY * numZ == #control points)
@@ -28,6 +29,7 @@ private:
     template <typename T>
     void CalcBasisFunc(Eigen::Matrix< std::function<T(T)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, 
                        const int& numT, const double& gapT);
+    void CreateControlPtsCache();
 
 public:
     int degree;  // B-spline degree

@@ -52,9 +52,9 @@ int main() {
     int sizeX, sizeY, sizeZ, i;
     double x, y, z;
 
-    sizeX = 30;  // 0, 1, ..., 29
-    sizeY = 30;
-    sizeZ = 30;
+    sizeX = 25;  // 0, 1, ..., 29
+    sizeY = 25;
+    sizeZ = 25;
 
     // generate sample grid (3D)
     double maxPixel = 0;
