@@ -74,6 +74,10 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
         logger().info("====================================================");
         logger().info("B-Spline degree = {}", degree);
         logger().info("Start calculating control points...");
+        // Warning if ratio too small
+        const double ratioThres = 0.5;
+        if (xratio < ratioThres || yratio < ratioThres || zratio < ratioThres)
+            logger().warn("Control point size too small: xratio={}, yratio={} and zratio={}.", xratio, yratio, zratio);
 
     DiffScalarBase::setVariableCount(3);  // x, y, r
 
@@ -148,7 +152,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     vectorY = A.transpose() * inputPts;  // A' * y
 
     // solve linear system for control points
-        // Deprecated eigen solver
+        // Deprecated eigen solver:
         // Eigen::SimplicialCholesky<Eigen::SparseMatrix<double> > chol(AtransposeA);
         // controlPoints = chol.solve(vectorY);
     const std::string solverName = "Hypre";
