@@ -49,12 +49,12 @@ int main() {
     spdlog::flush_every(std::chrono::seconds(3));
 
     image_t image;  // 30 * 30 * 10
-    int sizeX, sizeY, sizeZ;
+    int sizeX, sizeY, sizeZ, i;
     double x, y, z;
 
-    sizeX = 25;  // 0, 1, ..., 29
-    sizeY = 25;
-    sizeZ = 25;
+    sizeX = 30;  // 0, 1, ..., 29
+    sizeY = 30;
+    sizeZ = 30;
 
     // generate sample grid (3D)
     double maxPixel = 0;
@@ -70,19 +70,10 @@ int main() {
         if (layer.maxCoeff() > maxPixel) maxPixel = layer.maxCoeff();
     }
 
-    // normalize it
-    /*
-    for (z=0; z<sizeZ; z++) {
-        
-        MatrixXd &layer = image[z];
-        layer.array() /= maxPixel;
-    }
-    */
-
     // prepare B-spline
     bspline bsplineSolver;
     bsplineSolver.SetResolution(0.325, 0.325, 0.5);
-    bsplineSolver.CalcControlPts_um(image, 0.8, 0.8, 0.8, 3);
+    bsplineSolver.CalcControlPts_um(image, 0.8, 0.8, 0.8, 2);
 
     // random
     srand(time(NULL));
@@ -96,46 +87,65 @@ int main() {
 
     // interp test
     double err, sumerr = 0, minerr = 1.0, maxerr = 0.0;
-    int trialNum = 2000;
-    for (int i = 0; i<trialNum; i++) {
+    const int trialNum = 10000000;
+    array<double, trialNum> theoryOut;
+    Matrix<double, Dynamic, 2> sampleInput;
+    Matrix<double, Dynamic, 1> sampleOutput;
+    sampleInput.resize(trialNum, 2);
+    sampleOutput.resize(trialNum, 1);
+
+    for (i = 0; i<trialNum; i++) {
 
         x = unif(re);
         y = unif(re);
-        z = unif(re);
-            // x = rand() % (sizeX-1)+0.2;
-            // y = rand() % (sizeY-1)+0.3;
-            // z = rand() % (sizeZ-1)+0.1;
-        // x = 0; y = 0; z = 5;
-        // cout << x << " " << y << " " << z << ":      ";
+        sampleInput(i, 0) = x;
+        sampleInput(i, 1) = y;
+    }
 
-        double out;
+    for (z = 5; z <= 5; z++) {
 
-        out = bsplineSolver.Interp3D(x, y, z);
-        err = func(x, y, z) - out;
-        // cout << err << endl;
-        err = fabs(err);
+        logger().info("Before Interp");
+        bsplineSolver.Interp3D_deg2(sampleInput, z, sampleOutput);
+        // bsplineSolver.Interp3D(sampleInput, z, sampleOutput);
+        logger().info("After Interp");
 
-        sumerr += err;
-        if (err > maxerr) maxerr = err;
-        if (err < minerr) minerr = err;
+        // calculate theoretical output
+        for (i = 0; i<trialNum; i++) {
 
-        // moving median
-        if (l.empty()) {l.push(err); continue;}
-        l_ = l.top();
-        if (err >= l_) {u.push(err);} else {l.push(err);}
-        if (u.size() > l.size()) {
-            tt = u.top();
-            u.pop();
-            l.push(tt);
-        }
-        if (l.size() > u.size() + 1) {
-            tt = l.top();
-            l.pop();
-            u.push(tt);
+            err = func(sampleInput(i, 0), sampleInput(i, 1), z) - sampleOutput(i);
+            err = fabs(err);
+
+            // stats
+            sumerr += err;
+            if (err > maxerr) maxerr = err;
+            if (err < minerr) minerr = err;
+
+            // moving median
+            if (l.empty()) {l.push(err); continue;}
+            l_ = l.top();
+            if (err >= l_) {u.push(err);} else {l.push(err);}
+            if (u.size() > l.size()) {
+                tt = u.top();
+                u.pop();
+                l.push(tt);
+            }
+            if (l.size() > u.size() + 1) {
+                tt = l.top();
+                l.pop();
+                u.push(tt);
+            }
         }
     }
 
+    // output the first several samples
+    cout << "==============================" << endl;
+    cout << "First 5 sample points x, y = " << endl;
+    for (i=0; i<5; i++) {
+        cout << sampleInput(i, 0) << " " << sampleInput(i, 1) << endl;
+    }
+
     // interp test report
+    cout << "==============================" << endl;
     cout << "Degree = " << bsplineSolver.degree << endl;
     cout << "Interp trial number = " << trialNum << endl;
     cout << "Mean error = " << sumerr / double(trialNum) << endl;

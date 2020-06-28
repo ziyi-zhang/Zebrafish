@@ -52,6 +52,7 @@ public:
     /// @param[in]   distZ      { the distance between two control points in Z-axis. Unit: micrometer }
     /// @param[in]   degree     { the degree of B-spline. Can be 2 or 3. }
 
+    void Interp3D_deg2(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sampleDS, const double z, Eigen::Matrix<double, Eigen::Dynamic, 1> &res) const;
     void Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) const;
     DScalar Interp3D(const DScalar &x, const DScalar &y, const DScalar &z) const;
     double Interp3D(const double x, const double y, const double z) const;

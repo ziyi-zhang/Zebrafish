@@ -1,4 +1,5 @@
 // Cylinder TEST
+// Effect of "control point size" on "Energy function eval"
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>

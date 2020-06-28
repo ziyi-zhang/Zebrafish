@@ -2,6 +2,7 @@
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
+#include <zebrafish/Logger.hpp>
 #include <math.h>
 #include <stdlib.h>
 #include <random>
@@ -38,6 +39,15 @@ DECLARE_DIFFSCALAR_BASE();
 
 int main() {
 
+    // logger
+    bool is_quiet = false;
+    std::string log_file = "";
+    int log_level = 0;
+    Logger::init(!is_quiet, log_file);
+    log_level = std::max(0, std::min(6, log_level));
+    spdlog::set_level(static_cast<spdlog::level::level_enum>(log_level));
+    spdlog::flush_every(std::chrono::seconds(3));
+
     image_t image;  // 30 * 30 * 10
     int sizeX, sizeY, sizeZ;
     double x, y, z;
@@ -45,11 +55,6 @@ int main() {
     sizeX = 25;  // 0, 1, ..., 29
     sizeY = 25;
     sizeZ = 25;
-
-    // user input
-    resolutionX = 0.325;
-    resolutionY = 0.325;
-    resolutionZ = 0.5;
 
     // generate sample grid (3D)
     double maxPixel = 0;
@@ -76,7 +81,8 @@ int main() {
 
     // prepare B-spline
     bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 1);
+    bsplineSolver.SetResolution(0.325, 0.325, 0.5);
+    bsplineSolver.CalcControlPts_um(image, 0.8, 0.8, 0.8, 3);
 
     // random
     srand(time(NULL));
@@ -90,9 +96,9 @@ int main() {
 
     // interp test
     double err, sumerr = 0, minerr = 1.0, maxerr = 0.0;
-    int trialNum = 500;
+    int trialNum = 2000;
     for (int i = 0; i<trialNum; i++) {
-        
+
         x = unif(re);
         y = unif(re);
         z = unif(re);
@@ -102,13 +108,10 @@ int main() {
         // x = 0; y = 0; z = 5;
         // cout << x << " " << y << " " << z << ":      ";
 
-        Eigen::Matrix<DScalar, Eigen::Dynamic, 3> in;
-        in.resize(1, 3);
-        in << DScalar(x), DScalar(y), DScalar(z);
-        Eigen::Matrix<DScalar, Eigen::Dynamic, 1> out;
+        double out;
 
-        bsplineSolver.Interp3D(in, out);
-        err = func(x, y, z) - out(0).getValue();
+        out = bsplineSolver.Interp3D(x, y, z);
+        err = func(x, y, z) - out;
         // cout << err << endl;
         err = fabs(err);
 
@@ -132,7 +135,9 @@ int main() {
         }
     }
 
-    cout << "Degree = " << degree << endl;
+    // interp test report
+    cout << "Degree = " << bsplineSolver.degree << endl;
+    cout << "Interp trial number = " << trialNum << endl;
     cout << "Mean error = " << sumerr / double(trialNum) << endl;
     cout << "Median error = " << l.top() << endl;
     cout << "Min  error = " << minerr << endl;

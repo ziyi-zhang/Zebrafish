@@ -354,23 +354,23 @@ void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) con
 }
 
 
-/*
-void bspline::Interp3D_deg2_mat(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sampleDS, const double z, Eigen::Matrix<double, Eigen::Dynamic, 1> &res) const {
+void bspline::Interp3D_deg2(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<double, Eigen::Dynamic, 1> &res) const {
 // 
 
+    assert(degree == 2);
     assert(numX != 0 && numY != 0 && numZ != 0);
 
-    int i, ix, iy, iz;
-    double xcoef, ycoef, zcoef;
-    int refIdx_x, refIdx_y, refIdx_z = floor(z / gapZ);
+    int i, ix, iy, iz, idx_x, idx_y, idx_z;
+    std::array<double, 3> basisX_t, basisY_t, basisZ_t;
+    int refIdx_x, refIdx_y, refIdx_z;
 
-    res.resize(sampleDS.rows(), 1);
-    for (i=0; i<sampleDS.rows(); i++) {
+    res.resize(sample.rows(), 1);
+    for (i=0; i<sample.rows(); i++) {
 
         // Get reference index
-        refIdx_x = floor(sampleDS(i, 0) / gapX);
-        refIdx_y = floor(sampleDS(i, 1) / gapY);
-
+        refIdx_x = floor(sample(i, 0) / gapX);
+        refIdx_y = floor(sample(i, 1) / gapY);
+        refIdx_z = z / gapZ;
 
         // if the query point lies exactly at the end of the border
         /// NOTE: in practice, we will never query those points
@@ -379,25 +379,32 @@ void bspline::Interp3D_deg2_mat(const Eigen::Matrix<double, Eigen::Dynamic, 2> &
         if (refIdx_y == numY-1-(degree-1)) refIdx_y--;
         if (refIdx_z == numZ-1-(degree-1)) refIdx_z--;
 
-
         assert(refIdx_x >= 0 && refIdx_y >= 0 && refIdx_z >= 0);
         assert(refIdx_x <= numX-(degree+1) && refIdx_y <= numY-(degree+1) && refIdx_z <= numZ-(degree+1));
 
         // Evaluate
         res(i) = 0.0;
-        for (ix=0; ix<=degree; ix++)
-            for (iy=0; iy<=degree; iy++)
-                for (iz=0; iz<=degree; iz++) {
+        // calculate the 9 basis function evaluated values
+        basisX_t[0] = basisXd(0, refIdx_x)(sample(i, 0));
+        basisX_t[1] = basisXd(1, refIdx_x)(sample(i, 0));
+        basisX_t[2] = basisXd(2, refIdx_x)(sample(i, 0));
+        basisY_t[0] = basisYd(0, refIdx_y)(sample(i, 1));
+        basisY_t[1] = basisYd(1, refIdx_y)(sample(i, 1));
+        basisY_t[2] = basisYd(2, refIdx_y)(sample(i, 1));
+        basisZ_t[0] = basisZd(0, refIdx_z)(z);
+        basisZ_t[1] = basisZd(1, refIdx_z)(z);
+        basisZ_t[2] = basisZd(2, refIdx_z)(z);
 
-                    xcoef = basisXd(ix, refIdx_x)(sampleDS(i, 0));
-                    ycoef = basisYd(iy, refIdx_y)(sampleDS(i, 1));
-                    zcoef = basisZd(iz, refIdx_z)(z);
-
-                    res(i) += xcoef * ycoef * zcoef;
+        // a loop to calculate
+        for (iz=0; iz<=degree; iz++)
+            for (ix=0; ix<=degree; ix++)
+                for (iy=0; iy<=degree; iy++) {
+                
+                    res(i) += controlPoints(numX*numY*(refIdx_z+iz) + numY*(refIdx_x+ix) + (refIdx_y+iy)) *
+                              basisX_t[ix] * basisY_t[iy] * basisZ_t[iz];
                 }
     }
 }
-*/
 
 
 double bspline::Interp3D(const double x, const double y, const double z) const {
