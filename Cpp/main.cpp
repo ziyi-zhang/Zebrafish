@@ -105,8 +105,7 @@ int main() {
     for (z = 5; z <= 5; z++) {
 
         logger().info("Before Interp");
-        bsplineSolver.Interp3D_deg2(sampleInput, z, sampleOutput);
-        // bsplineSolver.Interp3D(sampleInput, z, sampleOutput);
+        bsplineSolver.Interp3D(sampleInput, z, sampleOutput);
         logger().info("After Interp");
 
         // calculate theoretical output

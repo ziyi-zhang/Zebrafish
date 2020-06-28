@@ -292,77 +292,95 @@ void bspline::CalcBasisFunc(Eigen::Matrix< std::function<T (T) >, Eigen::Dynamic
 }
 // explicit template instantiation
 template void bspline::CalcBasisFunc(Eigen::Matrix< std::function<DScalar (DScalar) >, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, const int &numT, const double &gapT);
-template void bspline::CalcBasisFunc(Eigen::Matrix< std::function<double (double) >, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, const int &numT, const double &gapT);
+template void bspline::CalcBasisFunc(Eigen::Matrix< std::function<double  (double)  >, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, const int &numT, const double &gapT);
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Interp3D
 
+template <typename T>
+T bspline::Interp3D(const T &x, const T &y, const T &z) const {
+// This function is only used for test/debug purpose. Do NOT optimize this.
 
-void bspline::Interp3D(const Eigen::MatrixX3d &sample, Eigen::VectorXd &res) const {
-// This function is temporarily deprecated
-// Use the DScalar version instead
+    static Eigen::Matrix<T, Eigen::Dynamic, 2> sample;
+    static Eigen::Matrix<T, Eigen::Dynamic, 1> resArr;
+    sample.resize(1, 2);
 
-    /*
-    // yArray
-    const Eigen::Matrix4d &z1layer = image[baseIdx(2)  ].block<4, 4>(baseIdx(0), baseIdx(1));
-    const Eigen::Matrix4d &z2layer = image[baseIdx(2)+1].block<4, 4>(baseIdx(0), baseIdx(1));
-    const Eigen::Matrix4d &z3layer = image[baseIdx(2)+2].block<4, 4>(baseIdx(0), baseIdx(1));
-    const Eigen::Matrix4d &z4layer = image[baseIdx(2)+3].block<4, 4>(baseIdx(0), baseIdx(1));
-    yArray << Eigen::Map<const Eigen::VectorXd>(z1layer.data(), 16), Eigen::Map<const Eigen::VectorXd>(z2layer.data(), 16),
-              Eigen::Map<const Eigen::VectorXd>(z3layer.data(), 16), Eigen::Map<const Eigen::VectorXd>(z4layer.data(), 16);  // advanced initialization feature
+    sample(0) = x;
+    sample(1) = y;
 
-    // Bx
-    t1 = sample(0) - truncSample(0) + 1;
-    t2 = sample(0) - truncSample(0);
-    t3 = sample(0) - truncSample(0) - 1;
-    t4 = sample(0) - truncSample(0) - 2;
-    t1 = - 1.0/6.0 * t1*t1*t1 + t1*t1 - 2 * t1 + 4.0/3.0;
-    t2 = 0.5 * t2*t2*t2 - t2*t2 + 2.0/3.0;
-    t3 = - 0.5 * t3*t3*t3 - t3*t3 + 2.0/3.0;
-    t4 = 1.0/6.0 * t4*t4*t4 + t4*t4 + 2 * t4 + 4.0/3.0;
-    BxArray << t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4,
-               t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4, t1, t2, t3, t4;
+    Interp3D(sample, z, resArr);
+    return resArr(0);
+}
+// explicit template instantiation
+template DScalar bspline::Interp3D(const DScalar &x, const DScalar &y, const DScalar &z) const;
+template double  bspline::Interp3D(const double  &x, const double  &y, const double  &z) const;
 
-    // By
-    t1 = sample(1) - truncSample(1) + 1;
-    t2 = sample(1) - truncSample(1);
-    t3 = sample(1) - truncSample(1) - 1;
-    t4 = sample(1) - truncSample(1) - 2;
-    t1 = - 1.0/6.0 * t1*t1*t1 + t1*t1 - 2 * t1 + 4.0/3.0;
-    t2 = 0.5 * t2*t2*t2 - t2*t2 + 2.0/3.0;
-    t3 = - 0.5 * t3*t3*t3 - t3*t3 + 2.0/3.0;
-    t4 = 1.0/6.0 * t4*t4*t4 + t4*t4 + 2 * t4 + 4.0/3.0;
-    ByArray << t1, t1, t1, t1, t2, t2, t2, t2, t3, t3, t3, t3, t4, t4, t4, t4, t1, t1, t1, t1, t2, t2, t2, t2, t3, t3, t3, t3, t4, t4, t4, t4,
-               t1, t1, t1, t1, t2, t2, t2, t2, t3, t3, t3, t3, t4, t4, t4, t4, t1, t1, t1, t1, t2, t2, t2, t2, t3, t3, t3, t3, t4, t4, t4, t4;
 
-    // Bz
-    t1 = sample(2) - truncSample(2) + 1;
-    t2 = sample(2) - truncSample(2);
-    t3 = sample(2) - truncSample(2) - 1;
-    t4 = sample(2) - truncSample(2) - 2;
-    t1 = - 1.0/6.0 * t1*t1*t1 + t1*t1 - 2 * t1 + 4.0/3.0;
-    t2 = 0.5 * t2*t2*t2 - t2*t2 + 2.0/3.0;
-    t3 = - 0.5 * t3*t3*t3 - t3*t3 + 2.0/3.0;
-    t4 = 1.0/6.0 * t4*t4*t4 + t4*t4 + 2 * t4 + 4.0/3.0;
-    BzArray << t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t1, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2, t2,
-               t3, t3, t3, t3, t3, t3, t3, t3, t3, t3, t3, t3, t3, t3, t3, t3, t4, t4, t4, t4, t4, t4, t4, t4, t4, t4, t4, t4, t4, t4, t4, t4;
+void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, const DScalar &z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
+// NOTE: This interpolation function cannot query points lying exactly on the surface 
+//       of the 3D sample grid.
 
-    // res = \sum{ yArray * BxArray * ByArray * BzArray }
-    res(0) = (yArray * BxArray * ByArray * BzArray).sum();
-    */
+    assert(numX != 0 && numY != 0 && numZ != 0);
+
+    int i, ix, iy, iz;
+    static std::array<DScalar, 3> basisX_t, basisY_t, basisZ_t;
+    int refIdx_x, refIdx_y, refIdx_z = floor(z.getValue() / gapZ);
+
+    res.resize(sample.rows(), 1);
+    for (i=0; i<sample.rows(); i++) {
+
+        // Get reference index
+        refIdx_x = floor(sample(i, 0).getValue() / gapX);
+        refIdx_y = floor(sample(i, 1).getValue() / gapY);
+
+        /// A special case: if the query point lies exactly at the end of the edge
+        /// NOTE: in practice, we will never query those points
+        /// Uncomment the following three lines to fix this at the cost of ~5% more time
+        // if (refIdx_x == numX-1-(degree-1)) refIdx_x--;
+        // if (refIdx_y == numY-1-(degree-1)) refIdx_y--;
+        // if (refIdx_z == numZ-1-(degree-1)) refIdx_z--;
+
+        assert(refIdx_x >= 0 && refIdx_y >= 0 && refIdx_z >= 0);
+        assert(refIdx_x <= numX-(degree+1) && refIdx_y <= numY-(degree+1) && refIdx_z <= numZ-(degree+1));
+
+        // Evaluate
+        res(i) = DScalar(0.0);
+        // calculate the 9 basis function evaluated values
+        basisX_t[0] = basisX(0, refIdx_x)(sample(i, 0));
+        basisX_t[1] = basisX(1, refIdx_x)(sample(i, 0));
+        basisX_t[2] = basisX(2, refIdx_x)(sample(i, 0));
+        basisY_t[0] = basisY(0, refIdx_y)(sample(i, 1));
+        basisY_t[1] = basisY(1, refIdx_y)(sample(i, 1));
+        basisY_t[2] = basisY(2, refIdx_y)(sample(i, 1));
+        basisZ_t[0] = basisZ(0, refIdx_z)(z);
+        basisZ_t[1] = basisZ(1, refIdx_z)(z);
+        basisZ_t[2] = basisZ(2, refIdx_z)(z);
+
+        // loop to calculate summation
+        for (iz=0; iz<=degree; iz++)
+            for (ix=0; ix<=degree; ix++)
+                for (iy=0; iy<=degree; iy++) {
+
+                    res(i) += controlPoints(numX*numY*(refIdx_z+iz) + numY*(refIdx_x+ix) + (refIdx_y+iy)) *
+                              basisX_t[ix] * basisY_t[iy] * basisZ_t[iz];
+                }
+    }
 }
 
 
-void bspline::Interp3D_deg2(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<double, Eigen::Dynamic, 1> &res) const {
-// 
+void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<double, Eigen::Dynamic, 1> &res) const {
+// NOTE: This interpolation function cannot query points lying exactly on the surface 
+//       of the 3D sample grid.
+// NOTE: This is the "double" version of above "DScalar" version Interp3D function.
+//       Did not use "template" here because (1) we need to use different basis vectors
+//       (2) "DScalar" needs to call "getValue()" member function
 
-    assert(degree == 2);
     assert(numX != 0 && numY != 0 && numZ != 0);
 
-    int i, ix, iy, iz, idx_x, idx_y, idx_z;
-    std::array<double, 3> basisX_t, basisY_t, basisZ_t;
-    int refIdx_x, refIdx_y, refIdx_z;
+    int i, ix, iy, iz;
+    static std::array<double, 3> basisX_t, basisY_t, basisZ_t;
+    int refIdx_x, refIdx_y, refIdx_z = floor(z / gapZ);
 
     res.resize(sample.rows(), 1);
     for (i=0; i<sample.rows(); i++) {
@@ -370,14 +388,13 @@ void bspline::Interp3D_deg2(const Eigen::Matrix<double, Eigen::Dynamic, 2> &samp
         // Get reference index
         refIdx_x = floor(sample(i, 0) / gapX);
         refIdx_y = floor(sample(i, 1) / gapY);
-        refIdx_z = z / gapZ;
 
-        // if the query point lies exactly at the end of the border
+        /// A special case: if the query point lies exactly at the end of the edge
         /// NOTE: in practice, we will never query those points
-        ///       but this function is for test/debug purpose
-        if (refIdx_x == numX-1-(degree-1)) refIdx_x--;
-        if (refIdx_y == numY-1-(degree-1)) refIdx_y--;
-        if (refIdx_z == numZ-1-(degree-1)) refIdx_z--;
+        /// Uncomment the following three lines to fix this at the cost of ~5% more time
+        // if (refIdx_x == numX-1-(degree-1)) refIdx_x--;
+        // if (refIdx_y == numY-1-(degree-1)) refIdx_y--;
+        // if (refIdx_z == numZ-1-(degree-1)) refIdx_z--;
 
         assert(refIdx_x >= 0 && refIdx_y >= 0 && refIdx_z >= 0);
         assert(refIdx_x <= numX-(degree+1) && refIdx_y <= numY-(degree+1) && refIdx_z <= numZ-(degree+1));
@@ -395,146 +412,13 @@ void bspline::Interp3D_deg2(const Eigen::Matrix<double, Eigen::Dynamic, 2> &samp
         basisZ_t[1] = basisZd(1, refIdx_z)(z);
         basisZ_t[2] = basisZd(2, refIdx_z)(z);
 
-        // a loop to calculate
+        // loop to calculate summation
         for (iz=0; iz<=degree; iz++)
             for (ix=0; ix<=degree; ix++)
                 for (iy=0; iy<=degree; iy++) {
-                
+
                     res(i) += controlPoints(numX*numY*(refIdx_z+iz) + numY*(refIdx_x+ix) + (refIdx_y+iy)) *
                               basisX_t[ix] * basisY_t[iy] * basisZ_t[iz];
-                }
-    }
-}
-
-
-double bspline::Interp3D(const double x, const double y, const double z) const {
-// This function is only used for test/debug purpose. Do NOT optimize this.
-
-    Eigen::Matrix<double, Eigen::Dynamic, 2> sample;
-    sample.resize(1, 2);
-    Eigen::Matrix<double, Eigen::Dynamic, 1> resArr;
-    resArr.resize(1, 1);
-
-    sample << x, y;
-
-    Interp3D(sample, z, resArr);
-    return resArr(0);
-}
-
-
-DScalar bspline::Interp3D(const DScalar &x, const DScalar &y, const DScalar &z) const {
-// This function is only used for test/debug purpose. Do NOT optimize this.
-
-    Eigen::Matrix<DScalar, Eigen::Dynamic, 2> sample;
-    sample.resize(1, 2);
-    Eigen::Matrix<DScalar, Eigen::Dynamic, 1> resArr;
-    resArr.resize(1, 1);
-
-    sample << x, y;
-
-    Interp3D(sample, z, resArr);
-    return resArr(0);
-}
-
-
-void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sampleDS, const DScalar z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
-// This function is only used for test/debug purpose. Do NOT optimize this.
-// NOTE: This interpolation function can query all valid points in the sample grid
-//       at the cost of some extra logics.
-
-    assert(numX != 0 && numY != 0 && numZ != 0);
-
-    int i, ix, iy, iz, idx_x, idx_y, idx_z;
-    DScalar xcoef, ycoef, zcoef;
-    int refIdx_x, refIdx_y, refIdx_z;
-
-    res.resize(sampleDS.rows(), 1);
-    for (i=0; i<sampleDS.rows(); i++) {
-
-        // Get reference index
-        refIdx_x = floor(sampleDS(i, 0).getValue() / gapX);
-        refIdx_y = floor(sampleDS(i, 1).getValue() / gapY);
-        refIdx_z = z.getValue() / gapZ;
-
-        // if the query point lies exactly at one edge of the input grid
-        /// NOTE: in practice, we will never query those edges
-        ///       but this function is for test/debug purpose
-        if (refIdx_x == numX-1-(degree-1)) refIdx_x--;
-        if (refIdx_y == numY-1-(degree-1)) refIdx_y--;
-        if (refIdx_z == numZ-1-(degree-1)) refIdx_z--;
-
-        assert(refIdx_x >= 0 && refIdx_y >= 0 && refIdx_z >= 0);
-        assert(refIdx_x <= numX-(degree+1) && refIdx_y <= numY-(degree+1) && refIdx_z <= numZ-(degree+1));
-
-        // Evaluate
-        res(i) = DScalar(0.0);
-        for (ix=0; ix<=degree; ix++)
-            for (iy=0; iy<=degree; iy++)
-                for (iz=0; iz<=degree; iz++) {
-
-                    idx_x = refIdx_x + ix;
-                    idx_y = refIdx_y + iy;
-                    idx_z = refIdx_z + iz;
-
-                    xcoef = basisX(ix, refIdx_x)(sampleDS(i, 0));
-                    ycoef = basisY(iy, refIdx_y)(sampleDS(i, 1));
-                    zcoef = basisZ(iz, refIdx_z)(z);
-
-                    res(i) += controlPoints(numX*numY*idx_z + numY*idx_x + idx_y)
-                              * xcoef * ycoef * zcoef;
-                }
-    }
-}
-
-
-void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<double, Eigen::Dynamic, 1> &res) const {
-// This function is only used for test/debug purpose. Do NOT optimize this.
-// NOTE: This interpolation function can query all valid points in the sample grid
-//       at the cost of some extra logics.
-// NOTE: This is the "double" version of above "DScalar" version Interp3D function.
-//       Did not use "template" here because (1) we need to use different basis vectors
-//       (2) "DScalar" needs to call "getValue()" member function
-
-    assert(numX != 0 && numY != 0 && numZ != 0);
-
-    int i, ix, iy, iz, idx_x, idx_y, idx_z;
-    double xcoef, ycoef, zcoef;
-    int refIdx_x, refIdx_y, refIdx_z;
-
-    res.resize(sample.rows(), 1);
-    for (i=0; i<sample.rows(); i++) {
-
-        // Get reference index
-        refIdx_x = floor(sample(i, 0) / gapX);
-        refIdx_y = floor(sample(i, 1) / gapY);
-        refIdx_z = z / gapZ;
-
-        // if the query point lies exactly at the end of the border
-        /// NOTE: in practice, we will never query those points
-        ///       but this function is for test/debug purpose
-        if (refIdx_x == numX-1-(degree-1)) refIdx_x--;
-        if (refIdx_y == numY-1-(degree-1)) refIdx_y--;
-        if (refIdx_z == numZ-1-(degree-1)) refIdx_z--;
-
-        assert(refIdx_x >= 0 && refIdx_y >= 0 && refIdx_z >= 0);
-        assert(refIdx_x <= numX-(degree+1) && refIdx_y <= numY-(degree+1) && refIdx_z <= numZ-(degree+1));
-
-        // Evaluate
-        res(i) = 0.0;
-        for (ix=0; ix<=degree; ix++)
-            for (iy=0; iy<=degree; iy++)
-                for (iz=0; iz<=degree; iz++) {
-
-                    idx_x = refIdx_x + ix;
-                    idx_y = refIdx_y + iy;
-                    idx_z = refIdx_z + iz;
-
-                    xcoef = basisXd(ix, refIdx_x)(sample(i, 0));
-                    ycoef = basisYd(iy, refIdx_y)(sample(i, 1));
-                    zcoef = basisZd(iz, refIdx_z)(z);
-
-                    res(i) += controlPoints(numX*numY*idx_z + numY*idx_x + idx_y)
-                              * xcoef * ycoef * zcoef;
                 }
     }
 }
