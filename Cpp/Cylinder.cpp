@@ -11,6 +11,107 @@ namespace {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+bool cylinder::BoundaryCheck(double x, double y, double z, double r, double h) const {
+
+    assert(h > 0);  // we do not optimize h. It should be manually set to be a positive number
+    assert(xmax > 0 && ymax > 0 && zmax > 0);  // must update boundary before eval
+
+    // The extended cylinder (union of inner & outer) has radius sqrt(2)*r
+    // Also avoid interpolating points lying on the surface of the sample grid
+    if (x - 1.5*r < 0 || x + 1.5*r > xmax - 1) return false;  // x-axis
+    if (y - 1.5*r < 0 || y + 1.5*r > ymax - 1) return false;  // y-axis
+    if (z < 0 || z+h >= zmax - 1) return false;  // depth-axis
+    if (r < minRadius) return false;  // radius
+
+    return true;
+}
+
+
+void cylinder::EnergyHelper(const zebrafish::bspline &bsp, double r, double x, double y, double &resT) {
+// This function calculates an intermediate value used by energy evaluation
+// Note: "weightScalar" not multiplied
+
+    int i, depth;
+
+    resT = 0.0;
+    for (i=0; i<numPts; i++) {
+        // * r + [x, y]
+        points(i, 0) = xyArray(i, 0) * r + x;
+        points(i, 1) = xyArray(i, 1) * r + y;
+    }
+    for (depth=0; depth<heightLayers; depth++) {
+
+        bsp.Interp3D(points, zArray(depth), interpRes);
+
+        assert(weightArray.size() == interpRes.size());
+        for (i=0; i<numPts; i++) {
+            resT = resT + interpRes(i) * weightArray(i);
+        }
+    }
+}
+
+
+void cylinder::UpdateBoundary(const zebrafish::image_t &image) {
+
+    xmax = image[0].rows();
+    ymax = image[0].cols();
+    zmax = image.size();
+}
+
+
+bool cylinder::EvaluateCylinder(const zebrafish::bspline &bsp, double x, double y, double z, double r, double h, double &res) {
+
+    if (!BoundaryCheck(x, y, z, r, h)) {
+        res = 1;
+        return false;
+    }
+
+    static double resInner, resExt;
+    points.resize(numPts, 2);
+    assert(numPts > 0);
+
+    // depth array
+    double pad = h / (heightLayers * 2.0);
+    zArray.resize(heightLayers, 1);
+    zArray = Eigen::VectorXd::LinSpaced(heightLayers, z+pad, z+h-pad);
+
+    // weight correction term
+    //////////////////////////////////////////////////////////////////////////////////
+    /// Notes about the quadrature weight correction term "scalar":
+    /// scalar = [disk quadrature jacobian] / [cylinder volumn] * [depth layer weight]
+    /// For the inner cylinder with equidistant depth layer - 
+    ///                r^2                 H
+    ///     scalar = --------------- * ---------
+    ///                pi * r^2 * H     #layers
+    /// For the extended cylinder with equidistant depth layer - 
+    ///                    (sqrt(2)*r)^2            H
+    ///     scalar = ------------------------ * ---------
+    ///               pi * (sqrt(2)*r)^2 * H     #layers
+    /// Thus they share the same correction term.
+    //////////////////////////////////////////////////////////////////////////////////
+    double weightScalar = 1.0 / (M_PI * double(heightLayers));
+
+    // Inner area
+    EnergyHelper(bsp, r, x, y, resInner);
+
+    // Extended area
+    EnergyHelper(bsp, r * sqrt(2), x, y, resExt);
+
+    ////////////////////////////////////////////////////
+    /// Notes about enerygy function evaluation:
+    /// Energy = (Inner density) - (Periperal density)
+    ///        = S_in / V_in - S_peri / V_peri
+    /// [note: we enforced V_in == V_peri]
+    ///        = (1 / V_in) * (S_in + S_in - S_in - S_peri)
+    ///        = (1 / V_in) * (2*S_in - S_ext)
+    ///        = 2 * (Inner density - Extended density)
+    ////////////////////////////////////////////////////
+    // double quadrature solution of the energy
+    res = 2.0*(resInner - resExt) * weightScalar;
+    return true;
+}
+
+/*
 bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::bspline &bsp, 
                               double x_, double y_, double z_, double r_, double h_) {
 
@@ -36,9 +137,6 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
     const double z = cyl.z;
     const double r = cyl.r;
     const double h = cyl.h;
-    const int xmax = image[0].rows();
-    const int ymax = image[0].cols();
-    const int zmax = image.size();
     auto &innerPoints = samplePoints.innerPoints;
     auto &outerPoints = samplePoints.outerPoints;
     auto &weights = samplePoints.weights;
@@ -57,12 +155,6 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
     double pad = h / (heightLayers * 2.0);
     zArray.resize(heightLayers, 1);
     zArray = Eigen::VectorXd::LinSpaced(heightLayers, z+pad, z+h-pad);
-
-    // alias of location & weights (this is changeable)
-      // const Eigen::MatrixXd &xyArray = cools_kim_1.block<57, 2>(0, 0);
-      // const Eigen::VectorXd &weightArray = cools_kim_1.block<57, 1>(0, 2);
-    //const Eigen::MatrixXd &xyArray = lether.block<900, 2>(0, 0);
-    //const Eigen::VectorXd &weightArray = lether.block<900, 1>(0, 2).cwiseAbs();
 
     // points xy (rc) array
     innerPoints.resize(numPts, 2);
@@ -105,7 +197,7 @@ bool cylinder::SampleCylinder(const zebrafish::image_t &image, const zebrafish::
 void cylinder::SubtractionHelper(const Eigen::MatrixXd &points, const Eigen::VectorXd &weight, Eigen::VectorXd &resWeight) {
 
     // this function can be used to implement sigmoid subtraction function
-
+    // [deprecated]
 }
 
 
@@ -157,21 +249,35 @@ DScalar cylinder::EvaluateCylinder(const zebrafish::image_t &image, const zebraf
     ////////////////////////////////////////////////////
     return 2.0*(resInner - resExt);  // double quadrature solution
 }
+*/
 
+void cylinder::LoadQuadParas(int diskQuadMethod) {
 
-void cylinder::LoadQuadParas() {
     switch (diskQuadMethod) {
         #include <zebrafish/Quad.ipp>
 
         default:
             assert(false);
     }
+
+    numPts = xyArray.rows();
 }
 
 
-cylinder::cylinder() {
+cylinder::cylinder(int diskQuadMethod) {
 
-    LoadQuadParas();
+    // Autodiff variables
+    DiffScalarBase::setVariableCount(3);  // x, y, r
+    // Quadrature method (by default use #6)
+    LoadQuadParas(diskQuadMethod);
+    // Boundary
+    xmax = 0;
+    ymax = 0;
+    zmax = 0;
+    // height layer
+    heightLayers = 5;
+    // minimal radius of a cylinder
+    minRadius = 2.0;
 }
 
 

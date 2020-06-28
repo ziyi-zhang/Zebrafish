@@ -26,9 +26,4 @@ typedef DScalar1<double, gradient_t> DScalar;
 // pre-process
 extern double pixelQuantile;  // pixels with value larger than this quantile will be trimmed
 
-// cylinder / enerygy function
-extern int diskQuadMethod;    // index of the disk quadrature method
-extern double minRadius;      // minimal radius of a cylinder
-extern int heightLayers;      // desired height layers used in quadrature
-
 }  // namespace zebrafish

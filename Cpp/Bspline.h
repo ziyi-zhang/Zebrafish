@@ -53,6 +53,7 @@ public:
     /// @param[in]   distY      { the distance between two control points in Y-axis. Unit: micrometer }
     /// @param[in]   distZ      { the distance between two control points in Z-axis. Unit: micrometer }
     /// @param[in]   degree     { the degree of B-spline. Can be 2 or 3. }
+    ///
 
     template <typename T>
     T Interp3D(const T &x, const T &y, const T &z) const;

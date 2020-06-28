@@ -79,13 +79,14 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
         if (xratio < ratioThres || yratio < ratioThres || zratio < ratioThres)
             logger().warn("Control point size too small: xratio={}, yratio={} and zratio={}.", xratio, yratio, zratio);
 
-    DiffScalarBase::setVariableCount(3);  // x, y, r
-
     int N, num;
     double centerX, centerY, centerZ, t;
     Eigen::VectorXd inputPts, vectorY;
 
     // dimension of sample points
+    Nz = image.size();
+    Nx = image[0].rows();
+    Ny = image[0].cols();
     N = Nx*Ny*Nz;
         logger().debug("Sample points:  N= {} Nx= {} Ny= {} Nz= {}", N, Nx, Ny, Nz);
 
@@ -522,6 +523,8 @@ bspline::bspline() {
     solverMaxIt = 20000;    // 1000
     solverConvTol = 1e-15;  // 1e-10
     solverTol = 1e-15;      // 1e-10
+
+    DiffScalarBase::setVariableCount(3);  // x, y, r
 }
 
 

@@ -53,12 +53,7 @@ int main() {
 
     sizeX = 30;  // 0, 1, ..., 29
     sizeY = 30;
-    sizeZ = 10;
-
-    // user input
-    resolutionX = 0.325;
-    resolutionY = 0.325;
-    resolutionZ = 0.5;
+    sizeZ = 30;
 
     // generate sample grid (3D)
     double maxPixel = 0;
@@ -74,39 +69,30 @@ int main() {
         if (layer.maxCoeff() > maxPixel) maxPixel = layer.maxCoeff();
     }
 
-    // normalize it
-    /*
-    for (z=0; z<sizeZ; z++) {
-        
-        MatrixXd &layer = image[z];
-        layer.array() /= maxPixel;
-    }
-    */
-
+    const int bsplineDegree = 2;
     double sizeArray[] = {0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
     for (int i=0; i<7; i++) {
 
         // prepare B-spline
-        bspline bsplineSolver;
         double size = sizeArray[i];
-        bsplineSolver.CalcControlPts(image, size, size, 1);
+        bspline bsplineSolver;
+        bsplineSolver.SetResolution(0.325, 0.325, 0.5);
+        bsplineSolver.CalcControlPts(image, size, size, size, bsplineDegree);
 
         // prepare cylinder
         cylinder cylinder;
         double xx = 14.5, yy = 14.5, rr = 5;
-        if (!cylinder.SampleCylinder(image, bsplineSolver, xx, yy, 4, rr, 3))
-            cerr << "Invalid cylinder 1" << endl;
-        DScalar ans1 = cylinder.EvaluateCylinder(image, bsplineSolver);
+        double ans;
+        if (!cylinder.EvaluateCylinder(bsplineSolver, xx, yy, 4, rr, 3, ans))
+            cerr << "Invalid cylinder" << endl;
 
         cout.precision(10);
 
         double theory = -25.0;
-        cout << "Evaluated result: " << ans1.getValue() << " Error = " << ans1.getValue() - theory << endl;
-        cout << "Degree = " << degree << endl;
+        cout << "Evaluated result: " << ans << " Error = " << ans - theory << endl;
+        cout << "Degree = " << bsplineSolver.degree << endl;
         cout << "control size = " << size << endl;
-
-        cout << "Gradient: " << ans1 << endl;
-        cout << "maxPixel = " << maxPixel << "  normalized res = " << ans1.getValue() / maxPixel << endl;
+        cout << "maxPixel = " << maxPixel << "  normalized res = " << ans / maxPixel << endl;
         cout << endl << flush;
     }
 }
