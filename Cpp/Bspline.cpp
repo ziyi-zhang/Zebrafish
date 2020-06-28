@@ -321,10 +321,11 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, 
 // NOTE: This interpolation function cannot query points lying exactly on the surface 
 //       of the 3D sample grid.
 
+    assert(degree == 2 || degree == 3);
     assert(numX != 0 && numY != 0 && numZ != 0);
 
     int i, ix, iy, iz;
-    static std::array<DScalar, 3> basisX_t, basisY_t, basisZ_t;
+    static std::array<DScalar, 4> basisX_t, basisY_t, basisZ_t;
     int refIdx_x, refIdx_y, refIdx_z = floor(z.getValue() / gapZ);
 
     res.resize(sample.rows(), 1);
@@ -356,6 +357,12 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, 
         basisZ_t[0] = basisZ(0, refIdx_z)(z);
         basisZ_t[1] = basisZ(1, refIdx_z)(z);
         basisZ_t[2] = basisZ(2, refIdx_z)(z);
+        if (degree == 3) {
+            // Only cubic B-spline needs this
+            basisX_t[3] = basisX(3, refIdx_x)(sample(i, 0));
+            basisY_t[3] = basisY(3, refIdx_y)(sample(i, 1));
+            basisZ_t[3] = basisZ(3, refIdx_z)(z);
+        }
 
         // loop to calculate summation
         for (iz=0; iz<=degree; iz++)
@@ -376,10 +383,11 @@ void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, c
 //       Did not use "template" here because (1) we need to use different basis vectors
 //       (2) "DScalar" needs to call "getValue()" member function
 
+    assert(degree == 2 || degree == 3);
     assert(numX != 0 && numY != 0 && numZ != 0);
 
     int i, ix, iy, iz;
-    static std::array<double, 3> basisX_t, basisY_t, basisZ_t;
+    static std::array<double, 4> basisX_t, basisY_t, basisZ_t;
     int refIdx_x, refIdx_y, refIdx_z = floor(z / gapZ);
 
     res.resize(sample.rows(), 1);
@@ -411,6 +419,11 @@ void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, c
         basisZ_t[0] = basisZd(0, refIdx_z)(z);
         basisZ_t[1] = basisZd(1, refIdx_z)(z);
         basisZ_t[2] = basisZd(2, refIdx_z)(z);
+        if (degree == 3) {
+            basisX_t[3] = basisXd(3, refIdx_x)(sample(i, 0));
+            basisY_t[3] = basisYd(3, refIdx_y)(sample(i, 1));
+            basisZ_t[3] = basisZd(3, refIdx_z)(z);
+        }
 
         // loop to calculate summation
         for (iz=0; iz<=degree; iz++)

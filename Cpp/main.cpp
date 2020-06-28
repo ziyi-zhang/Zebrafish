@@ -71,9 +71,10 @@ int main() {
     }
 
     // prepare B-spline
+    const int bsplineDegree = 2;
     bspline bsplineSolver;
     bsplineSolver.SetResolution(0.325, 0.325, 0.5);
-    bsplineSolver.CalcControlPts_um(image, 0.8, 0.8, 0.8, 2);
+    bsplineSolver.CalcControlPts_um(image, 0.8, 0.8, 0.8, bsplineDegree);
 
     // random
     srand(time(NULL));
