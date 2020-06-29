@@ -43,29 +43,33 @@ DECLARE_DIFFSCALAR_BASE();
 
 class CylinderEnergy {
 private:
-    const image_t &image;
     bspline bsplineSolver;
     cylinder cylinder;
     int evalCount;
 
 public:
     // constructor
-    CylinderEnergy(const image_t &image_) : image(image_) {
+    CylinderEnergy(const image_t &image) {
 
         // prepare B-spline
-        bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7);
+        const int bsplineDegree = 2;
+        bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, 2);
+
+        // prepare cylinder
+        cylinder.UpdateBoundary(image);
     }
 
     // evaluate
     double operator()(const VectorXd& x, VectorXd& grad) {
 
-        if (!cylinder.SampleCylinder(image, bsplineSolver, x(0), x(1), 3, x(2), 3)) {
+        static DScalar ans;
+
+        if (!cylinder.EvaluateCylinder(bsplineSolver, DScalar(0, x(0)), DScalar(1, x(1)), 3, DScalar(2, x(2)), 3, ans)) {
             // cout << "Invalid cylinder - ";
             grad.setZero();
             return 1000;
         }
 
-        DScalar ans = cylinder.EvaluateCylinder(image, bsplineSolver);
         grad.resize(3, 1);
         grad = ans.getGradient();
         cout << evalCount++ << " " << x(0) << " " << x(1) << " " << x(2) << " " << ans.getValue() << endl;
@@ -112,20 +116,11 @@ int main() {
         if (layer.maxCoeff() > maxPixel) maxPixel = layer.maxCoeff();
     }
 
-    // normalize it
-    /*
-    for (z=0; z<sizeZ; z++) {
-
-        MatrixXd &layer = image[z];
-        layer.array() /= maxPixel;
-    }
-    */
-
     CylinderEnergy energy(image);
 
     LBFGSParam<double> param;
     param.epsilon = 1e-4;
-    param.max_iterations = 20;
+    param.max_iterations = 15;
 
     LBFGSSolver<double> solver(param);
     VectorXd xx(3, 1);

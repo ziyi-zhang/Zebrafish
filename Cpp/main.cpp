@@ -1,30 +1,30 @@
-// Cylinder speed TEST
-// Eval a lot of cylinders to test speed
-// do not care about result
+// BFGS Test (test space)
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
+#include <zebrafish/LBFGS.h>
+#include <zebrafish/autodiff.h>
 #include <zebrafish/Logger.hpp>
 #include <math.h>
-#include <random>
 
 using namespace std;
 using namespace Eigen;
 using namespace zebrafish;
+using namespace LBFGSpp;
 
 double func(double x, double y, double z) {
 
     // return x + y;
 
     // x^2 + y^2
-    return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
+    // return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
 
     // (x^2 + y^2)^(3/2)
     // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
 
     // x^4 + y^4 + 2 * x^2 * y^2
     // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5) +
-    //      2 * (y-14.5)*(y-14.5)* (x-14.5)*(x-14.5);
+      //   2 * (y-14.5)*(y-14.5)* (x-14.5)*(x-14.5);
 
     // x^5 + y^5
     // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5)*(y-14.5);
@@ -32,11 +32,56 @@ double func(double x, double y, double z) {
     // (x^2 + y^2)^(5/2)
     // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 2.5);
 
-    // (x^2 + y^2)^3
-    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 3.0);
+    // LBFGS test
+    if ((x-14.25)*(x-14.25) + (y-14.85)*(y-14.85) > 16)
+        return 1;
+    else
+        return 0;
 }
 
 DECLARE_DIFFSCALAR_BASE();
+
+class CylinderEnergy {
+private:
+    bspline bsplineSolver;
+    cylinder cylinder;
+    int evalCount;
+
+public:
+    // constructor
+    CylinderEnergy(const image_t &image) {
+
+        // prepare B-spline
+        const int bsplineDegree = 2;
+        bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, 2);
+
+        // prepare cylinder
+        cylinder.UpdateBoundary(image);
+    }
+
+    // evaluate
+    double operator()(const VectorXd& x, VectorXd& grad) {
+
+        static DScalar ans;
+
+        if (!cylinder.EvaluateCylinder(bsplineSolver, DScalar(0, x(0)), DScalar(1, x(1)), 3, DScalar(2, x(2)), 3, ans)) {
+            // cout << "Invalid cylinder - ";
+            grad.setZero();
+            return 1000;
+        }
+
+        grad.resize(3, 1);
+        grad = ans.getGradient();
+        cout << evalCount++ << " " << x(0) << " " << x(1) << " " << x(2) << " " << ans.getValue() << endl;
+        cout << "grad = " << grad.transpose() << endl;
+        return ans.getValue();
+    }
+
+    void ResetCount() {
+        evalCount = 0;
+    }
+};
+
 
 int main() {
 
@@ -55,12 +100,12 @@ int main() {
 
     sizeX = 30;  // 0, 1, ..., 29
     sizeY = 30;
-    sizeZ = 30;
+    sizeZ = 10;
 
     // generate sample grid (3D)
     double maxPixel = 0;
     for (z=0; z<sizeZ; z++) {
-        
+
         MatrixXd layer(sizeX, sizeY);
         for (x=0; x<sizeX; x++)
             for (y=0; y<sizeY; y++) {
@@ -71,43 +116,39 @@ int main() {
         if (layer.maxCoeff() > maxPixel) maxPixel = layer.maxCoeff();
     }
 
-    // prepare B-spline
-    const int bsplineDegree = 2;
-    bspline bsplineSolver;
-    bsplineSolver.SetResolution(0.325, 0.325, 0.5);
-    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
+    CylinderEnergy energy(image);
 
-    // prepare cylinder
-    cylinder cylinder;
-    cylinder.UpdateBoundary(image);
+    LBFGSParam<double> param;
+    param.epsilon = 1e-4;
+    param.max_iterations = 15;
 
-    // random
-    srand(time(NULL));
-    uniform_real_distribution<double> unif(8, sizeX-1-8);
-    default_random_engine re(0);
+    LBFGSSolver<double> solver(param);
+    VectorXd xx(3, 1);
 
-    // eval
-    const int trialNum = 2e4;
-    double xx, yy, rr = 4;
-    double ans;
-    DScalar xxDS, yyDS, rrDS = DScalar(2, 4.0);
-    DScalar ansDS;
-    logger().info("Before Eval");
-    for (int i=0; i<trialNum; i++) {
+    double delta = 4;
+    int i, j, it;
+    double res;
+    int x0 = 14, y0 = 14;
 
-        xx = unif(re);
-        yy = unif(re);
-        xxDS = DScalar(0, xx);
-        yyDS = DScalar(1, yy);
+    for (i=-delta; i<=delta; i++)
+        for (j=-delta; j<=delta; j++) {
 
-        if (!cylinder.EvaluateCylinder(bsplineSolver, xx, yy, 4, rr, 3, ans))
-        //if (!cylinder.EvaluateCylinder(bsplineSolver, xxDS, yyDS, 4, rrDS, 3, ansDS))
-            cerr << "Invalid cylinder" << endl;
-    }
-    logger().info("After Eval");
+            x = x0 + i;
+            y = y0 + j;
+            xx(0) = x;  // starting point
+            xx(1) = y;
+            xx(2) = 4;
 
-    // report
-    cout << flush;
-    cout << "#cylinders = " << trialNum << endl;
-    cout << "#Interps = " << trialNum * 2 * 4 * 57 << endl;
+            // call optimizer
+            cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl << flush;
+            energy.ResetCount();
+            it = solver.minimize(energy, xx, res);
+
+            cout << "<<<<< Summary <<<<<" << endl << flush;
+            cout << "s_start = " << x << " " << y << endl;
+            cout << "xres = " << xx.transpose() << endl;
+            cout << "iterations = " << it << endl;
+        }
+
+    logger().info("Timer");
 }

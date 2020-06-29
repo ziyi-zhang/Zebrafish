@@ -40,9 +40,12 @@ private:
     int heightLayers;      // desired height layers used in quadrature
     double minRadius;      // minimal radius of a cylinder
 
-    // hardcoded quadrature weights and locations
+    // hardcoded disk quadrature weights and locations
     Eigen::Matrix<double, Eigen::Dynamic, 2> xyArray;
     Eigen::Matrix<double, Eigen::Dynamic, 1> weightArray;
+    // hardcoded 1D gaussian quadrature weights and locations
+    Eigen::Matrix<double, Eigen::Dynamic, 1> heightLocArray;
+    Eigen::Matrix<double, Eigen::Dynamic, 1> heightWeightArray;
 
     template<typename T>
     bool BoundaryCheck(const T &x, const T &y, const double z, const T &r, const double h) const;
