@@ -1,5 +1,5 @@
-// Cylinder TEST
-// Effect of "control point size" on "Energy function eval"
+// Cylinder & autodiff TEST
+// Standard gradient correctness test
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
@@ -15,23 +15,21 @@ double func(double x, double y, double z) {
     // return x + y;
 
     // x^2 + y^2
-    return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
+    // return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
 
     // (x^2 + y^2)^(3/2)
     // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
+    return (x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5);
 
     // x^4 + y^4 + 2 * x^2 * y^2
     // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5) +
-    //      2 * (y-14.5)*(y-14.5)* (x-14.5)*(x-14.5);
+      //   2 * (y-14.5)*(y-14.5)* (x-14.5)*(x-14.5);
 
     // x^5 + y^5
     // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5)*(y-14.5);
 
     // (x^2 + y^2)^(5/2)
     // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 2.5);
-
-    // (x^2 + y^2)^3
-    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 3.0);
 }
 
 DECLARE_DIFFSCALAR_BASE();
@@ -53,12 +51,12 @@ int main() {
 
     sizeX = 30;  // 0, 1, ..., 29
     sizeY = 30;
-    sizeZ = 30;
+    sizeZ = 10;
 
     // generate sample grid (3D)
     double maxPixel = 0;
     for (z=0; z<sizeZ; z++) {
-        
+
         MatrixXd layer(sizeX, sizeY);
         for (x=0; x<sizeX; x++)
             for (y=0; y<sizeY; y++) {
@@ -68,32 +66,33 @@ int main() {
         image.push_back(layer);
         if (layer.maxCoeff() > maxPixel) maxPixel = layer.maxCoeff();
     }
-
+    // prepare B-spline
     const int bsplineDegree = 2;
-    double sizeArray[] = {0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
-    for (int i=0; i<7; i++) {
+    bspline bsplineSolver;
+    bsplineSolver.SetResolution(0.325, 0.325, 0.5);
+    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
 
-        // prepare B-spline
-        double size = sizeArray[i];
-        bspline bsplineSolver;
-        bsplineSolver.SetResolution(0.325, 0.325, 0.5);
-        bsplineSolver.CalcControlPts(image, size, size, size, bsplineDegree);
+    // prepare cylinder
+    cylinder cylinder;
+    cylinder.UpdateBoundary(image);
+    double eps = 1e-4;
+    DScalar xx = DScalar(0, 13.28), yy = DScalar(1, 16.52), rr = DScalar(2, 4.33);
+    DScalar ans1, ans2, ans3, ans4;
 
-        // prepare cylinder
-        cylinder cylinder;
-        double xx = 14.5, yy = 14.5, rr = 5;
-        double ans;
-        cylinder.UpdateBoundary(image);
-        if (!cylinder.EvaluateCylinder(bsplineSolver, xx, yy, 4, rr, 3, ans))
-            cerr << "Invalid cylinder" << endl;
+    // evaluate
+    if (!cylinder.EvaluateCylinder(bsplineSolver, xx, yy, 4, rr, 3, ans1))
+            cerr << "Invalid cylinder 1" << endl;
+    if (!cylinder.EvaluateCylinder(bsplineSolver, xx+eps, yy, 4, rr, 3, ans2))
+            cerr << "Invalid cylinder 2" << endl;
+    if (!cylinder.EvaluateCylinder(bsplineSolver, xx, yy+eps, 4, rr, 3, ans3))
+            cerr << "Invalid cylinder 3" << endl;
+    if (!cylinder.EvaluateCylinder(bsplineSolver, xx, yy, 4, rr+eps, 3, ans4))
+            cerr << "Invalid cylinder 4" << endl;
 
-        cout.precision(10);
-
-        double theory = -25.0;
-        cout << "Evaluated result: " << ans << " Error = " << ans - theory << endl;
-        cout << "Degree = " << bsplineSolver.degree << endl;
-        cout << "control size = " << size << endl;
-        cout << "maxPixel = " << maxPixel << "  normalized res = " << ans / maxPixel << endl;
-        cout << endl << flush;
-    }
+    // report result
+    cout.precision(12);
+    cout << "E(t) = " << ans1 << endl;
+    cout << "E(t)+dx*G = " << ans1.getValue()+eps*ans1.getGradient()(0) << "    E(t+dx) = " << ans2.getValue() << endl;
+    cout << "E(t)+dy*G = " << ans1.getValue()+eps*ans1.getGradient()(1) << "    E(t+dy) = " << ans3.getValue() << endl;
+    cout << "E(t)+dr*G = " << ans1.getValue()+eps*ans1.getGradient()(2) << "    E(t+dr) = " << ans4.getValue() << endl;
 }

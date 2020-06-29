@@ -83,6 +83,7 @@ int main() {
         cylinder cylinder;
         double xx = 14.5, yy = 14.5, rr = 5;
         double ans;
+        cylinder.UpdateBoundary(image);
         if (!cylinder.EvaluateCylinder(bsplineSolver, xx, yy, 4, rr, 3, ans))
             cerr << "Invalid cylinder" << endl;
 
