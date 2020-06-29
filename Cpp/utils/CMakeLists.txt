@@ -1,7 +1,5 @@
 set(SOURCES
     autodiff.h
-    LBFGS.h
-    LBFGSB.h
 	TiffReader.cpp
     TiffReader.h
     Logger.cpp

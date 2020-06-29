@@ -71,6 +71,10 @@ target_link_libraries(${PROJECT_NAME} PUBLIC polysolve)
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog::spdlog)
 
 
+#LBFGS
+target_link_libraries(${PROJECT_NAME} PUBLIC LBFGS)
+
+
 ################################################################################
 # Executable
 ################################################################################

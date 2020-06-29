@@ -2,7 +2,7 @@
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
-#include <zebrafish/LBFGS.h>
+#include <LBFGS.h>
 #include <zebrafish/autodiff.h>
 #include <zebrafish/Logger.hpp>
 #include <math.h>
@@ -101,7 +101,7 @@ int main() {
     // generate sample grid (3D)
     double maxPixel = 0;
     for (z=0; z<sizeZ; z++) {
-        
+
         MatrixXd layer(sizeX, sizeY);
         for (x=0; x<sizeX; x++)
             for (y=0; y<sizeY; y++) {
@@ -115,7 +115,7 @@ int main() {
     // normalize it
     /*
     for (z=0; z<sizeZ; z++) {
-        
+
         MatrixXd &layer = image[z];
         layer.array() /= maxPixel;
     }

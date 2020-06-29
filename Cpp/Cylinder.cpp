@@ -126,7 +126,7 @@ bool cylinder::EvaluateCylinder(const zebrafish::bspline &bsp, T x, T y, double 
         res = genConst(1);
         return false;
     }
-
+    
     //kill the staic, zArray should be an input
     static Eigen::Matrix<double, Eigen::Dynamic, 1> zArray;  // store the array of depths
     static T resInner, resExt;
@@ -143,11 +143,11 @@ bool cylinder::EvaluateCylinder(const zebrafish::bspline &bsp, T x, T y, double 
     //////////////////////////////////////////////////////////////////////////////////
     /// Notes about the quadrature weight correction term "scalar":
     /// scalar = [disk quadrature jacobian] / [cylinder volumn] * [depth layer weight]
-    /// For the inner cylinder with equidistant depth layer -
+    /// For the inner cylinder with equidistant depth layer - 
     ///                r^2                 H
     ///     scalar = --------------- * ---------
     ///                pi * r^2 * H     #layers
-    /// For the extended cylinder with equidistant depth layer -
+    /// For the extended cylinder with equidistant depth layer - 
     ///                    (sqrt(2)*r)^2            H
     ///     scalar = ------------------------ * ---------
     ///               pi * (sqrt(2)*r)^2 * H     #layers

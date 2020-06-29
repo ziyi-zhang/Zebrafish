@@ -70,3 +70,12 @@ function(zebra_download_polysolve)
 endfunction()
 
 
+## LBFGS MIT
+function(zebra_download_LBFGS)
+    zebra_download_project(LBFGS
+        GIT_REPOSITORY     https://github.com/yixuan/LBFGSpp.git
+        GIT_TAG            f047ef4586869855f00e72312e7b4d78d11694b1
+    )
+endfunction()
+
+

@@ -46,3 +46,8 @@ if(NOT TARGET spdlog::spdlog)
 	zebra_download_spdlog()
 	add_subdirectory(${ZEBRA_EXTERNAL}/spdlog)
 endif()
+
+
+zebra_download_LBFGS()
+add_library(LBFGS INTERFACE)
+target_include_directories(LBFGS PUBLIC INTERFACE ${ZEBRA_EXTERNAL}/LBFGS/include)
