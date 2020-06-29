@@ -20,6 +20,23 @@ namespace zebrafish {
 
 namespace {
 
+// Get the value the variable
+template<typename T>
+class GetVal {
+public:
+    double operator()(const T x) const {
+        return x.getValue();
+    }
+};
+
+template<>
+class GetVal<double> {
+public:
+    double operator()(const double x) const {
+        return x;
+    }
+};
+
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -339,12 +356,13 @@ T bspline::Interp3D(const T &x, const T &y, const T &z) const {
 
     static Eigen::Matrix<T, Eigen::Dynamic, 2> sample;
     static Eigen::Matrix<T, Eigen::Dynamic, 1> resArr;
+    static const GetVal<T> getVal;
     sample.resize(1, 2);
 
     sample(0) = x;
     sample(1) = y;
 
-    Interp3D(sample, z, resArr);
+    Interp3D(sample, getVal(z), resArr);
     return resArr(0);
 }
 // explicit template instantiation
@@ -352,7 +370,7 @@ template DScalar bspline::Interp3D(const DScalar &x, const DScalar &y, const DSc
 template double  bspline::Interp3D(const double  &x, const double  &y, const double  &z) const;
 
 
-void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, const DScalar &z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
+void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
 // NOTE: This interpolation function cannot query points lying exactly on the surface 
 //       of the 3D sample grid.
 
@@ -360,8 +378,9 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, 
     assert(numX != 0 && numY != 0 && numZ != 0);
 
     int i, ix, iy, iz;
-    static std::array<DScalar, 4> basisX_t, basisY_t, basisZ_t;
-    int refIdx_x, refIdx_y, refIdx_z = floor(z.getValue() / gapZ);
+    static std::array<DScalar, 4> basisX_t, basisY_t;
+    static std::array<double , 4> basisZ_t;
+    int refIdx_x, refIdx_y, refIdx_z = floor(z / gapZ);
 
     res.resize(sample.rows(), 1);
     for (i=0; i<sample.rows(); i++) {
@@ -389,14 +408,14 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, 
         basisY_t[0] = basisY(0, refIdx_y)(sample(i, 1));
         basisY_t[1] = basisY(1, refIdx_y)(sample(i, 1));
         basisY_t[2] = basisY(2, refIdx_y)(sample(i, 1));
-        basisZ_t[0] = basisZ(0, refIdx_z)(z);
-        basisZ_t[1] = basisZ(1, refIdx_z)(z);
-        basisZ_t[2] = basisZ(2, refIdx_z)(z);
+        basisZ_t[0] = basisZd(0, refIdx_z)(z);
+        basisZ_t[1] = basisZd(1, refIdx_z)(z);
+        basisZ_t[2] = basisZd(2, refIdx_z)(z);
         if (degree == 3) {
             // Only cubic B-spline needs this
             basisX_t[3] = basisX(3, refIdx_x)(sample(i, 0));
             basisY_t[3] = basisY(3, refIdx_y)(sample(i, 1));
-            basisZ_t[3] = basisZ(3, refIdx_z)(z);
+            basisZ_t[3] = basisZd(3, refIdx_z)(z);
         }
 
         // loop to calculate summation
@@ -415,8 +434,7 @@ void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, c
 // NOTE: This interpolation function cannot query points lying exactly on the surface 
 //       of the 3D sample grid.
 // NOTE: This is the "double" version of above "DScalar" version Interp3D function.
-//       Did not use "template" here because (1) we need to use different basis vectors
-//       (2) "DScalar" needs to call "getValue()" member function
+//       Did not use "template" here because we need to use different basis vectors
 
     assert(degree == 2 || degree == 3);
     assert(numX != 0 && numY != 0 && numZ != 0);

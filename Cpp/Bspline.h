@@ -57,8 +57,8 @@ public:
 
     template <typename T>
     T Interp3D(const T &x, const T &y, const T &z) const;
-    void Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, const DScalar &z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const;
-    void Interp3D(const Eigen::Matrix<double , Eigen::Dynamic, 2> &sample, const double   z, Eigen::Matrix<double , Eigen::Dynamic, 1> &res) const;
+    void Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const;
+    void Interp3D(const Eigen::Matrix<double , Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<double , Eigen::Dynamic, 1> &res) const;
     /// Calculate the interpolated B-spline result at "sample" points.
     /// Note: this function does not check for input validity
     ///

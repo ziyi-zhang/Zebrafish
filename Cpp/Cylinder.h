@@ -33,36 +33,37 @@ private:
     int heightLayers;      // desired height layers used in quadrature
     double minRadius;      // minimal radius of a cylinder
 
-    // variables used when evaluating energy
-    Eigen::Matrix<double, Eigen::Dynamic, 2> points;  // store inner points / outer points location
-    Eigen::Matrix<double, Eigen::Dynamic, 1> interpRes;  // store the results of interpolation
-    Eigen::Matrix<double, Eigen::Dynamic, 1> zArray;  // store the array of depths
-
     // hardcoded quadrature weights and locations
     Eigen::Matrix<double, Eigen::Dynamic, 2> xyArray;
     Eigen::Matrix<double, Eigen::Dynamic, 1> weightArray;
 
-    bool BoundaryCheck(double x, double y, double z, double r, double h) const;
-    void EnergyHelper(const zebrafish::bspline &bsp, double r, double x, double y, double &resT);
+    template<typename T>
+    bool BoundaryCheck(const T &x, const T &y, const double z, const T &r, const double h) const;
+    template<typename T>
+    void EnergyHelper(const zebrafish::bspline &bsp, const Eigen::Matrix<double, Eigen::Dynamic, 1> &zArray, 
+                      const T &r, const T &x, const T &y, T &resT);
 
 public:
     void UpdateBoundary(const zebrafish::image_t &image);
     /// Record the size of the input image
     /// This will only be used to do boundary check
 
-    bool EvaluateCylinder(const zebrafish::bspline &bsp, double x, double y, double z, double r, double h, double &res);
-/*
-    bool SampleCylinder(const zebrafish::image_t &image, const zebrafish::bspline &bspline, 
-                        double x = -1, double y = -1, double z = -1, double r = -1, double h = -1);
-    /// Calculate the sample points (both interior and exterior point) and 
-    /// save them to corresponding private variables
-    /// 'image' is only used to do boundary check
+    template <typename T>
+    bool EvaluateCylinder(const zebrafish::bspline &bsp, T x, T y, double z, T r, double h, T &res);
+    /// Calculate sample points for the given cylinder and evaluate the energy.
+    /// Return false if the cylinder is invalid.
+    /// Must call "UpdateBoundary" before evaluating any cylinder
     ///
-    /// @param[in]   image     { 3D matrix of the image }
+    /// @param[in]   bsp       { a B-spline solver with control points calculated }
+    /// @param[in]   x, y, z   { coordinate of the cylinder bottom center }
+    /// @param[in]   r         { cylinder radius. Must be positive }
+    /// @param[in]   h         { cylinder height. Must be positive }
+    /// @param[out]  res       { evaluated energy }
     /// @return      { whether the cylinder is inside the boundary of the image }
     ///
 
     void SubtractionHelper(const Eigen::MatrixXd &points, const Eigen::VectorXd &weight, Eigen::VectorXd &resWeight);
+    /// [Deprecated]
     /// Multiply the weight array with a subtraction array such that the integral result
     /// measures the subtraction of two areas.
     /// The subtraction array can be hard or soft (sigmoid).
@@ -71,10 +72,6 @@ public:
     /// @param[in]   weight     { [#points] weights corresponding to the sample points }
     /// @param[out]  resWeight  { [#points] returned weight array }
     ///
-
-    DScalar EvaluateCylinder(const zebrafish::image_t &image, const zebrafish::bspline &bspline);
-    /// Calculate the energy for this cylinder
-*/
 
     void LoadQuadParas(int diskQuadMethod);
     /// Select a disk quadrature method and update the inner storage xy & weight array
