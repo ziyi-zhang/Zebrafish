@@ -22,7 +22,7 @@ private:
     double solverConvTol, solverTol;  // Hypre solver "convergence tolerance" and "tolerance"
 
     Eigen::Matrix< std::function<double(double)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisXd, basisYd, basisZd;
-    Eigen::Matrix< std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisX, basisY, basisZ;
+    Eigen::Matrix< std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisX, basisY;
         // Pre-calculated lambda basis functions (double & DScalar)
 
     void CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A);

@@ -207,7 +207,7 @@ cylinder::cylinder(int diskQuadMethod) {
     ymax = 0;
     zmax = 0;
     // height layer
-    heightLayers = 5;
+    heightLayers = 4;
     // minimal radius of a cylinder
     minRadius = 2.0;
 }

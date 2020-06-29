@@ -149,7 +149,8 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     // DScalar version
     CalcBasisFunc<DScalar>(basisX, numX, gapX);
     CalcBasisFunc<DScalar>(basisY, numY, gapY);
-    CalcBasisFunc<DScalar>(basisZ, numZ, gapZ);
+      /// CalcBasisFunc<DScalar>(basisZ, numZ, gapZ);
+      /// This is useless because depth-axis will not be affected by [x, y, r] and thus has gradient zero
     // double version
     CalcBasisFunc<double>(basisXd, numX, gapX);
     CalcBasisFunc<double>(basisYd, numY, gapY);
@@ -479,20 +480,17 @@ void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, c
         }
 
         // loop to calculate summation
-        idx = numX*numY*refIdx_z + numY*refIdx_x + refIdx_y;
-        /*
         for (iz=0; iz<=degree; iz++)
             for (ix=0; ix<=degree; ix++)
                 for (iy=0; iy<=degree; iy++) {
 
                     res(i) += controlPoints(numX*numY*(refIdx_z+iz) + numY*(refIdx_x+ix) + (refIdx_y+iy)) *
                               basisX_t[ix] * basisY_t[iy] * basisZ_t[iz];
-                    //res(i) += controlPointsCache(t, idx) *
-                    //          basisX_t[ix] * basisY_t[iy] * basisZ_t[iz];
                 }
-        */
 
-        // use control point cache instead
+        // use control point cache
+        /*
+        idx = numX*numY*refIdx_z + numY*refIdx_x + refIdx_y;
         res(i) = 
             controlPointsCache(0 , idx) * basisX_t[0] * basisY_t[0] * basisZ_t[0] + 
             controlPointsCache(1 , idx) * basisX_t[0] * basisY_t[1] * basisZ_t[0] + 
@@ -521,6 +519,7 @@ void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, c
             controlPointsCache(24, idx) * basisX_t[2] * basisY_t[0] * basisZ_t[2] + 
             controlPointsCache(25, idx) * basisX_t[2] * basisY_t[1] * basisZ_t[2] + 
             controlPointsCache(26, idx) * basisX_t[2] * basisY_t[2] * basisZ_t[2];
+        */
     }
 }
 

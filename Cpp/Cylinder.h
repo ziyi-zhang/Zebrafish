@@ -44,6 +44,7 @@ private:
                       const T &r, const T &x, const T &y, T &resT);
 
 public:
+
     void UpdateBoundary(const zebrafish::image_t &image);
     /// Record the size of the input image
     /// This will only be used to do boundary check
