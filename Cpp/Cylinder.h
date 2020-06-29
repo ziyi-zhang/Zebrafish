@@ -25,6 +25,13 @@ typedef struct samplePoints_t {
 
 ///////////////////////////////////////
 
+//Quadrature contains:
+// xy for disc + weight
+// xy for ring + weight
+// z quadarture + weight
+//Quadrature quad(10); //10 is the order
+//quad.xyrigh quad.xydisc
+
 class cylinder {
 
 private:
@@ -40,10 +47,15 @@ private:
     template<typename T>
     bool BoundaryCheck(const T &x, const T &y, const double z, const T &r, const double h) const;
     template<typename T>
-    void EnergyHelper(const zebrafish::bspline &bsp, const Eigen::Matrix<double, Eigen::Dynamic, 1> &zArray, 
+    void EnergyHelper(const zebrafish::bspline &bsp, const Eigen::Matrix<double, Eigen::Dynamic, 1> &zArray,
                       const T &r, const T &x, const T &y, T &resT);
 
 public:
+    //energy(const Quadrature &quad, const BSpline &image, x, y, z, r, h) -> double
+    //energyGrad(const Quadrature &quad, const BSpline &image, x, y, z, r, h) -> Vector3d (or double + Vector3d)
+    //is_valid(const BSpline &image, x, y, z, r, h) -> boolean check for all of them, radius, and x,y,z inside image
+
+    //cylinder::energy(...)
 
     void UpdateBoundary(const zebrafish::image_t &image);
     /// Record the size of the input image

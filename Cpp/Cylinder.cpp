@@ -69,21 +69,23 @@ bool cylinder::BoundaryCheck(const T &x_, const T &y_, const double z, const T &
 template bool cylinder::BoundaryCheck(const DScalar &x_, const DScalar &y_, const double z, const DScalar &r_, const double h) const;
 template bool cylinder::BoundaryCheck(const double  &x_, const double  &y_, const double z, const double  &r_, const double h) const;
 
-
-template<typename T>
-void cylinder::EnergyHelper(const zebrafish::bspline &bsp, const Eigen::Matrix<double, Eigen::Dynamic, 1> &zArray, 
-                            const T &r, const T &x, const T &y, T &resT) {
-// This function calculates an intermediate value used by energy evaluation function
-// Note: "weightScalar" not multiplied here
+template <typename T>
+//xy-point, xy-weight, z-point, z-weight
+void cylinder::EnergyHelper(const zebrafish::bspline &bsp, const Eigen::Matrix<double, Eigen::Dynamic, 1> &zArray,
+                            const T &r, const T &x, const T &y, T &resT)
+{
+    // This function calculates an intermediate value used by energy evaluation function
+    // Note: "weightScalar" not multiplied here
 
     static const GenConst<T> genConst;
     static Eigen::Matrix<T, Eigen::Dynamic, 2> points;     // store inner points / outer points location
     static Eigen::Matrix<T, Eigen::Dynamic, 1> interpRes;  // store the results of interpolation
     int i, depth;
+    //TODO remove static and move *r and +x/y to spline
 
     points.resize(numPts, 2);
 
-    resT = genConst(0.0);
+    resT = T(0.0);
     for (i=0; i<numPts; i++) {
         // * r + [x, y]
         points(i, 0) = xyArray(i, 0) * r + x;
@@ -95,7 +97,7 @@ void cylinder::EnergyHelper(const zebrafish::bspline &bsp, const Eigen::Matrix<d
 
         assert(weightArray.size() == interpRes.size());
         for (i=0; i<numPts; i++) {
-            resT = resT + interpRes(i) * weightArray(i);
+            resT = resT + interpRes(i) * weightArray(i); //xy.weight * z.weight
         }
     }
 }
@@ -119,11 +121,13 @@ bool cylinder::EvaluateCylinder(const zebrafish::bspline &bsp, T x, T y, double 
 
     static const GenConst<T> genConst;
 
+    //TODO: drop this one and move this in the line search
     if (!BoundaryCheck(x, y, z, r, h)) {
         res = genConst(1);
         return false;
     }
-    
+
+    //kill the staic, zArray should be an input
     static Eigen::Matrix<double, Eigen::Dynamic, 1> zArray;  // store the array of depths
     static T resInner, resExt;
     assert(numPts > 0);  // Quadrature method has been chosen
@@ -133,16 +137,17 @@ bool cylinder::EvaluateCylinder(const zebrafish::bspline &bsp, T x, T y, double 
     double pad = h / (heightLayers * 2.0);
     zArray.resize(heightLayers, 1);
     zArray = Eigen::VectorXd::LinSpaced(heightLayers, z+pad, z+h-pad);
+    //this is quadrature
 
     // weight correction term
     //////////////////////////////////////////////////////////////////////////////////
     /// Notes about the quadrature weight correction term "scalar":
     /// scalar = [disk quadrature jacobian] / [cylinder volumn] * [depth layer weight]
-    /// For the inner cylinder with equidistant depth layer - 
+    /// For the inner cylinder with equidistant depth layer -
     ///                r^2                 H
     ///     scalar = --------------- * ---------
     ///                pi * r^2 * H     #layers
-    /// For the extended cylinder with equidistant depth layer - 
+    /// For the extended cylinder with equidistant depth layer -
     ///                    (sqrt(2)*r)^2            H
     ///     scalar = ------------------------ * ---------
     ///               pi * (sqrt(2)*r)^2 * H     #layers

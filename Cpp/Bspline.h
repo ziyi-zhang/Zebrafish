@@ -13,23 +13,23 @@ namespace zebrafish {
 class bspline {
 
 private:
-    Eigen::Matrix<double, 27, Eigen::Dynamic, Eigen::ColMajor> controlPointsCache;
+    Eigen::Matrix<double, 27, Eigen::Dynamic, Eigen::ColMajor> controlPointsCache; //TODO: Optional, probably remove me?
+
     Eigen::VectorXd controlPoints;  // [#points] control points value
     int Nx, Ny, Nz;         // the dimension of sample points (Nx * Ny * Nz == #pixels)
     int numX, numY, numZ;   // the dimension of control points (numX * numY * numZ == #control points)
-    static double resolutionX, resolutionY, resolutionZ;  // The distance between two pixels (in micrometers)
+    double resolutionX, resolutionY, resolutionZ;  // The distance between two pixels (in micrometers)
     int solverMaxIt;                  // Hypre solver max iterations
     double solverConvTol, solverTol;  // Hypre solver "convergence tolerance" and "tolerance"
 
     Eigen::Matrix< std::function<double(double)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisXd, basisYd, basisZd;
-    Eigen::Matrix< std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisX, basisY;
+    Eigen::Matrix<std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisX, basisY; //basisZ
         // Pre-calculated lambda basis functions (double & DScalar)
 
     void CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A);
     template <typename T>
-    void CalcBasisFunc(Eigen::Matrix< std::function<T(T)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, 
-                       const int& numT, const double& gapT);
-    void CreateControlPtsCache();
+    void CalcBasisFunc(Eigen::Matrix< std::function<T(T)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, const int& numT, const double& gapT);
+    void CreateControlPtsCache(); //Optional
 
 public:
     int degree;  // B-spline degree
@@ -43,7 +43,7 @@ public:
 
     void CalcControlPts(   const image_t &image, const double xratio, const double yratio, const double zratio, const int degree);
     void CalcControlPts_um(const image_t &image, const double distX,  const double distY,  const double distZ,  const int degree);
-    /// Use least square to calculate an array of control points and store the result 
+    /// Use least square to calculate an array of control points and store the result
     /// in private variables. This function must be called before any evaluation.
     ///
     /// @param[in]   xratio     { the ratio of (#control points) to (#sample points) along x-axis }

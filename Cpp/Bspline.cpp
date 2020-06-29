@@ -164,6 +164,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
 
     // calculate control points based on least square
         logger().info("Calculating A'*A and A'*y...");
+        //TODO maybe CalcLeastSquareMat should compute A and At?
     AtransposeA = (A.transpose() * A).pruned();  // A' * A
         logger().debug("A' * A size = {} * {}", AtransposeA.rows(), AtransposeA.cols());
         logger().debug("A'A: # non-zero elements = {}", AtransposeA.nonZeros());
@@ -218,7 +219,7 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A
                 i = iz * Nx * Ny + iy * Nx + ix;
 
                 // progress bar
-                if (i % int(Nx*Ny*Nz*0.2) == 0) 
+                if (i % int(Nx*Ny*Nz*0.2) == 0)
                     logger().trace("{} / {}", i, Nx*Ny*Nz);
 
                 refIdx_x = floor(ix / gapX);
@@ -258,6 +259,7 @@ void bspline::CalcBasisFunc(Eigen::Matrix< std::function<T (T) >, Eigen::Dynamic
     if (degree == 3) {  // cubic basis
 
         assert(numT >= 8);
+        //TODO: capure by copy
 
         basisT.resize(4, numT-1-2);
         // first 3 columns
@@ -327,7 +329,7 @@ void bspline::CreateControlPtsCache() {
     int ix, iy, iz, i, jx, jy, jz, j, idx;
     logger().debug("Cached control point size: {}Mb", N * 27.0 * 8 / 1e6);
     controlPointsCache.resize(27, N);
-    
+
     for (iz=0; iz<numZ-2; iz++)
         for (ix=0; ix<numX-2; ix++)
             for (iy=0; iy<numY-2; iy++) {
@@ -355,9 +357,9 @@ template <typename T>
 T bspline::Interp3D(const T &x, const T &y, const T &z) const {
 // This function is only used for test/debug purpose. Do NOT optimize this.
 
-    static Eigen::Matrix<T, Eigen::Dynamic, 2> sample;
-    static Eigen::Matrix<T, Eigen::Dynamic, 1> resArr;
-    static const GetVal<T> getVal;
+    Eigen::Matrix<T, Eigen::Dynamic, 2> sample;
+    Eigen::Matrix<T, Eigen::Dynamic, 1> resArr;
+    const GetVal<T> getVal;
     sample.resize(1, 2);
 
     sample(0) = x;
@@ -372,15 +374,15 @@ template double  bspline::Interp3D(const double  &x, const double  &y, const dou
 
 
 void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
-// NOTE: This interpolation function cannot query points lying exactly on the surface 
+// NOTE: This interpolation function cannot query points lying exactly on the surface
 //       of the 3D sample grid.
 
     assert(degree == 2 || degree == 3);
     assert(numX != 0 && numY != 0 && numZ != 0);
 
     int i, ix, iy, iz;
-    static std::array<DScalar, 4> basisX_t, basisY_t;
-    static std::array<double , 4> basisZ_t;
+    std::array<DScalar, 4> basisX_t, basisY_t;
+    std::array<double , 4> basisZ_t;
     int refIdx_x, refIdx_y, refIdx_z = floor(z / gapZ);
 
     res.resize(sample.rows(), 1);
@@ -430,9 +432,13 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, 
     }
 }
 
+// template <typename BasisT, typename BasisZ, typename MatT, typename ResT>
+// void aux_Interp3D(const BasisT &basisX, const BasisT &basisY, const BasisZ &basisZ, const MatT &sample, const double z, ResT &res)
+// {
+// }
 
 void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<double, Eigen::Dynamic, 1> &res) const {
-// NOTE: This interpolation function cannot query points lying exactly on the surface 
+// NOTE: This interpolation function cannot query points lying exactly on the surface
 //       of the 3D sample grid.
 // NOTE: This is the "double" version of above "DScalar" version Interp3D function.
 //       Did not use "template" here because we need to use different basis vectors
@@ -441,7 +447,7 @@ void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, c
     assert(numX != 0 && numY != 0 && numZ != 0);
 
     int i, ix, iy, iz, idx;
-    static std::array<double, 4> basisX_t, basisY_t, basisZ_t;
+    std::array<double, 4> basisX_t, basisY_t, basisZ_t;
     int refIdx_x, refIdx_y, refIdx_z = floor(z / gapZ);
 
     res.resize(sample.rows(), 1);
@@ -491,33 +497,33 @@ void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, c
         // use control point cache
         /*
         idx = numX*numY*refIdx_z + numY*refIdx_x + refIdx_y;
-        res(i) = 
-            controlPointsCache(0 , idx) * basisX_t[0] * basisY_t[0] * basisZ_t[0] + 
-            controlPointsCache(1 , idx) * basisX_t[0] * basisY_t[1] * basisZ_t[0] + 
-            controlPointsCache(2 , idx) * basisX_t[0] * basisY_t[2] * basisZ_t[0] + 
-            controlPointsCache(3 , idx) * basisX_t[1] * basisY_t[0] * basisZ_t[0] + 
-            controlPointsCache(4 , idx) * basisX_t[1] * basisY_t[1] * basisZ_t[0] + 
-            controlPointsCache(5 , idx) * basisX_t[1] * basisY_t[2] * basisZ_t[0] + 
-            controlPointsCache(6 , idx) * basisX_t[2] * basisY_t[0] * basisZ_t[0] + 
-            controlPointsCache(7 , idx) * basisX_t[2] * basisY_t[1] * basisZ_t[0] + 
-            controlPointsCache(8 , idx) * basisX_t[2] * basisY_t[2] * basisZ_t[0] + 
-            controlPointsCache(9 , idx) * basisX_t[0] * basisY_t[0] * basisZ_t[1] + 
-            controlPointsCache(10, idx) * basisX_t[0] * basisY_t[1] * basisZ_t[1] + 
-            controlPointsCache(11, idx) * basisX_t[0] * basisY_t[2] * basisZ_t[1] + 
-            controlPointsCache(12, idx) * basisX_t[1] * basisY_t[0] * basisZ_t[1] + 
-            controlPointsCache(13, idx) * basisX_t[1] * basisY_t[1] * basisZ_t[1] + 
-            controlPointsCache(14, idx) * basisX_t[1] * basisY_t[2] * basisZ_t[1] + 
-            controlPointsCache(15, idx) * basisX_t[2] * basisY_t[0] * basisZ_t[1] + 
-            controlPointsCache(16, idx) * basisX_t[2] * basisY_t[1] * basisZ_t[1] + 
-            controlPointsCache(17, idx) * basisX_t[2] * basisY_t[2] * basisZ_t[1] + 
-            controlPointsCache(18, idx) * basisX_t[0] * basisY_t[0] * basisZ_t[2] + 
-            controlPointsCache(19, idx) * basisX_t[0] * basisY_t[1] * basisZ_t[2] + 
-            controlPointsCache(20, idx) * basisX_t[0] * basisY_t[2] * basisZ_t[2] + 
-            controlPointsCache(21, idx) * basisX_t[1] * basisY_t[0] * basisZ_t[2] + 
-            controlPointsCache(22, idx) * basisX_t[1] * basisY_t[1] * basisZ_t[2] + 
-            controlPointsCache(23, idx) * basisX_t[1] * basisY_t[2] * basisZ_t[2] + 
-            controlPointsCache(24, idx) * basisX_t[2] * basisY_t[0] * basisZ_t[2] + 
-            controlPointsCache(25, idx) * basisX_t[2] * basisY_t[1] * basisZ_t[2] + 
+        res(i) =
+            controlPointsCache(0 , idx) * basisX_t[0] * basisY_t[0] * basisZ_t[0] +
+            controlPointsCache(1 , idx) * basisX_t[0] * basisY_t[1] * basisZ_t[0] +
+            controlPointsCache(2 , idx) * basisX_t[0] * basisY_t[2] * basisZ_t[0] +
+            controlPointsCache(3 , idx) * basisX_t[1] * basisY_t[0] * basisZ_t[0] +
+            controlPointsCache(4 , idx) * basisX_t[1] * basisY_t[1] * basisZ_t[0] +
+            controlPointsCache(5 , idx) * basisX_t[1] * basisY_t[2] * basisZ_t[0] +
+            controlPointsCache(6 , idx) * basisX_t[2] * basisY_t[0] * basisZ_t[0] +
+            controlPointsCache(7 , idx) * basisX_t[2] * basisY_t[1] * basisZ_t[0] +
+            controlPointsCache(8 , idx) * basisX_t[2] * basisY_t[2] * basisZ_t[0] +
+            controlPointsCache(9 , idx) * basisX_t[0] * basisY_t[0] * basisZ_t[1] +
+            controlPointsCache(10, idx) * basisX_t[0] * basisY_t[1] * basisZ_t[1] +
+            controlPointsCache(11, idx) * basisX_t[0] * basisY_t[2] * basisZ_t[1] +
+            controlPointsCache(12, idx) * basisX_t[1] * basisY_t[0] * basisZ_t[1] +
+            controlPointsCache(13, idx) * basisX_t[1] * basisY_t[1] * basisZ_t[1] +
+            controlPointsCache(14, idx) * basisX_t[1] * basisY_t[2] * basisZ_t[1] +
+            controlPointsCache(15, idx) * basisX_t[2] * basisY_t[0] * basisZ_t[1] +
+            controlPointsCache(16, idx) * basisX_t[2] * basisY_t[1] * basisZ_t[1] +
+            controlPointsCache(17, idx) * basisX_t[2] * basisY_t[2] * basisZ_t[1] +
+            controlPointsCache(18, idx) * basisX_t[0] * basisY_t[0] * basisZ_t[2] +
+            controlPointsCache(19, idx) * basisX_t[0] * basisY_t[1] * basisZ_t[2] +
+            controlPointsCache(20, idx) * basisX_t[0] * basisY_t[2] * basisZ_t[2] +
+            controlPointsCache(21, idx) * basisX_t[1] * basisY_t[0] * basisZ_t[2] +
+            controlPointsCache(22, idx) * basisX_t[1] * basisY_t[1] * basisZ_t[2] +
+            controlPointsCache(23, idx) * basisX_t[1] * basisY_t[2] * basisZ_t[2] +
+            controlPointsCache(24, idx) * basisX_t[2] * basisY_t[0] * basisZ_t[2] +
+            controlPointsCache(25, idx) * basisX_t[2] * basisY_t[1] * basisZ_t[2] +
             controlPointsCache(26, idx) * basisX_t[2] * basisY_t[2] * basisZ_t[2];
         */
     }
@@ -551,8 +557,8 @@ bspline::~bspline() {
 
 /////////////////////////////////////////////////////
 // Static member variable
-double bspline::resolutionX = 0.0;
-double bspline::resolutionY = 0.0;
-double bspline::resolutionZ = 0.0;
+// double bspline::resolutionX = 0.0;
+// double bspline::resolutionY = 0.0;
+// double bspline::resolutionZ = 0.0;
 
 }  // namespace zebrafish
