@@ -28,7 +28,7 @@ private:
 
     void CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A);
     template <typename T>
-    void CalcBasisFunc(Eigen::Matrix< std::function<T(T)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, const int& numT, const double& gapT);
+    void CalcBasisFunc(Eigen::Matrix< std::function<T(T)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, const int numT, const double gapT);
     void CreateControlPtsCache(); //Optional
 
 public:

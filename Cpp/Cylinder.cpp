@@ -52,9 +52,9 @@ bool cylinder::BoundaryCheck(const T &x_, const T &y_, const double z, const T &
     assert(xmax > 0 && ymax > 0 && zmax > 0);  // must update boundary before eval
 
     static const GetVal<T> getVal;
-    static double x = getVal(x_);
-    static double y = getVal(y_);
-    static double r = getVal(r_);
+    double x = getVal(x_);
+    double y = getVal(y_);
+    double r = getVal(r_);
 
     // The extended cylinder (union of inner & outer) has radius sqrt(2)*r
     // Also avoid interpolating points lying on the surface of the sample grid

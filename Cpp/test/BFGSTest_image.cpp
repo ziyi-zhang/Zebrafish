@@ -22,35 +22,36 @@ DECLARE_DIFFSCALAR_BASE();
 
 class CylinderEnergy {
 private:
-    const image_t &image;
     bspline bsplineSolver;
     cylinder cylinder;
     int evalCount;
 
 public:
     // constructor
-    CylinderEnergy(const image_t &image_) : image(image_) {
+    CylinderEnergy(const image_t &image) {
 
         // prepare B-spline
-        bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7);
+        const int bsplineDegree = 2;
+        bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
+
+        // prepare cylinder
+        cylinder.UpdateBoundary(image);
     }
 
     // evaluate
     double operator()(const VectorXd& x, VectorXd& grad) {
 
-        if (!cylinder.SampleCylinder(image, bsplineSolver, x(0), x(1), 32, x(2), 3)) {
-            // cout << "F(" << x.transpose() << ")" << " - Invalid cylinder - " << endl;
+        DScalar ans;
+
+        if (!cylinder.EvaluateCylinder(bsplineSolver, DScalar(0, x(0)), DScalar(1, x(1)), 32, DScalar(2, x(2)), 3, ans)) {
+            // cout << "Invalid cylinder - ";
             grad.setZero();
             return 1.0;
         }
 
-        DScalar ans = cylinder.EvaluateCylinder(image, bsplineSolver);
         grad.resize(3, 1);
         grad = ans.getGradient();
         cout << evalCount++ << " " << x(0) << " " << x(1) << " " << x(2) << " " << ans.getValue() << endl;
-        // cout << "count = " << count++ << endl;
-        // cout << "F(" << x.transpose() << ") = " << ans.getValue() << endl;
-        // cout << "    Grad = " << grad.transpose() << endl;
         return ans.getValue();
     }
 
@@ -73,16 +74,13 @@ int main(int argc, char **argv) {
 
     // read in
     std::string image_path = "";
-
     CLI::App command_line{"ZebraFish"};
     command_line.add_option("-i,--img", image_path, "Input TIFF image to process")->check(CLI::ExistingFile);
 
-    try
-    {
+    try {
         command_line.parse(argc, argv);
     }
-    catch (const CLI::ParseError &e)
-    {
+    catch (const CLI::ParseError &e) {
         return command_line.exit(e);
     }
 
@@ -103,8 +101,8 @@ int main(int argc, char **argv) {
     }
     cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
     // normalize all layers
-    double quantile = zebrafish::QuantileImage(image, pixelQuantile);
-    cout << "Quantile of image with q=" << pixelQuantile << " is " << quantile << endl;
+    double quantile = zebrafish::QuantileImage(image, 0.995);
+    cout << "Quantile of image with q=0.995 is " << quantile << endl;
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         img.array() /= quantile;
@@ -116,8 +114,8 @@ int main(int argc, char **argv) {
     CylinderEnergy energy(image);
 
     LBFGSParam<double> param;
-    param.epsilon = 1e-3;
-    param.max_iterations = 20;
+    param.epsilon = 1e-4;
+    param.max_iterations = 15;
 
     LBFGSSolver<double> solver(param);
     VectorXd xx(3, 1);
@@ -141,11 +139,11 @@ int main(int argc, char **argv) {
             xx(2) = 4;
 
             // call optimizer
-            cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl << flush;
+            printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
             energy.ResetCount();
             it = solver.minimize(energy, xx, res);
 
-            cout << "<<<<< Summary <<<<<" << endl << flush;
+            printf("<<<<< Summary <<<<<\n");
             cout << "s_start = " << x << " " << y << endl;
             cout << "xres = " << xx.transpose() << endl;
             cout << "iterations = " << it << endl;

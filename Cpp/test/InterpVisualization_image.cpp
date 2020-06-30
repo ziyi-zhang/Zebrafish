@@ -34,16 +34,13 @@ int main(int argc, char **argv) {
 
     // read in
     std::string image_path = "";
-
     CLI::App command_line{"ZebraFish"};
     command_line.add_option("-i,--img", image_path, "Input TIFF image to process")->check(CLI::ExistingFile);
 
-    try
-    {
+    try {
         command_line.parse(argc, argv);
     }
-    catch (const CLI::ParseError &e)
-    {
+    catch (const CLI::ParseError &e) {
         return command_line.exit(e);
     }
 
@@ -57,12 +54,12 @@ int main(int argc, char **argv) {
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         // img = img.block(305, 333, 638-306, 717-334);
-        img = img.block(305, 333, 24, 90);
+        img = img.block(305, 333, 24, 90);  // pt1, 2, 3, 4
     }
     cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
     // normalize all layers
-    double quantile = zebrafish::QuantileImage(image, pixelQuantile);
-    cout << "Quantile of image with q=" << pixelQuantile << " is " << quantile << endl;
+    double quantile = zebrafish::QuantileImage(image, 0.995);
+    cout << "Quantile of image with q=0.995 is " << quantile << endl;
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         img.array() /= quantile;
@@ -73,25 +70,26 @@ int main(int argc, char **argv) {
     // main
     // prepare B-spline
     bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7);
+    const int bsplineDegree = 2;
+    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
 
-    Eigen::Matrix<DScalar, Eigen::Dynamic, 2> sample;
-    Eigen::Matrix<DScalar, Eigen::Dynamic, 1> res;
-    sample.resize(image[0].rows() * image[0].cols(), 2);
+    Eigen::Matrix<double, Eigen::Dynamic, 2> sample;
+    Eigen::Matrix<double, Eigen::Dynamic, 1> res;
+    sample.resize((image[0].rows()-1) * (image[0].cols()-1), 2);
     double x, y;
     int count = 0;
-    for (x=0; x<image[0].rows(); x++)
-        for (y=0; y<image[0].cols(); y++) {
-            sample(count, 0) = DScalar(x);
-            sample(count, 1) = DScalar(y);
+    for (x=0; x<image[0].rows()-1; x++)
+        for (y=0; y<image[0].cols()-1; y++) {
+            sample(count, 0) = x;
+            sample(count, 1) = y;
             count++;
         }
-    bsplineSolver.Interp3D(sample, DScalar(33), res);
+    bsplineSolver.Interp3D(sample, 33, res);
 
     // cout
     int i;
-    cout << ">>>>>>>>>>>" << endl;
+    printf(">>>>>>>>>>>\n");
     for (i=0; i<res.rows(); i++) {
-        cout << sample(i, 0).getValue() << " " << sample(i, 1).getValue() << " " << res(i, 0).getValue() << endl;
+        cout << sample(i, 0) << " " << sample(i, 1) << " " << res(i, 0) << endl;
     }
 }

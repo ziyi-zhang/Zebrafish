@@ -1,8 +1,13 @@
 % helper function of CPP optimization test
-% convergence zone
+% plot convergence zone
 
+function [] = convZone()
 % fid = fopen('../../release/debug_deg2_quad3_test.log');
-fid = fopen('../../release/debug_deg2_quad3_pt1.log');
+% fid = fopen('../../release/debug_deg2_quad3_pt1.log');
+
+% fid = fopen('../../build/debug.log');
+fid = fopen('../../release/debug.log');
+
 status = 0;
 count = 0;
 cacheVec = [];
@@ -27,7 +32,7 @@ while ~feof(fid)
     if ~isempty(line) && line(1)=='<'
         status = -1;
     end
-    
+
     % plot
     if status == -1
     
@@ -44,3 +49,4 @@ while ~feof(fid)
 end
 
 fprintf("Count = %d\n", count);
+end

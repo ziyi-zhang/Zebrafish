@@ -2,9 +2,9 @@
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
-#include <LBFGS.h>
 #include <zebrafish/autodiff.h>
 #include <zebrafish/Logger.hpp>
+#include <zebrafish/LBFGS.h>
 #include <math.h>
 
 using namespace std;
@@ -62,7 +62,7 @@ public:
     // evaluate
     double operator()(const VectorXd& x, VectorXd& grad) {
 
-        static DScalar ans;
+        DScalar ans;
 
         if (!cylinder.EvaluateCylinder(bsplineSolver, DScalar(0, x(0)), DScalar(1, x(1)), 3, DScalar(2, x(2)), 3, ans)) {
             // cout << "Invalid cylinder - ";
@@ -125,7 +125,7 @@ int main() {
     LBFGSSolver<double> solver(param);
     VectorXd xx(3, 1);
 
-    double delta = 4;
+    double delta = 2;
     int i, j, it;
     double res;
     int x0 = 14, y0 = 14;
