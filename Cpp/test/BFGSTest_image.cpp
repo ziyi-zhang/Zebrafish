@@ -52,6 +52,7 @@ public:
         grad.resize(3, 1);
         grad = ans.getGradient();
         cout << evalCount++ << " " << x(0) << " " << x(1) << " " << x(2) << " " << ans.getValue() << endl;
+        cout << "Grad = " << ans.getGradient().transpose() << endl;
         return ans.getValue();
     }
 

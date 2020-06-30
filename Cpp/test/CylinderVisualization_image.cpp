@@ -1,4 +1,5 @@
 // cylinder energy visualization (real image)
+// Energy vs. XY
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
@@ -18,34 +19,6 @@ using namespace zebrafish;
 using namespace LBFGSpp;
 
 
-double func(double x, double y, double z) {
-
-    // return x + y;
-
-    // x^2 + y^2
-    // return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
-
-    // (x^2 + y^2)^(3/2)
-    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
-
-    // x^4 + y^4 + 2 * x^2 * y^2
-    // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5) +
-      //   2 * (y-14.5)*(y-14.5)* (x-14.5)*(x-14.5);
-
-    // x^5 + y^5
-    // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5)*(y-14.5);
-
-    // (x^2 + y^2)^(5/2)
-    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 2.5);
-
-    // LBFGS test
-    if ((x-14.25)*(x-14.25) + (y-14.85)*(y-14.85) > 16)
-        return 1;
-    else
-        return 0;
-}
-
-
 DECLARE_DIFFSCALAR_BASE();
 
 int main(int argc, char **argv) {
@@ -61,16 +34,13 @@ int main(int argc, char **argv) {
 
     // read in
     std::string image_path = "";
-
     CLI::App command_line{"ZebraFish"};
     command_line.add_option("-i,--img", image_path, "Input TIFF image to process")->check(CLI::ExistingFile);
 
-    try
-    {
+    try {
         command_line.parse(argc, argv);
     }
-    catch (const CLI::ParseError &e)
-    {
+    catch (const CLI::ParseError &e) {
         return command_line.exit(e);
     }
 
@@ -84,12 +54,12 @@ int main(int argc, char **argv) {
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         // img = img.block(305, 333, 638-306, 717-334);
-        img = img.block(305, 333, 30, 30);
+        img = img.block(305-5, 333-5, 37, 80);  // pt 1234
     }
     cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
     // normalize all layers
-    double quantile = zebrafish::QuantileImage(image, pixelQuantile);
-    cout << "Quantile of image with q=" << pixelQuantile << " is " << quantile << endl;
+    double quantile = zebrafish::QuantileImage(image, 0.995);
+    cout << "Quantile of image with q=0.995 is " << quantile << endl;
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         img.array() /= quantile;
@@ -100,25 +70,29 @@ int main(int argc, char **argv) {
     // main
     // prepare B-spline
     bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7);
+    const int bsplineDegree = 2;
+    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
 
     // prepare cylinder
     cylinder cylinder;
+    cylinder.UpdateBoundary(image);
 
-    Eigen::Matrix<DScalar, Eigen::Dynamic, 2> sample;
-    Eigen::Matrix<DScalar, Eigen::Dynamic, 1> res;
-    sample.resize(image[0].rows() * image[0].cols(), 2);
-    int count = 0;
-    double x, y;
-    cout << ">>>>>>>>>>" << endl;
-    for (x=0; x<image[0].rows(); x++)
-        for (y=0; y<image[0].cols(); y++) {
+    int count = 0, i;
+    double x, y, r, ans;
+    double rArray[4] = {2.0, 2.8, 3.6, 4.4};
+    
+    // evaluate energy
+    for (i=0; i<4; i++) {
+        r = rArray[i];
+        printf(">>>>>>>>>>>\n");
+        for (x=0; x<image[0].rows(); x++)
+            for (y=0; y<image[0].cols(); y++) {
 
-            if (!cylinder.SampleCylinder(image, bsplineSolver, x, y, 33, 2.80, 3))
-                // cerr << "Invalid cylinder" << endl;
-                continue;
-            DScalar ans1 = cylinder.EvaluateCylinder(image, bsplineSolver);
+                if (!cylinder.EvaluateCylinder(bsplineSolver, x, y, 33, r, 3, ans))
+                    continue;
 
-            cout << x << " " << y << " " << ans1.getValue() << endl;
-        }
+                cout << x << " " << y << " " << ans << endl;
+            }
+        printf("<<<<<<<<<<<\n");
+    }
 }

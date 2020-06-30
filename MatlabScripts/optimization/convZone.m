@@ -10,6 +10,8 @@ fid = fopen('../../release/debug.log');
 
 status = 0;
 count = 0;
+correctCnt = 0;
+correctCenter = [12.36, 11.38];
 cacheVec = [];
 evalVec = [];
 
@@ -39,8 +41,9 @@ while ~feof(fid)
         if isempty(cacheVec), continue;end
         
         count = count + 1;
+        if (norm(correctCenter - cacheVec(end, 2:3)) < 0.1), correctCnt = correctCnt + 1;end
         evalVec(count) = size(cacheVec, 1);
-        
+
         cacheVec = cacheVec([1, size(cacheVec, 1)], :);
         plot(cacheVec(:, 2), cacheVec(:, 3), 'LineStyle', '-', 'Marker', '.');
         cacheVec = [];
@@ -48,5 +51,6 @@ while ~feof(fid)
     end
 end
 
-fprintf("Count = %d\n", count);
+fprintf("Starting point count = %d\n", count);
+fprintf("Converged count = %d\n", correctCnt);
 end

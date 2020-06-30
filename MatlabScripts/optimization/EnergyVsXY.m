@@ -2,10 +2,10 @@
 % Energy function vs. [x, y]
 
 % fid = fopen('../../release/debug_cylinderVis_test.log');
-% fid = fopen('../../release/debug_cylinderVis_pt1.log');
+fid = fopen('../../release/debug_cylinderVis_pt1234.log');
 
 % fid = fopen('../../build/debug.log');
-fid = fopen('../../release/debug.log');
+% fid = fopen('../../release/debug.log');
 
 status = 0;
 cacheVec = [];
