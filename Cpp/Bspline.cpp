@@ -92,6 +92,8 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
         logger().info("B-Spline degree = {}", degree);
         logger().info("Start calculating control points...");
         // Warning if ratio too small
+        /// A small control point ratio will introduce error to interpolation 
+        /// and energy evaluation.
         const double ratioThres = 0.5;
         if (xratio < ratioThres || yratio < ratioThres || zratio < ratioThres)
             logger().warn("Control point size too small: xratio={}, yratio={} and zratio={}.", xratio, yratio, zratio);
@@ -196,8 +198,11 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
         // std::cout << controlPoints << std::endl;
         // std::cout << "<<<<< control points <<<<<" << std::endl;
         /////////////// DEBUG ONLY ///////////
+    if (controlPointsCacheFlag) {
+        // optional optimization. By default disabled.
         logger().info("Creating control points cache...");
-    // CreateControlPtsCache();
+        CreateControlPtsCache();
+    }
         logger().info("Control points calculated...");
         logger().info("====================================================");
 }
@@ -324,6 +329,8 @@ template void bspline::CalcBasisFunc(Eigen::Matrix< std::function<double  (doubl
 
 void bspline::CreateControlPtsCache() {
 
+    assert(degree == 2);
+
     const int N = numX * numY * numZ;
     int ix, iy, iz, i, jx, jy, jz, j, idx;
     logger().debug("Cached control point size: {}Mb", N * 27.0 * 8 / 1e6);
@@ -436,6 +443,13 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, 
 // {
 // }
 
+template <typename basisT, typename T>
+void bspline::Interp3DHelper(const Eigen::Matrix<T, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<T, Eigen::Dynamic, 1> &res, 
+                             const basisT &basisX, const basisT &basisY, const basisd_t &basisZ) const {
+
+    
+}
+
 void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<double, Eigen::Dynamic, 1> &res) const {
 // NOTE: This interpolation function cannot query points lying exactly on the surface
 //       of the 3D sample grid.
@@ -545,6 +559,8 @@ bspline::bspline() {
     solverMaxIt = 20000;    // 1000
     solverConvTol = 1e-15;  // 1e-10
     solverTol = 1e-15;      // 1e-10
+    // whether enable control points cache
+    controlPointsCacheFlag = false;
 
     DiffScalarBase::setVariableCount(3);  // x, y, r
 }
@@ -553,11 +569,5 @@ bspline::bspline() {
 bspline::~bspline() {
 
 }
-
-/////////////////////////////////////////////////////
-// Static member variable
-// double bspline::resolutionX = 0.0;
-// double bspline::resolutionY = 0.0;
-// double bspline::resolutionZ = 0.0;
 
 }  // namespace zebrafish

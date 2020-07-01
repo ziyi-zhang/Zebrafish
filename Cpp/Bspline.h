@@ -10,20 +10,33 @@
 
 namespace zebrafish {
 
+typedef Eigen::Matrix<std::function<double(double)>,   Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basis_t;
+typedef Eigen::Matrix<std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisd_t;
+
+///////////////////////////////////////
+
 class bspline {
 
 private:
-    Eigen::Matrix<double, 27, Eigen::Dynamic, Eigen::ColMajor> controlPointsCache; //TODO: Optional, probably remove me?
-
+    int degree;  // B-spline degree
+                 // "2" for quadratic clamped B-spline
+                 // "3" for cubic clamped B-spline
+    Eigen::Matrix<double, 27, Eigen::Dynamic, Eigen::ColMajor> controlPointsCache;  // optional optimization. By default not active.
     Eigen::VectorXd controlPoints;  // [#points] control points value
+
     int Nx, Ny, Nz;         // the dimension of sample points (Nx * Ny * Nz == #pixels)
+                            // also the dimension of the image
     int numX, numY, numZ;   // the dimension of control points (numX * numY * numZ == #control points)
+    double gapX, gapY, gapZ;  // the interval between two control points along a direction
     double resolutionX, resolutionY, resolutionZ;  // The distance between two pixels (in micrometers)
+
     int solverMaxIt;                  // Hypre solver max iterations
     double solverConvTol, solverTol;  // Hypre solver "convergence tolerance" and "tolerance"
 
-    Eigen::Matrix< std::function<double(double)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisXd, basisYd, basisZd;
-    Eigen::Matrix<std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisX, basisY; //basisZ
+    bool controlPointsCacheFlag;  // whether enable control points cache. By default inactive.
+
+    basis_t  basisXd, basisYd, basisZd;
+    basisd_t basisX, basisY; //basisZ
         // Pre-calculated lambda basis functions (double & DScalar)
 
     void CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A);
@@ -32,11 +45,6 @@ private:
     void CreateControlPtsCache(); //Optional
 
 public:
-    int degree;  // B-spline degree
-                 // "2" for quadratic clamped B-spline
-                 // "3" for cubic clamped B-spline
-    double gapX, gapY, gapZ;  // the interval between two control points along a direction
-
     void SetResolution(const double resX, const double resY, const double resZ);
     /// Set the microscope resolution in X, Y and Z direction
     /// Unit in micrometers (um)
@@ -65,6 +73,12 @@ public:
     /// @param[in]   sample    { #sample x 3 input sample points }
     /// @param[out]  res       { #sample x 1 output interpolated results}
     ///
+
+    // getter & setter
+    bool Get_controlPointsCacheFlag() { return controlPointsCacheFlag; }
+    void Set_controlPointsCacheFlag(bool x) { controlPointsCacheFlag = x; }
+    int  Get_degree() { return degree; }
+    void Set_degree(int x) { degree = x; }
 
     // maintenance methods
     bspline();
