@@ -383,6 +383,8 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, 
 // NOTE: This interpolation function cannot query points lying exactly on the surface
 //       of the 3D sample grid.
 
+    Interp3DHelper<basis_t, DScalar>(sample, z, res, basisX, basisY, basisZd);
+    /*
     assert(degree == 2 || degree == 3);
     assert(numX != 0 && numY != 0 && numZ != 0);
 
@@ -436,6 +438,7 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, 
                               basisX_t[ix] * basisY_t[iy] * basisZ_t[iz];
                 }
     }
+    */
 }
 
 // template <typename BasisT, typename BasisZ, typename MatT, typename ResT>
@@ -445,30 +448,22 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, 
 
 template <typename basisT, typename T>
 void bspline::Interp3DHelper(const Eigen::Matrix<T, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<T, Eigen::Dynamic, 1> &res, 
-                             const basisT &basisX, const basisT &basisY, const basisd_t &basisZ) const {
-
-    
-}
-
-void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<double, Eigen::Dynamic, 1> &res) const {
-// NOTE: This interpolation function cannot query points lying exactly on the surface
-//       of the 3D sample grid.
-// NOTE: This is the "double" version of above "DScalar" version Interp3D function.
-//       Did not use "template" here because we need to use different basis vectors
+                             const basisT &basisX_, const basisT &basisY_, const basisd_t &basisZ_) const {
 
     assert(degree == 2 || degree == 3);
     assert(numX != 0 && numY != 0 && numZ != 0);
 
+    static const GetVal<T> getVal;
     int i, ix, iy, iz, idx;
-    std::array<double, 4> basisX_t, basisY_t, basisZ_t;
+    std::array<T, 4> basisX_v, basisY_v, basisZ_v;
     int refIdx_x, refIdx_y, refIdx_z = floor(z / gapZ);
 
     res.resize(sample.rows(), 1);
     for (i=0; i<sample.rows(); i++) {
 
         // Get reference index
-        refIdx_x = floor(sample(i, 0) / gapX);
-        refIdx_y = floor(sample(i, 1) / gapY);
+        refIdx_x = floor(getVal(sample(i, 0)) / gapX);
+        refIdx_y = floor(getVal(sample(i, 1)) / gapY);
 
         /// A special case: if the query point lies exactly at the end of the edge
         /// NOTE: in practice, we will never query those points
@@ -483,19 +478,19 @@ void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, c
         // Evaluate
         res(i) = 0.0;
         // calculate the 9 basis function evaluated values
-        basisX_t[0] = basisXd(0, refIdx_x)(sample(i, 0));
-        basisX_t[1] = basisXd(1, refIdx_x)(sample(i, 0));
-        basisX_t[2] = basisXd(2, refIdx_x)(sample(i, 0));
-        basisY_t[0] = basisYd(0, refIdx_y)(sample(i, 1));
-        basisY_t[1] = basisYd(1, refIdx_y)(sample(i, 1));
-        basisY_t[2] = basisYd(2, refIdx_y)(sample(i, 1));
-        basisZ_t[0] = basisZd(0, refIdx_z)(z);
-        basisZ_t[1] = basisZd(1, refIdx_z)(z);
-        basisZ_t[2] = basisZd(2, refIdx_z)(z);
+        basisX_v[0] = basisX_(0, refIdx_x)(sample(i, 0));
+        basisX_v[1] = basisX_(1, refIdx_x)(sample(i, 0));
+        basisX_v[2] = basisX_(2, refIdx_x)(sample(i, 0));
+        basisY_v[0] = basisY_(0, refIdx_y)(sample(i, 1));
+        basisY_v[1] = basisY_(1, refIdx_y)(sample(i, 1));
+        basisY_v[2] = basisY_(2, refIdx_y)(sample(i, 1));
+        basisZ_v[0] = basisZ_(0, refIdx_z)(z);
+        basisZ_v[1] = basisZ_(1, refIdx_z)(z);
+        basisZ_v[2] = basisZ_(2, refIdx_z)(z);
         if (degree == 3) {
-            basisX_t[3] = basisXd(3, refIdx_x)(sample(i, 0));
-            basisY_t[3] = basisYd(3, refIdx_y)(sample(i, 1));
-            basisZ_t[3] = basisZd(3, refIdx_z)(z);
+            basisX_v[3] = basisX_(3, refIdx_x)(sample(i, 0));
+            basisY_v[3] = basisY_(3, refIdx_y)(sample(i, 1));
+            basisZ_v[3] = basisZ_(3, refIdx_z)(z);
         }
 
         // loop to calculate summation
@@ -504,8 +499,24 @@ void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, c
                 for (iy=0; iy<=degree; iy++) {
 
                     res(i) += controlPoints(numX*numY*(refIdx_z+iz) + numY*(refIdx_x+ix) + (refIdx_y+iy)) *
-                              basisX_t[ix] * basisY_t[iy] * basisZ_t[iz];
+                              basisX_v[ix] * basisY_v[iy] * basisZ_v[iz];
                 }
+    }
+}
+// explicit template instantiation
+template void bspline::Interp3DHelper(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res, 
+            const basis_t  &basisX_, const basis_t  &basisY_, const basisd_t &basisZ_) const;
+template void bspline::Interp3DHelper(const Eigen::Matrix<double,  Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<double,  Eigen::Dynamic, 1> &res, 
+            const basisd_t &basisX_, const basisd_t &basisY_, const basisd_t &basisZ_) const;
+
+
+void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<double, Eigen::Dynamic, 1> &res) const {
+// NOTE: This interpolation function cannot query points lying exactly on the surface
+//       of the 3D sample grid.
+// NOTE: This is the "double" version of above "DScalar" version Interp3D function.
+//       Did not use "template" here because we need to use different basis vectors
+
+    Interp3DHelper<basisd_t, double>(sample, z, res, basisXd, basisYd, basisZd);
 
         // use control point cache
         /*
@@ -539,7 +550,6 @@ void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, c
             controlPointsCache(25, idx) * basisX_t[2] * basisY_t[1] * basisZ_t[2] +
             controlPointsCache(26, idx) * basisX_t[2] * basisY_t[2] * basisZ_t[2];
         */
-    }
 }
 
 

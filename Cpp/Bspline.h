@@ -10,8 +10,8 @@
 
 namespace zebrafish {
 
-typedef Eigen::Matrix<std::function<double(double)>,   Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basis_t;
-typedef Eigen::Matrix<std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisd_t;
+typedef Eigen::Matrix<std::function<double (double)>,  Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisd_t;
+typedef Eigen::Matrix<std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basis_t;
 
 ///////////////////////////////////////
 
@@ -35,14 +35,18 @@ private:
 
     bool controlPointsCacheFlag;  // whether enable control points cache. By default inactive.
 
-    basis_t  basisXd, basisYd, basisZd;
-    basisd_t basisX, basisY; //basisZ
+    basisd_t basisXd, basisYd, basisZd;
+    basis_t  basisX, basisY; //basisZ
         // Pre-calculated lambda basis functions (double & DScalar)
 
     void CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A);
     template <typename T>
     void CalcBasisFunc(Eigen::Matrix< std::function<T(T)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, const int numT, const double gapT);
     void CreateControlPtsCache(); //Optional
+
+    template <typename basisT, typename T>
+    void Interp3DHelper(const Eigen::Matrix<T, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<T, Eigen::Dynamic, 1> &res, 
+                             const basisT &basisX_, const basisT &basisY_, const basisd_t &basisZ_) const;
 
 public:
     void SetResolution(const double resX, const double resY, const double resZ);
