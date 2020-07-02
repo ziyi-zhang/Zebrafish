@@ -2,6 +2,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 #include <zebrafish/Common.h>
+#include <zebrafish/Quadrature.h>
 #include <zebrafish/autodiff.h>
 
 #include <Eigen/Dense>
@@ -14,6 +15,7 @@ typedef Eigen::Matrix<std::function<double (double)>,  Eigen::Dynamic, Eigen::Dy
 typedef Eigen::Matrix<std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basis_t;
 
 ///////////////////////////////////////
+// bspline
 
 class bspline {
 
@@ -32,12 +34,11 @@ private:
 
     int solverMaxIt;                  // Hypre solver max iterations
     double solverConvTol, solverTol;  // Hypre solver "convergence tolerance" and "tolerance"
-
     bool controlPointsCacheFlag;  // whether enable control points cache. By default inactive.
 
+    // Pre-calculated lambda basis functions (double & DScalar)
     basisd_t basisXd, basisYd, basisZd;
-    basis_t  basisX, basisY; //basisZ
-        // Pre-calculated lambda basis functions (double & DScalar)
+    basis_t  basisX,  basisY;  //basisZ
 
     void CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A);
     template <typename T>
@@ -45,10 +46,12 @@ private:
     void CreateControlPtsCache(); //Optional
 
     template <typename basisT, typename T>
-    void Interp3DHelper(const Eigen::Matrix<T, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<T, Eigen::Dynamic, 1> &res, 
+    void InterpDiskHelper(const T x, const T y, const double z, const T r, Eigen::Matrix<T, Eigen::Dynamic, 1> &res, 
                              const basisT &basisX_, const basisT &basisY_, const basisd_t &basisZ_) const;
 
 public:
+    struct quadrature &quad;  // quadrature
+
     void SetResolution(const double resX, const double resY, const double resZ);
     /// Set the microscope resolution in X, Y and Z direction
     /// Unit in micrometers (um)
@@ -69,8 +72,8 @@ public:
 
     template <typename T>
     T Interp3D(const T &x, const T &y, const T &z) const;
-    void Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const;
-    void Interp3D(const Eigen::Matrix<double , Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<double , Eigen::Dynamic, 1> &res) const;
+    void InterpDisk(const DScalar x, const DScalar y, const double z, const DScalar r, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const;
+    void InterpDisk(const double  x, const double  y, const double z, const double  r, Eigen::Matrix<double , Eigen::Dynamic, 1> &res) const;
     /// Calculate the interpolated B-spline result at "sample" points.
     /// Note: this function does not check for input validity
     ///
@@ -79,13 +82,16 @@ public:
     ///
 
     // getter & setter
-    bool Get_controlPointsCacheFlag() { return controlPointsCacheFlag; }
+    bool Get_controlPointsCacheFlag() const { return controlPointsCacheFlag; }
     void Set_controlPointsCacheFlag(bool x) { controlPointsCacheFlag = x; }
-    int  Get_degree() { return degree; }
+    int  Get_degree() const { return degree; }
     void Set_degree(int x) { degree = x; }
+    int Get_Nx() const { return Nx;}
+    int Get_Ny() const { return Ny;}
+    int Get_Nz() const { return Nz;}
 
     // maintenance methods
-    bspline();
+    bspline(struct quadrature &quad);
     ~bspline();
 };
 

@@ -371,7 +371,7 @@ T bspline::Interp3D(const T &x, const T &y, const T &z) const {
     sample(0) = x;
     sample(1) = y;
 
-    Interp3D(sample, getVal(z), resArr);
+    // Interp3D(sample, getVal(z), resArr);
     return resArr(0);
 }
 // explicit template instantiation
@@ -379,11 +379,11 @@ template DScalar bspline::Interp3D(const DScalar &x, const DScalar &y, const DSc
 template double  bspline::Interp3D(const double  &x, const double  &y, const double  &z) const;
 
 
-void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
+void bspline::InterpDisk(const DScalar x, const DScalar y, const double z, const DScalar r, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
 // NOTE: This interpolation function cannot query points lying exactly on the surface
 //       of the 3D sample grid.
 
-    Interp3DHelper<basis_t, DScalar>(sample, z, res, basisX, basisY, basisZd);
+    InterpDiskHelper<basis_t, DScalar>(x, y, z, r, res, basisX, basisY, basisZd);
     /*
     assert(degree == 2 || degree == 3);
     assert(numX != 0 && numY != 0 && numZ != 0);
@@ -447,7 +447,7 @@ void bspline::Interp3D(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, 
 // }
 
 template <typename basisT, typename T>
-void bspline::Interp3DHelper(const Eigen::Matrix<T, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<T, Eigen::Dynamic, 1> &res, 
+void bspline::InterpDiskHelper(const T x, const T y, const double z, const T r, Eigen::Matrix<T, Eigen::Dynamic, 1> &res, 
                              const basisT &basisX_, const basisT &basisY_, const basisd_t &basisZ_) const {
 
     assert(degree == 2 || degree == 3);
@@ -457,13 +457,17 @@ void bspline::Interp3DHelper(const Eigen::Matrix<T, Eigen::Dynamic, 2> &sample, 
     int i, ix, iy, iz, idx;
     std::array<T, 4> basisX_v, basisY_v, basisZ_v;
     int refIdx_x, refIdx_y, refIdx_z = floor(z / gapZ);
+    T xT, yT;
 
-    res.resize(sample.rows(), 1);
-    for (i=0; i<sample.rows(); i++) {
+    res.resize(quad.numDiskPts, 1);
+    for (i=0; i<quad.numDiskPts; i++) {
 
+        // Calculate the transformed location
+        xT = quad.xyArray(i, 0)*r + x, 
+        yT = quad.xyArray(i, 1)*r + y;
         // Get reference index
-        refIdx_x = floor(getVal(sample(i, 0)) / gapX);
-        refIdx_y = floor(getVal(sample(i, 1)) / gapY);
+        refIdx_x = floor( getVal(xT) / gapX);
+        refIdx_y = floor( getVal(yT) / gapY);
 
         /// A special case: if the query point lies exactly at the end of the edge
         /// NOTE: in practice, we will never query those points
@@ -478,18 +482,18 @@ void bspline::Interp3DHelper(const Eigen::Matrix<T, Eigen::Dynamic, 2> &sample, 
         // Evaluate
         res(i) = 0.0;
         // calculate the 9 basis function evaluated values
-        basisX_v[0] = basisX_(0, refIdx_x)(sample(i, 0));
-        basisX_v[1] = basisX_(1, refIdx_x)(sample(i, 0));
-        basisX_v[2] = basisX_(2, refIdx_x)(sample(i, 0));
-        basisY_v[0] = basisY_(0, refIdx_y)(sample(i, 1));
-        basisY_v[1] = basisY_(1, refIdx_y)(sample(i, 1));
-        basisY_v[2] = basisY_(2, refIdx_y)(sample(i, 1));
+        basisX_v[0] = basisX_(0, refIdx_x)(xT);
+        basisX_v[1] = basisX_(1, refIdx_x)(xT);
+        basisX_v[2] = basisX_(2, refIdx_x)(xT);
+        basisY_v[0] = basisY_(0, refIdx_y)(yT);
+        basisY_v[1] = basisY_(1, refIdx_y)(yT);
+        basisY_v[2] = basisY_(2, refIdx_y)(yT);
         basisZ_v[0] = basisZ_(0, refIdx_z)(z);
         basisZ_v[1] = basisZ_(1, refIdx_z)(z);
         basisZ_v[2] = basisZ_(2, refIdx_z)(z);
         if (degree == 3) {
-            basisX_v[3] = basisX_(3, refIdx_x)(sample(i, 0));
-            basisY_v[3] = basisY_(3, refIdx_y)(sample(i, 1));
+            basisX_v[3] = basisX_(3, refIdx_x)(xT);
+            basisY_v[3] = basisY_(3, refIdx_y)(yT);
             basisZ_v[3] = basisZ_(3, refIdx_z)(z);
         }
 
@@ -504,19 +508,19 @@ void bspline::Interp3DHelper(const Eigen::Matrix<T, Eigen::Dynamic, 2> &sample, 
     }
 }
 // explicit template instantiation
-template void bspline::Interp3DHelper(const Eigen::Matrix<DScalar, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res, 
+template void bspline::InterpDiskHelper(const DScalar x, const DScalar y, const double z, const DScalar r, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res, 
             const basis_t  &basisX_, const basis_t  &basisY_, const basisd_t &basisZ_) const;
-template void bspline::Interp3DHelper(const Eigen::Matrix<double,  Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<double,  Eigen::Dynamic, 1> &res, 
+template void bspline::InterpDiskHelper(const double  x, const double  y, const double z, const double  r, Eigen::Matrix<double,  Eigen::Dynamic, 1> &res, 
             const basisd_t &basisX_, const basisd_t &basisY_, const basisd_t &basisZ_) const;
 
 
-void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, const double z, Eigen::Matrix<double, Eigen::Dynamic, 1> &res) const {
+void bspline::InterpDisk(const double  x, const double  y, const double z, const double  r, Eigen::Matrix<double, Eigen::Dynamic, 1> &res) const {
 // NOTE: This interpolation function cannot query points lying exactly on the surface
 //       of the 3D sample grid.
 // NOTE: This is the "double" version of above "DScalar" version Interp3D function.
 //       Did not use "template" here because we need to use different basis vectors
 
-    Interp3DHelper<basisd_t, double>(sample, z, res, basisXd, basisYd, basisZd);
+    InterpDiskHelper<basisd_t, double>(x, y, z, r, res, basisXd, basisYd, basisZd);
 
         // use control point cache
         /*
@@ -557,7 +561,9 @@ void bspline::Interp3D(const Eigen::Matrix<double, Eigen::Dynamic, 2> &sample, c
 // maintenance methods
 
 
-bspline::bspline() {
+bspline::bspline(struct quadrature &quad_) : quad(quad_) {
+
+    DiffScalarBase::setVariableCount(3);  // x, y, r
 
     degree = 0;
     controlPoints.setZero();
@@ -571,8 +577,6 @@ bspline::bspline() {
     solverTol = 1e-15;      // 1e-10
     // whether enable control points cache
     controlPointsCacheFlag = false;
-
-    DiffScalarBase::setVariableCount(3);  // x, y, r
 }
 
 

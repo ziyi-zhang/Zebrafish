@@ -25,32 +25,11 @@ typedef struct samplePoints_t {
 
 ///////////////////////////////////////
 
-//Quadrature contains:
-// xy for disc + weight
-// xy for ring + weight
-// z quadarture + weight
-//Quadrature quad(10); //10 is the order
-//quad.xyrigh quad.xydisc
-
 class cylinder {
 
 private:
-    int xmax, ymax, zmax;  // image size
-    int numPts;            // size of sample points
-    int heightLayers;      // desired height layers used in quadrature
-    double minRadius;      // minimal radius of a cylinder
-
-    // hardcoded disk quadrature weights and locations
-    Eigen::Matrix<double, Eigen::Dynamic, 2> xyArray;
-    Eigen::Matrix<double, Eigen::Dynamic, 1> weightArray;
-    // hardcoded 1D gaussian quadrature weights and locations
-    Eigen::Matrix<double, Eigen::Dynamic, 1> heightLocArray;
-    Eigen::Matrix<double, Eigen::Dynamic, 1> heightWeightArray;
-
     template<typename T>
-    bool BoundaryCheck(const T &x, const T &y, const double z, const T &r, const double h) const;
-    template<typename T>
-    void EnergyHelper(const zebrafish::bspline &bsp, const Eigen::Matrix<double, Eigen::Dynamic, 1> &zArray,
+    static void EnergyHelper(const bspline &bsp, const Eigen::Matrix<double, Eigen::Dynamic, 1> &zArray,
                       const T &r, const T &x, const T &y, T &resT);
 
 public:
@@ -60,12 +39,11 @@ public:
 
     //cylinder::energy(...)
 
-    void UpdateBoundary(const zebrafish::image_t &image);
-    /// Record the size of the input image
-    /// This will only be used to do boundary check
+    template<typename T>
+    static bool IsValid(const bspline &bsp, const T &x, const T &y, const double z, const T &r, const double h);
 
     template <typename T>
-    bool EvaluateCylinder(const zebrafish::bspline &bsp, T x, T y, double z, T r, double h, T &res);
+    static void EvaluateCylinder(const bspline &bsp, T x, T y, double z, T r, double h, T &res);
     /// Calculate sample points for the given cylinder and evaluate the energy.
     /// Return false if the cylinder is invalid.
     /// Must call "UpdateBoundary" before evaluating any cylinder
@@ -78,8 +56,8 @@ public:
     /// @return      { whether the cylinder is inside the boundary of the image }
     ///
 
-    void SubtractionHelper(const Eigen::MatrixXd &points, const Eigen::VectorXd &weight, Eigen::VectorXd &resWeight);
-    /// [Deprecated]
+    static void SubtractionHelper(const Eigen::MatrixXd &points, const Eigen::VectorXd &weight, Eigen::VectorXd &resWeight);
+    /// [ Deprecated ]
     /// Multiply the weight array with a subtraction array such that the integral result
     /// measures the subtraction of two areas.
     /// The subtraction array can be hard or soft (sigmoid).
@@ -89,12 +67,8 @@ public:
     /// @param[out]  resWeight  { [#points] returned weight array }
     ///
 
-    void LoadQuadParas(int diskQuadMethod);
-    /// Select a disk quadrature method and update the inner storage xy & weight array
-    /// This can be changed on-the-fly
-
     // maintenance methods
-    cylinder(int diskQuadMethod = 6);
+    cylinder();
     ~cylinder();
 };
 

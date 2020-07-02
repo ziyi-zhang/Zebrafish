@@ -1,26 +1,42 @@
-// Search Optimization space test (image)
+// Cylinder TEST
+// Effect of "control point size" on "Energy function eval"
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
-#include <zebrafish/LBFGS.h>
-#include <zebrafish/autodiff.h>
 #include <zebrafish/Logger.hpp>
-#include <zebrafish/TiffReader.h>
-#include <zebrafish/Quantile.h>
 #include <math.h>
-#include <CLI/CLI.hpp>
-#include <string>
-#include <igl/png/writePNG.h>
 
 using namespace std;
 using namespace Eigen;
 using namespace zebrafish;
-using namespace LBFGSpp;
 
+double func(double x, double y, double z) {
+
+    // return x + y;
+
+    // x^2 + y^2
+    return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
+
+    // (x^2 + y^2)^(3/2)
+    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
+
+    // x^4 + y^4 + 2 * x^2 * y^2
+    // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5) +
+    //      2 * (y-14.5)*(y-14.5)* (x-14.5)*(x-14.5);
+
+    // x^5 + y^5
+    // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5)*(y-14.5);
+
+    // (x^2 + y^2)^(5/2)
+    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 2.5);
+
+    // (x^2 + y^2)^3
+    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 3.0);
+}
 
 DECLARE_DIFFSCALAR_BASE();
 
-int main(int argc, char **argv) {
+int main() {
 
     // logger
     bool is_quiet = false;
@@ -31,69 +47,53 @@ int main(int argc, char **argv) {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(log_level));
     spdlog::flush_every(std::chrono::seconds(3));
 
-    // read in
-    std::string image_path = "";
-    CLI::App command_line{"ZebraFish"};
-    command_line.add_option("-i,--img", image_path, "Input TIFF image to process")->check(CLI::ExistingFile);
+    image_t image;  // 30 * 30 * 10
+    int sizeX, sizeY, sizeZ;
+    int x, y, z;
 
-    try {
-        command_line.parse(argc, argv);
+    sizeX = 30;  // 0, 1, ..., 29
+    sizeY = 30;
+    sizeZ = 30;
+
+    // generate sample grid (3D)
+    double maxPixel = 0;
+    for (z=0; z<sizeZ; z++) {
+        
+        MatrixXd layer(sizeX, sizeY);
+        for (x=0; x<sizeX; x++)
+            for (y=0; y<sizeY; y++) {
+                layer(x, y) = func(x, y, z);
+            }
+
+        image.push_back(layer);
+        if (layer.maxCoeff() > maxPixel) maxPixel = layer.maxCoeff();
     }
-    catch (const CLI::ParseError &e) {
-        return command_line.exit(e);
-    }
 
-    image_t image;
-    cout << "====================================================" << endl;
-    read_tif_image(image_path, image);
-    cout << "Total number of frames picked = " << image.size() << endl;
-
-    // clip image
-    double maxPixel = 0, tempMaxPixel;
-    for (auto it=image.begin(); it!=image.end(); it++) {
-        Eigen::MatrixXd &img = *it;
-        // img = img.block(305, 333, 638-306, 717-334);
-        img = img.block(305-5, 333-5, 37, 80);  // pt 1234
-    }
-    cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
-    // normalize all layers
-    double quantile = zebrafish::QuantileImage(image, 0.995);
-    cout << "Quantile of image with q=0.995 is " << quantile << endl;
-    for (auto it=image.begin(); it!=image.end(); it++) {
-        Eigen::MatrixXd &img = *it;
-        img.array() /= quantile;
-    }
-    cout << "Image normalized: most pixels will have value between 0 and 1" << endl;
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // main
-    const int xmax = image[0].rows();
-    const int ymax = image[0].cols();
-    const int zmax = image.size();
-
-    // prepare B-spline
-    bspline bsplineSolver;
     const int bsplineDegree = 2;
-    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
+    double sizeArray[] = {0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+    for (int i=0; i<7; i++) {
 
-    // prepare cylinder
-    cylinder cylinder;
-    cylinder.UpdateBoundary(image);
+        // prepare B-spline
+        struct quadrature quad;
+        double size = sizeArray[i];
+        bspline bsplineSolver(quad);
+        bsplineSolver.SetResolution(0.325, 0.325, 0.5);
+        bsplineSolver.CalcControlPts(image, size, size, size, bsplineDegree);
 
-    int ir;
-    double x, y, z, r, ans;
-    const int rSize = 4;
-    double rArray[4] = {2.0, 2.8, 3.6, 4.4};
-    for (x=0; x<xmax; x++)
-        for (y=0; y<ymax; y++)
-            for (z=0; z<zmax; z++) 
-                for (ir=0; ir<rSize; ir++) {
+        // prepare cylinder
+        double xx = 14.5, yy = 14.5, rr = 5;
+        double ans;
+        if (!cylinder::IsValid(bsplineSolver, xx, yy, 4, rr, 3))
+            cerr << "Invalid cylinder" << endl;
+        cylinder::EvaluateCylinder(bsplineSolver, xx, yy, 4, rr, 3, ans);
 
-                    r = rArray[ir];
-                    if (!cylinder.EvaluateCylinder(bsplineSolver, x, y, z, r, 3, ans))
-                        continue;
-                    cout << x << " " << y << " " << z << " " << r << " " << ans << endl;
-                }
+        cout.precision(10);
 
-    logger().info("#cylidners = {}", xmax * ymax * zmax * rSize);
+        double theory = -25.0;
+        cout << "Evaluated result: " << ans << " Error = " << ans - theory << endl;
+        cout << "Degree = " << bsplineSolver.Get_degree() << endl;
+        cout << "control size = " << size << endl;
+        cout << "maxPixel = " << maxPixel << "  normalized res = " << ans / maxPixel << endl;
+        cout << endl << flush;
+    }
 }

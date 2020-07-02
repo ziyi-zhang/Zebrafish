@@ -7,6 +7,8 @@ set(SOURCES
     Bspline.h
     Quantile.cpp
     Quantile.h
+    Quadrature.cpp
+    Quadrature.h
     Quad.ipp
 )
 
