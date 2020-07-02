@@ -1,10 +1,15 @@
-// Cylinder TEST
-// Effect of "control point size" on "Energy function eval"
+// Interp TEST
+// Test interpolation of millions of random points
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
 #include <zebrafish/Logger.hpp>
 #include <math.h>
+#include <stdlib.h>
+#include <random>
+#include <queue>
+#include <vector>
+#include <chrono>
 
 using namespace std;
 using namespace Eigen;
@@ -19,19 +24,17 @@ double func(double x, double y, double z) {
 
     // (x^2 + y^2)^(3/2)
     // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
+    // return (x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5);
 
     // x^4 + y^4 + 2 * x^2 * y^2
     // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5) +
-    //      2 * (y-14.5)*(y-14.5)* (x-14.5)*(x-14.5);
+    //     2 * (y-14.5)*(y-14.5)* (x-14.5)*(x-14.5);
 
     // x^5 + y^5
     // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5)*(y-14.5);
 
     // (x^2 + y^2)^(5/2)
     // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 2.5);
-
-    // (x^2 + y^2)^3
-    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 3.0);
 }
 
 DECLARE_DIFFSCALAR_BASE();
@@ -48,11 +51,11 @@ int main() {
     spdlog::flush_every(std::chrono::seconds(3));
 
     image_t image;  // 30 * 30 * 10
-    int sizeX, sizeY, sizeZ;
-    int x, y, z;
+    int sizeX, sizeY, sizeZ, i;
+    double x, y, z;
 
-    sizeX = 30;  // 0, 1, ..., 29
-    sizeY = 30;
+    sizeX = 100;  // 0, 1, ..., 29
+    sizeY = 100;
     sizeZ = 30;
 
     // generate sample grid (3D)
@@ -68,34 +71,89 @@ int main() {
         image.push_back(layer);
         if (layer.maxCoeff() > maxPixel) maxPixel = layer.maxCoeff();
     }
-
+    // prepare B-spline
+    struct quadrature quad;
     const int bsplineDegree = 2;
-    double sizeArray[] = {0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
-    for (int i=0; i<7; i++) {
+    bspline bsplineSolver(quad);
+    bsplineSolver.SetResolution(0.325, 0.325, 0.5);
+    bsplineSolver.CalcControlPts_um(image, 0.6, 0.6, 0.6, bsplineDegree);
 
-        // prepare B-spline
-        struct quadrature quad;
-        double size = sizeArray[i];
-        bspline bsplineSolver(quad);
-        bsplineSolver.SetResolution(0.325, 0.325, 0.5);
-        bsplineSolver.CalcControlPts(image, size, size, size, bsplineDegree);
+    // random
+    srand(time(NULL));
+    uniform_real_distribution<double> unif(0, sizeX-1);
+    default_random_engine re(0);
 
-        // double xx = 14.5, yy = 14.5, rr = 5;
-        // double ans;
-        DScalar xx = DScalar(14.5), yy = DScalar(14.5), rr = DScalar(5);
-        DScalar ans;
+    // moving median
+    double tt, l_;
+    priority_queue<double, vector<double>, greater<double> > u;
+    priority_queue<double, vector<double>, less<double> > l;
 
-        if (!cylinder::IsValid(bsplineSolver, xx, yy, 4, rr, 3))
-            cerr << "Invalid cylinder" << endl;
-        cylinder::EvaluateCylinder(bsplineSolver, xx, yy, 4, rr, 3, ans);
+    // interp test
+    double err, sumerr = 0, minerr = 1.0, maxerr = 0.0;
+    const int trialNum = 1e7;
+    Matrix<double, Dynamic, 2> sampleInput;
+    Matrix<double, Dynamic, 1> sampleOutput;
+    sampleInput.resize(trialNum, 2);
+    sampleOutput.resize(trialNum, 1);
 
-        cout.precision(10);
+    for (i = 0; i<trialNum; i++) {
 
-        double theory = -25.0;
-        cout << "Evaluated result: " << ans << " Error = " << ans - theory << endl;
-        cout << "Degree = " << bsplineSolver.Get_degree() << endl;
-        cout << "control size = " << size << endl;
-        cout << "maxPixel = " << maxPixel << "  normalized res = " << ans / maxPixel << endl;
-        cout << endl << flush;
+        x = unif(re);
+        y = unif(re);
+        sampleInput(i, 0) = x;
+        sampleInput(i, 1) = y;
     }
+
+    for (z = 5; z <= 5; z++) {
+
+        logger().info("Before Interp");
+        for (i = 0; i<trialNum; i++) {
+            
+            sampleOutput(i) = bsplineSolver.Interp3D(sampleInput(i, 0), sampleInput(i, 1), z);
+        }
+        logger().info("After Interp");
+
+        // calculate theoretical output
+        for (i = 0; i<trialNum; i++) {
+
+            err = func(sampleInput(i, 0), sampleInput(i, 1), z) - sampleOutput(i);
+            err = fabs(err);
+
+            // stats
+            sumerr += err;
+            if (err > maxerr) maxerr = err;
+            if (err < minerr) minerr = err;
+
+            // moving median
+            if (l.empty()) {l.push(err); continue;}
+            l_ = l.top();
+            if (err >= l_) {u.push(err);} else {l.push(err);}
+            if (u.size() > l.size()) {
+                tt = u.top();
+                u.pop();
+                l.push(tt);
+            }
+            if (l.size() > u.size() + 1) {
+                tt = l.top();
+                l.pop();
+                u.push(tt);
+            }
+        }
+    }
+
+    // output the first several samples
+    cout << "==============================" << endl;
+    cout << "First 5 sample points x, y = " << endl;
+    for (i=0; i<5; i++) {
+        cout << sampleInput(i, 0) << " " << sampleInput(i, 1) << endl;
+    }
+
+    // interp test report
+    cout << "==============================" << endl;
+    cout << "Degree = " << bsplineSolver.Get_degree() << endl;
+    cout << "Interp trial number = " << trialNum << endl;
+    cout << "Mean error = " << sumerr / double(trialNum) << endl;
+    cout << "Median error = " << l.top() << endl;
+    cout << "Min  error = " << minerr << endl;
+    cout << "Max  error = " << maxerr << endl;
 }

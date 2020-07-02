@@ -364,16 +364,15 @@ void bspline::CreateControlPtsCache() {
 template <typename T>
 T bspline::Interp3D(const T &x, const T &y, const T &z) const {
 // This function is only used for test/debug purpose. Do NOT optimize this.
+// Warning: This function can only used for test/debug. It is wrong to use
+// Interp3D before InterpDisk.
 
-    Eigen::Matrix<T, Eigen::Dynamic, 2> sample;
+    quad.LoadDiskParas(-2);
+
     Eigen::Matrix<T, Eigen::Dynamic, 1> resArr;
     const GetVal<T> getVal;
-    sample.resize(1, 2);
 
-    sample(0) = x;
-    sample(1) = y;
-
-    // Interp3D(sample, getVal(z), resArr);
+    InterpDisk(x, y, getVal(z), T(1.0), resArr);
     return resArr(0);
 }
 // explicit template instantiation

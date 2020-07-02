@@ -73,6 +73,7 @@ public:
     T Interp3D(const T &x, const T &y, const T &z) const;
     /// Calculate the interpolated B-spline result for a given point.
     /// This interface is only used for debug / test. Do not optimize this function.
+    /// Warning: It is wrong to use this function before InterpDisk.
 
     void InterpDisk(const DScalar x, const DScalar y, const double z, const DScalar r, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const;
     void InterpDisk(const double  x, const double  y, const double z, const double  r, Eigen::Matrix<double , Eigen::Dynamic, 1> &res) const;

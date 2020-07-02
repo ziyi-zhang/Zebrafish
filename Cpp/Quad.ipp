@@ -1,11 +1,19 @@
 // This file stores the points and weights for disk quadrature
 // included by "Cylinder.cpp"
+case -2:
+    // interp3D: this will only interpolate one point
+    xyArray.resize(1, 2);
+    weightArray.resize(1, 1);
+    xyArray << 0.0, 0.0;
+    weightArray << 1.0;
+    break;
 case -1:
-    // debug
+    // debug: this will always return zero
     xyArray.resize(1, 2);
     weightArray.resize(1, 1);
     xyArray << 0.0, 0.0;
     weightArray << 0.0;
+    break;
 case 0:
     // quadpy.disk.peirce_1957(0)
     // Degree = 3
