@@ -168,11 +168,12 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     // calculate control points based on least square
         logger().info("Calculating A'*A and A'*y...");
         // TODO maybe CalcLeastSquareMat should compute A and At?
-    AtransposeA = (A.transpose() * A).pruned();  // A' * A
+    Atranspose = A.transpose();  // A'
+    AtransposeA = (Atranspose * A).pruned();  // A' * A
         logger().debug("A' * A size = {} * {}", AtransposeA.rows(), AtransposeA.cols());
         logger().debug("A'A: # non-zero elements = {}", AtransposeA.nonZeros());
     vectorY.resize(N);
-    vectorY = A.transpose() * inputPts;  // A' * y
+    vectorY = Atranspose * inputPts;  // A' * y
 
     // solve linear system for control points
         // Deprecated eigen solver:

@@ -72,8 +72,9 @@ int main() {
         if (layer.maxCoeff() > maxPixel) maxPixel = layer.maxCoeff();
     }
     // prepare B-spline
+    struct quadrature quad;
     const int bsplineDegree = 2;
-    bspline bsplineSolver;
+    bspline bsplineSolver(quad);
     bsplineSolver.SetResolution(0.325, 0.325, 0.5);
     bsplineSolver.CalcControlPts_um(image, 0.6, 0.6, 0.6, bsplineDegree);
 
@@ -90,7 +91,6 @@ int main() {
     // interp test
     double err, sumerr = 0, minerr = 1.0, maxerr = 0.0;
     const int trialNum = 1e7;
-    array<double, trialNum> theoryOut;
     Matrix<double, Dynamic, 2> sampleInput;
     Matrix<double, Dynamic, 1> sampleOutput;
     sampleInput.resize(trialNum, 2);
@@ -107,7 +107,10 @@ int main() {
     for (z = 5; z <= 5; z++) {
 
         logger().info("Before Interp");
-        bsplineSolver.Interp3D(sampleInput, z, sampleOutput);
+        for (i = 0; i<trialNum; i++) {
+            
+            sampleOutput(i) = bsplineSolver.Interp3D(sampleInput(i, 0), sampleInput(i, 1), z);
+        }
         logger().info("After Interp");
 
         // calculate theoretical output
@@ -147,7 +150,7 @@ int main() {
 
     // interp test report
     cout << "==============================" << endl;
-    cout << "Degree = " << bsplineSolver.degree << endl;
+    cout << "Degree = " << bsplineSolver.Get_degree() << endl;
     cout << "Interp trial number = " << trialNum << endl;
     cout << "Mean error = " << sumerr / double(trialNum) << endl;
     cout << "Median error = " << l.top() << endl;
