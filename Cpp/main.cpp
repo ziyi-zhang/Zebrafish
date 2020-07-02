@@ -80,9 +80,11 @@ int main() {
         bsplineSolver.SetResolution(0.325, 0.325, 0.5);
         bsplineSolver.CalcControlPts(image, size, size, size, bsplineDegree);
 
-        // prepare cylinder
-        double xx = 14.5, yy = 14.5, rr = 5;
-        double ans;
+        // double xx = 14.5, yy = 14.5, rr = 5;
+        // double ans;
+        DScalar xx = DScalar(14.5), yy = DScalar(14.5), rr = DScalar(5);
+        DScalar ans;
+
         if (!cylinder::IsValid(bsplineSolver, xx, yy, 4, rr, 3))
             cerr << "Invalid cylinder" << endl;
         cylinder::EvaluateCylinder(bsplineSolver, xx, yy, 4, rr, 3, ans);

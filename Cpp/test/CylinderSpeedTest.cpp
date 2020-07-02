@@ -72,14 +72,11 @@ int main() {
     }
 
     // prepare B-spline
+    struct quadrature quad;
     const int bsplineDegree = 2;
-    bspline bsplineSolver;
+    bspline bsplineSolver(quad);
     bsplineSolver.SetResolution(0.325, 0.325, 0.5);
     bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
-
-    // prepare cylinder
-    cylinder cylinder;
-    cylinder.UpdateBoundary(image);
 
     // random
     srand(time(NULL));
@@ -87,7 +84,7 @@ int main() {
     default_random_engine re(0);
 
     // eval
-    const int trialNum = 2e4;
+    const int trialNum = 1e5;
     double xx, yy, rr = 4;
     double ans;
     DScalar xxDS, yyDS, rrDS = DScalar(2, 4.0);
@@ -100,14 +97,14 @@ int main() {
         xxDS = DScalar(0, xx);
         yyDS = DScalar(1, yy);
 
-        if (!cylinder.EvaluateCylinder(bsplineSolver, xx, yy, 4, rr, 3, ans))
-        //if (!cylinder.EvaluateCylinder(bsplineSolver, xxDS, yyDS, 4, rrDS, 3, ansDS))
+        if (!cylinder::IsValid(bsplineSolver, xx, yy, 4, rr, 3))
             cerr << "Invalid cylinder" << endl;
+        cylinder::EvaluateCylinder(bsplineSolver, xx, yy, 4, rr, 3, ans);
     }
     logger().info("After Eval");
 
     // report
     cout << flush;
     cout << "#cylinders = " << trialNum << endl;
-    cout << "#Interps = " << trialNum * 2 * 4 * 57 << endl;
+    cout << "#Interps = trialNum * 2 * 4 * 57 = " << trialNum * 2 * 4 * 57 << endl;
 }

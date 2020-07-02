@@ -121,7 +121,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     Eigen::SparseMatrix<double, Eigen::RowMajor> Atranspose(num, N);
     Eigen::SparseMatrix<double, Eigen::RowMajor> AtransposeA(num, num);
     // Reserve space for least square matrix
-    // At most (degree^3) non-zero elements per row
+    // At most [ (degree+1)^3 ] non-zero elements per row
     // This step is critical for efficiency
     A.reserve(Eigen::VectorXi::Constant(A.rows(), (degree==2 ? 27 : 64)));
 
@@ -328,12 +328,14 @@ template void bspline::CalcBasisFunc(Eigen::Matrix< std::function<double  (doubl
 
 
 void bspline::CreateControlPtsCache() {
+// Optional optimization. Uses significant amount of memory.
+// By default disabled.
 
     assert(degree == 2);
 
     const int N = numX * numY * numZ;
     int ix, iy, iz, i, jx, jy, jz, j, idx;
-    logger().debug("Cached control point size: {}Mb", N * 27.0 * 8 / 1e6);
+    logger().debug("Cached control point size: {}Mb = N * 27.0 * 8 / 1e6", N * 27.0 * 8 / 1e6);
     controlPointsCache.resize(27, N);
 
     for (iz=0; iz<numZ-2; iz++)
@@ -356,7 +358,7 @@ void bspline::CreateControlPtsCache() {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Interp3D
+// Interp3D & InterpDisk
 
 
 template <typename T>
@@ -379,73 +381,6 @@ template DScalar bspline::Interp3D(const DScalar &x, const DScalar &y, const DSc
 template double  bspline::Interp3D(const double  &x, const double  &y, const double  &z) const;
 
 
-void bspline::InterpDisk(const DScalar x, const DScalar y, const double z, const DScalar r, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
-// NOTE: This interpolation function cannot query points lying exactly on the surface
-//       of the 3D sample grid.
-
-    InterpDiskHelper<basis_t, DScalar>(x, y, z, r, res, basisX, basisY, basisZd);
-    /*
-    assert(degree == 2 || degree == 3);
-    assert(numX != 0 && numY != 0 && numZ != 0);
-
-    int i, ix, iy, iz;
-    std::array<DScalar, 4> basisX_t, basisY_t;
-    std::array<double , 4> basisZ_t;
-    int refIdx_x, refIdx_y, refIdx_z = floor(z / gapZ);
-
-    res.resize(sample.rows(), 1);
-    for (i=0; i<sample.rows(); i++) {
-
-        // Get reference index
-        refIdx_x = floor(sample(i, 0).getValue() / gapX);
-        refIdx_y = floor(sample(i, 1).getValue() / gapY);
-
-        /// A special case: if the query point lies exactly at the end of the edge
-        /// NOTE: in practice, we will never query those points
-        /// Uncomment the following three lines to fix this at the cost of ~5% more time
-        // if (refIdx_x == numX-1-(degree-1)) refIdx_x--;
-        // if (refIdx_y == numY-1-(degree-1)) refIdx_y--;
-        // if (refIdx_z == numZ-1-(degree-1)) refIdx_z--;
-
-        assert(refIdx_x >= 0 && refIdx_y >= 0 && refIdx_z >= 0);
-        assert(refIdx_x <= numX-(degree+1) && refIdx_y <= numY-(degree+1) && refIdx_z <= numZ-(degree+1));
-
-        // Evaluate
-        res(i) = DScalar(0.0);
-        // calculate the 9 basis function evaluated values
-        basisX_t[0] = basisX(0, refIdx_x)(sample(i, 0));
-        basisX_t[1] = basisX(1, refIdx_x)(sample(i, 0));
-        basisX_t[2] = basisX(2, refIdx_x)(sample(i, 0));
-        basisY_t[0] = basisY(0, refIdx_y)(sample(i, 1));
-        basisY_t[1] = basisY(1, refIdx_y)(sample(i, 1));
-        basisY_t[2] = basisY(2, refIdx_y)(sample(i, 1));
-        basisZ_t[0] = basisZd(0, refIdx_z)(z);
-        basisZ_t[1] = basisZd(1, refIdx_z)(z);
-        basisZ_t[2] = basisZd(2, refIdx_z)(z);
-        if (degree == 3) {
-            // Only cubic B-spline needs this
-            basisX_t[3] = basisX(3, refIdx_x)(sample(i, 0));
-            basisY_t[3] = basisY(3, refIdx_y)(sample(i, 1));
-            basisZ_t[3] = basisZd(3, refIdx_z)(z);
-        }
-
-        // loop to calculate summation
-        for (iz=0; iz<=degree; iz++)
-            for (ix=0; ix<=degree; ix++)
-                for (iy=0; iy<=degree; iy++) {
-
-                    res(i) += controlPoints(numX*numY*(refIdx_z+iz) + numY*(refIdx_x+ix) + (refIdx_y+iy)) *
-                              basisX_t[ix] * basisY_t[iy] * basisZ_t[iz];
-                }
-    }
-    */
-}
-
-// template <typename BasisT, typename BasisZ, typename MatT, typename ResT>
-// void aux_Interp3D(const BasisT &basisX, const BasisT &basisY, const BasisZ &basisZ, const MatT &sample, const double z, ResT &res)
-// {
-// }
-
 template <typename basisT, typename T>
 void bspline::InterpDiskHelper(const T x, const T y, const double z, const T r, Eigen::Matrix<T, Eigen::Dynamic, 1> &res, 
                              const basisT &basisX_, const basisT &basisY_, const basisd_t &basisZ_) const {
@@ -463,8 +398,8 @@ void bspline::InterpDiskHelper(const T x, const T y, const double z, const T r, 
     for (i=0; i<quad.numDiskPts; i++) {
 
         // Calculate the transformed location
-        xT = quad.xyArray(i, 0)*r + x, 
-        yT = quad.xyArray(i, 1)*r + y;
+        xT = quad.xyArray(i, 0) * r + x, 
+        yT = quad.xyArray(i, 1) * r + y;
         // Get reference index
         refIdx_x = floor( getVal(xT) / gapX);
         refIdx_y = floor( getVal(yT) / gapY);
@@ -514,11 +449,17 @@ template void bspline::InterpDiskHelper(const double  x, const double  y, const 
             const basisd_t &basisX_, const basisd_t &basisY_, const basisd_t &basisZ_) const;
 
 
+void bspline::InterpDisk(const DScalar x, const DScalar y, const double z, const DScalar r, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const {
+// NOTE: This interpolation function cannot query points lying exactly on the surface
+//       of the 3D sample grid.
+
+    InterpDiskHelper<basis_t, DScalar>(x, y, z, r, res, basisX, basisY, basisZd);
+}
+
+
 void bspline::InterpDisk(const double  x, const double  y, const double z, const double  r, Eigen::Matrix<double, Eigen::Dynamic, 1> &res) const {
 // NOTE: This interpolation function cannot query points lying exactly on the surface
 //       of the 3D sample grid.
-// NOTE: This is the "double" version of above "DScalar" version Interp3D function.
-//       Did not use "template" here because we need to use different basis vectors
 
     InterpDiskHelper<basisd_t, double>(x, y, z, r, res, basisXd, basisYd, basisZd);
 

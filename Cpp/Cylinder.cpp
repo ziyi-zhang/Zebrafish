@@ -61,7 +61,6 @@ template bool cylinder::IsValid(const bspline &bsp, const double  &x_, const dou
 
 
 template <typename T>
-//xy-point, xy-weight, z-point, z-weight
 void cylinder::EnergyHelper(const bspline &bsp, const Eigen::Matrix<double, Eigen::Dynamic, 1> &zArray,
                             const T &r, const T &x, const T &y, T &resT) {
 // This function calculates an intermediate value used by energy evaluation function
@@ -71,25 +70,31 @@ void cylinder::EnergyHelper(const bspline &bsp, const Eigen::Matrix<double, Eige
     int i, depth;
     T layerSum;
 
-    //
-    /// Eigen::Matrix<T, Eigen::Dynamic, 2> points;
-    /// points.resize(numPts, 2);
-    /// for (i=0; i<numPts; i++) {
-    ///    // * r + [x, y]
-    ///    points(i, 0) = xyArray(i, 0) * r + x;
-    ///    points(i, 1) = xyArray(i, 1) * r + y;
-    /// }
+    //////////////////////////////////////////////////////////////////////////////////
+    /// Note about the rationale behind "InterpDisk":
+    /// Originally we did the following and call "Interp3D" to evaluate the points:
+    /// > Eigen::Matrix<T, Eigen::Dynamic, 2> points;
+    /// > points.resize(numPts, 2);
+    /// > for (i=0; i<numPts; i++) {
+    /// >     // * r + [x, y]
+    /// >     points(i, 0) = xyArray(i, 0) * r + x;
+    /// >     points(i, 1) = xyArray(i, 1) * r + y;
+    /// > }
+    /// But this requires some extra memory (points matrix). For efficiency consideration
+    /// we used "InterpDisk".
+    //////////////////////////////////////////////////////////////////////////////////
     resT = T(0.0);
     for (depth=0; depth<bsp.quad.heightLayers; depth++) {
 
+        // Interpolate all the points in "depth"-th layer
         bsp.InterpDisk(x, y, zArray(depth), r, interpRes);
 
         assert(bsp.quad.numDiskPts == interpRes.size());
         layerSum = T(0.0);
         for (i=0; i<bsp.quad.numDiskPts; i++) {
-            layerSum = layerSum + interpRes(i) * bsp.quad.weightArray(i); //xy.weight * z.weight
+            layerSum = layerSum + interpRes(i) * bsp.quad.weightArray(i);  // disk weight
         }
-        resT = resT + layerSum;
+        resT = resT + layerSum * bsp.quad.heightWeightArray(depth);  // height weight
     }
 }
 // explicit template instantiation
@@ -99,7 +104,7 @@ template void cylinder::EnergyHelper(const bspline &bsp, const Eigen::Matrix<dou
 
 template <typename T>
 void cylinder::EvaluateCylinder(const bspline &bsp, T x, T y, double z, T r, double h, T &res) {
-    
+
     //kill the staic, zArray should be an input
     Eigen::Matrix<double, Eigen::Dynamic, 1> zArray;  // store the array of depths
     T resInner, resExt;
@@ -107,28 +112,36 @@ void cylinder::EvaluateCylinder(const bspline &bsp, T x, T y, double z, T r, dou
 
     // depth array
     /// Note: This is simply a very small array with a few doubles
-    double pad = h / (4 * 2.0);
-    zArray.resize(4, 1);
-    zArray = Eigen::VectorXd::LinSpaced(4, z+pad, z+h-pad);
-    //this is quadrature
+    zArray.resize(bsp.quad.heightLayers, 1);
+    zArray = bsp.quad.heightLocArray.array() * (h/2.0) + ((2.0*z+h) / 2.0);
 
     // weight correction term
     //////////////////////////////////////////////////////////////////////////////////
     /// Notes about the quadrature weight correction term "scalar":
-    /// scalar = [disk quadrature jacobian] / [cylinder volumn] * [depth layer weight]
+    /// scalar = [disk quadrature jacobian] / [cylinder volumn] * [depth gaussian correction term]
+    /// "quad.heightWeightArray" has been multiplied in energy helper
     /// For the inner cylinder with equidistant depth layer - 
-    ///                r^2                 H
-    ///     scalar = --------------- * ---------
-    ///                pi * r^2 * H     #layers
+    ///                r^2               H
+    ///     scalar = --------------- * -----
+    ///                pi * r^2 * H      2
     /// For the extended cylinder with equidistant depth layer - 
-    ///                    (sqrt(2)*r)^2            H
-    ///     scalar = ------------------------ * ---------
-    ///               pi * (sqrt(2)*r)^2 * H     #layers
+    ///                    (sqrt(2)*r)^2          H
+    ///     scalar = ------------------------ * -----
+    ///               pi * (sqrt(2)*r)^2 * H      2
     /// Thus they share the same correction term.
+    //////////////////////////////////////////////////////////////////////////////////
+    /// Difference between "quad.heightWeightArray" and "depth gaussian correction term":
+    /// The height 1D Legendre-Gauss locations and weights are designed for interval [-1, 1]
+    /// To integrate an arbitary interval [a, b], we need to calculate
+    ///    b - a                   b - a           a + b
+    ///   ------- * SUM{ w_i * F( ------- * x_i + ------- ) }
+    ///      2                       2               2
+    /// "quad.heightWeightArray" is "w_i"
+    /// "depth gaussian correction term" is the outer "(b-a)/2"
     //////////////////////////////////////////////////////////////////////////////////
     // Note: Theoretically "weightScalar" should be DScalar, but the radius got
     // cancelled in the formula so it is OK to use double
-    double weightScalar = 1.0 / (M_PI * double(4));
+    double weightScalar = 1.0 / (M_PI * 2.0);
 
     // Inner area
     EnergyHelper<T>(bsp, zArray, r, x, y, resInner);

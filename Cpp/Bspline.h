@@ -11,6 +11,7 @@
 
 namespace zebrafish {
 
+// A matrix of pre-calculated basis functions (in the form of lambda functions)
 typedef Eigen::Matrix<std::function<double (double)>,  Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basisd_t;
 typedef Eigen::Matrix<std::function<DScalar(DScalar)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basis_t;
 
@@ -23,11 +24,11 @@ private:
     int degree;  // B-spline degree
                  // "2" for quadratic clamped B-spline
                  // "3" for cubic clamped B-spline
-    Eigen::Matrix<double, 27, Eigen::Dynamic, Eigen::ColMajor> controlPointsCache;  // optional optimization. By default not active.
+    Eigen::Matrix<double, 27, Eigen::Dynamic, Eigen::ColMajor> controlPointsCache;  // optional optimization. By default disabled.
     Eigen::VectorXd controlPoints;  // [#points] control points value
 
     int Nx, Ny, Nz;         // the dimension of sample points (Nx * Ny * Nz == #pixels)
-                            // also the dimension of the image
+                            // this is also the dimension of the image
     int numX, numY, numZ;   // the dimension of control points (numX * numY * numZ == #control points)
     double gapX, gapY, gapZ;  // the interval between two control points along a direction
     double resolutionX, resolutionY, resolutionZ;  // The distance between two pixels (in micrometers)
@@ -37,20 +38,18 @@ private:
     bool controlPointsCacheFlag;  // whether enable control points cache. By default inactive.
 
     // Pre-calculated lambda basis functions (double & DScalar)
-    basisd_t basisXd, basisYd, basisZd;
-    basis_t  basisX,  basisY;  //basisZ
+    basisd_t basisXd, basisYd, basisZd;  // double  version
+    basis_t  basisX,  basisY;            // DScalar version
 
     void CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A);
     template <typename T>
     void CalcBasisFunc(Eigen::Matrix< std::function<T(T)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, const int numT, const double gapT);
     void CreateControlPtsCache(); //Optional
-
     template <typename basisT, typename T>
-    void InterpDiskHelper(const T x, const T y, const double z, const T r, Eigen::Matrix<T, Eigen::Dynamic, 1> &res, 
-                             const basisT &basisX_, const basisT &basisY_, const basisd_t &basisZ_) const;
+    void InterpDiskHelper(const T x, const T y, const double z, const T r, Eigen::Matrix<T, Eigen::Dynamic, 1> &res, const basisT &basisX_, const basisT &basisY_, const basisd_t &basisZ_) const;
 
 public:
-    struct quadrature &quad;  // quadrature
+    struct quadrature &quad;  // quadrature struct
 
     void SetResolution(const double resX, const double resY, const double resZ);
     /// Set the microscope resolution in X, Y and Z direction
@@ -72,13 +71,17 @@ public:
 
     template <typename T>
     T Interp3D(const T &x, const T &y, const T &z) const;
+    /// Calculate the interpolated B-spline result for a given point.
+    /// This interface is only used for debug / test. Do not optimize this function.
+
     void InterpDisk(const DScalar x, const DScalar y, const double z, const DScalar r, Eigen::Matrix<DScalar, Eigen::Dynamic, 1> &res) const;
     void InterpDisk(const double  x, const double  y, const double z, const double  r, Eigen::Matrix<double , Eigen::Dynamic, 1> &res) const;
-    /// Calculate the interpolated B-spline result at "sample" points.
-    /// Note: this function does not check for input validity
+    /// Calculate the interpolated B-spline result for one disk layer.
+    /// Note: this function does NOT check for input validity.
     ///
-    /// @param[in]   sample    { #sample x 3 input sample points }
-    /// @param[out]  res       { #sample x 1 output interpolated results}
+    /// @param[in]   x, y, z   { coordinate of the cylinder bottom center }
+    /// @param[in]   r         { cylinder radius. }
+    /// @param[out]  res       { #DiskSample x 1 output interpolated results }
     ///
 
     // getter & setter

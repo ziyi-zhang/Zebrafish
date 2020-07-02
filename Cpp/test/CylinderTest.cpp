@@ -74,24 +74,26 @@ int main() {
     for (int i=0; i<7; i++) {
 
         // prepare B-spline
+        struct quadrature quad;
         double size = sizeArray[i];
-        bspline bsplineSolver;
+        bspline bsplineSolver(quad);
         bsplineSolver.SetResolution(0.325, 0.325, 0.5);
         bsplineSolver.CalcControlPts(image, size, size, size, bsplineDegree);
 
-        // prepare cylinder
-        cylinder cylinder;
-        double xx = 14.5, yy = 14.5, rr = 5;
-        double ans;
-        cylinder.UpdateBoundary(image);
-        if (!cylinder.EvaluateCylinder(bsplineSolver, xx, yy, 4, rr, 3, ans))
+        // double xx = 14.5, yy = 14.5, rr = 5;
+        // double ans;
+        DScalar xx = DScalar(14.5), yy = DScalar(14.5), rr = DScalar(5);
+        DScalar ans;
+
+        if (!cylinder::IsValid(bsplineSolver, xx, yy, 4, rr, 3))
             cerr << "Invalid cylinder" << endl;
+        cylinder::EvaluateCylinder(bsplineSolver, xx, yy, 4, rr, 3, ans);
 
         cout.precision(10);
 
         double theory = -25.0;
         cout << "Evaluated result: " << ans << " Error = " << ans - theory << endl;
-        cout << "Degree = " << bsplineSolver.degree << endl;
+        cout << "Degree = " << bsplineSolver.Get_degree() << endl;
         cout << "control size = " << size << endl;
         cout << "maxPixel = " << maxPixel << "  normalized res = " << ans / maxPixel << endl;
         cout << endl << flush;

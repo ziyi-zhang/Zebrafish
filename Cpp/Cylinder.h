@@ -23,7 +23,8 @@ typedef struct samplePoints_t {
     Eigen::Matrix<double, Eigen::Dynamic, 1> zArray;   // [#depth] depth along z-axis
 } samplePoints_t;
 
-///////////////////////////////////////
+////////////////////////////////////////////////
+// cylinder [only has static member functions]
 
 class cylinder {
 
@@ -33,27 +34,28 @@ private:
                       const T &r, const T &x, const T &y, T &resT);
 
 public:
-    //energy(const Quadrature &quad, const BSpline &image, x, y, z, r, h) -> double
-    //energyGrad(const Quadrature &quad, const BSpline &image, x, y, z, r, h) -> Vector3d (or double + Vector3d)
-    //is_valid(const BSpline &image, x, y, z, r, h) -> boolean check for all of them, radius, and x,y,z inside image
-
-    //cylinder::energy(...)
-
     template<typename T>
     static bool IsValid(const bspline &bsp, const T &x, const T &y, const double z, const T &r, const double h);
+    /// Check if the cylinder [x, y, z, r, h] is a valid cylinder.
+    /// A valid cylinder must reside inside the image cube and has
+    /// a reasonable radius.
+    ///
+    /// @param[in]   bsp       { a B-spline solver with image size registered }
+    /// @param[in]   x, y, z   { coordinate of the cylinder bottom center }
+    /// @param[in]   r         { cylinder radius. }
+    /// @param[in]   h         { cylinder height. }
+    /// @return      { whether the cylidner is valid }
 
     template <typename T>
     static void EvaluateCylinder(const bspline &bsp, T x, T y, double z, T r, double h, T &res);
     /// Calculate sample points for the given cylinder and evaluate the energy.
-    /// Return false if the cylinder is invalid.
-    /// Must call "UpdateBoundary" before evaluating any cylinder
+    /// This function does not check the cylinder is valid.
     ///
     /// @param[in]   bsp       { a B-spline solver with control points calculated }
     /// @param[in]   x, y, z   { coordinate of the cylinder bottom center }
     /// @param[in]   r         { cylinder radius. Must be positive }
     /// @param[in]   h         { cylinder height. Must be positive }
     /// @param[out]  res       { evaluated energy }
-    /// @return      { whether the cylinder is inside the boundary of the image }
     ///
 
     static void SubtractionHelper(const Eigen::MatrixXd &points, const Eigen::VectorXd &weight, Eigen::VectorXd &resWeight);
