@@ -79,3 +79,11 @@ function(zebra_download_LBFGS)
 endfunction()
 
 
+
+## tbb Apache-2.0
+function(zebra_download_tbb)
+    zebra_download_project(tbb
+        GIT_REPOSITORY https://github.com/nTopology/tbb.git
+        GIT_TAG        41adc7a7fbe4e6d37fe57186bd85dde99fa61e66
+    )
+endfunction()

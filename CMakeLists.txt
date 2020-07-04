@@ -74,6 +74,9 @@ target_link_libraries(${PROJECT_NAME} PUBLIC spdlog::spdlog)
 #LBFGS
 target_link_libraries(${PROJECT_NAME} PUBLIC LBFGS)
 
+#TBB
+target_link_libraries(${PROJECT_NAME} PUBLIC tbb_static)
+
 
 ################################################################################
 # Executable
