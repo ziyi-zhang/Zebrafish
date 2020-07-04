@@ -4,6 +4,12 @@
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
 #include <zebrafish/Logger.hpp>
+
+#include <tbb/task_scheduler_init.h>
+#include <tbb/parallel_for.h>
+#include <tbb/task_scheduler_init.h>
+#include <tbb/enumerable_thread_specific.h>
+
 #include <math.h>
 #include <stdlib.h>
 #include <random>
@@ -61,7 +67,7 @@ int main() {
     // generate sample grid (3D)
     double maxPixel = 0;
     for (z=0; z<sizeZ; z++) {
-        
+
         MatrixXd layer(sizeX, sizeY);
         for (x=0; x<sizeX; x++)
             for (y=0; y<sizeY; y++) {
@@ -108,7 +114,7 @@ int main() {
 
         logger().info("Before Interp");
         for (i = 0; i<trialNum; i++) {
-            
+
             sampleOutput(i) = bsplineSolver.Interp3D(sampleInput(i, 0), sampleInput(i, 1), z);
         }
         logger().info("After Interp");
@@ -156,4 +162,38 @@ int main() {
     cout << "Median error = " << l.top() << endl;
     cout << "Min  error = " << minerr << endl;
     cout << "Max  error = " << maxerr << endl;
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //////////////////////TBB
+    //This needs to be called only once
+    const size_t MB = 1024 * 1024;
+    const size_t stack_size = 64 * MB;
+    unsigned int num_threads = std::max(1u, std::thread::hardware_concurrency());
+    tbb::task_scheduler_init scheduler(num_threads, stack_size);
+
+    //example
+    const int n_samples = 100000;
+    std::vector<double> energies;
+    energies.resize(n_samples); //This must be here
+
+    tbb::parallel_for( tbb::blocked_range<int>(0, n_samples),
+    [&](const tbb::blocked_range<int> &r) {
+        for (int i = r.begin(); i != r.end(); ++i)
+        {
+            //some computation
+            const double val = 1;
+            energies[i] = val;
+        }
+    });
 }
