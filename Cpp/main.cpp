@@ -64,6 +64,13 @@ int main() {
     sizeY = 100;
     sizeZ = 30;
 
+    // TBB
+    const size_t MB = 1024 * 1024;
+    const size_t stack_size = 64 * MB;
+    unsigned int num_threads = std::max(1u, std::thread::hardware_concurrency());
+    tbb::task_scheduler_init scheduler(num_threads, stack_size);
+    logger().info("Desired #threads = {}", num_threads);
+
     // generate sample grid (3D)
     double maxPixel = 0;
     for (z=0; z<sizeZ; z++) {
@@ -96,7 +103,7 @@ int main() {
 
     // interp test
     double err, sumerr = 0, minerr = 1.0, maxerr = 0.0;
-    const int trialNum = 1e7;
+    const int trialNum = 1e8;
     Matrix<double, Dynamic, 2> sampleInput;
     Matrix<double, Dynamic, 1> sampleOutput;
     sampleInput.resize(trialNum, 2);
@@ -113,10 +120,17 @@ int main() {
     for (z = 5; z <= 5; z++) {
 
         logger().info("Before Interp");
-        for (i = 0; i<trialNum; i++) {
 
-            sampleOutput(i) = bsplineSolver.Interp3D(sampleInput(i, 0), sampleInput(i, 1), z);
-        }
+        tbb::parallel_for( tbb::blocked_range<int>(0, trialNum),
+        [&](const tbb::blocked_range<int> &r) {
+
+            for (int ii = r.begin(); ii != r.end(); ++ii) {
+
+                sampleOutput(ii) = bsplineSolver.Interp3D(sampleInput(ii, 0), sampleInput(ii, 1), z);
+                // printf("%d ", ii);
+            }
+        });
+
         logger().info("After Interp");
 
         // calculate theoretical output
@@ -162,38 +176,4 @@ int main() {
     cout << "Median error = " << l.top() << endl;
     cout << "Min  error = " << minerr << endl;
     cout << "Max  error = " << maxerr << endl;
-
-
-
-
-
-
-
-
-
-
-
-
-
-    //////////////////////TBB
-    //This needs to be called only once
-    const size_t MB = 1024 * 1024;
-    const size_t stack_size = 64 * MB;
-    unsigned int num_threads = std::max(1u, std::thread::hardware_concurrency());
-    tbb::task_scheduler_init scheduler(num_threads, stack_size);
-
-    //example
-    const int n_samples = 100000;
-    std::vector<double> energies;
-    energies.resize(n_samples); //This must be here
-
-    tbb::parallel_for( tbb::blocked_range<int>(0, n_samples),
-    [&](const tbb::blocked_range<int> &r) {
-        for (int i = r.begin(); i != r.end(); ++i)
-        {
-            //some computation
-            const double val = 1;
-            energies[i] = val;
-        }
-    });
 }
