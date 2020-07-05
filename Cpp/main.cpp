@@ -2,7 +2,7 @@
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
-#include <zebrafish/LBFGS.h>
+// #include <zebrafish/LBFGS.h>
 #include <zebrafish/autodiff.h>
 #include <zebrafish/Logger.hpp>
 #include <zebrafish/TiffReader.h>
@@ -32,6 +32,7 @@ bool ValidStartingPoint(const bspline &bsp, double x, double y, double z, double
     if (!cylinder::IsValid(bsp, x, y, z, r, 3.0)) return false;
     // membrane
     // ...
+    return true;
 }
 
 
@@ -72,7 +73,6 @@ int main(int argc, char **argv) {
     cout << "Total number of frames picked = " << image.size() << endl;
 
     // clip image
-    double maxPixel = 0, tempMaxPixel;
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         // img = img.block(305, 333, 638-306, 717-334);
@@ -127,8 +127,8 @@ int main(int argc, char **argv) {
                     sampleInput(sampleCount, 3) = rr;
                     sampleCount++;
                 }
-    sampleInput.resize(sampleCount, 4);
     sampleOutput.resize(sampleCount, 1);
+    logger().info("Grid search #starting points = {}", sampleCount);
     logger().info("Grid search samples prepared...");
 
     // Search
