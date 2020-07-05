@@ -26,12 +26,26 @@ using namespace zebrafish;
 DECLARE_DIFFSCALAR_BASE();
 
 
-bool ValidStartingPoint(const bspline &bsp, double x, double y, double z, double r) {
+bool ValidStartingPoint(const image_t &image, const bspline &bsp, double x, double y, double z, double r) {
 
+    static const double thres = QuantileImage(image, 0.7);
+    
     // valid cylinder
     if (!cylinder::IsValid(bsp, x, y, z, r, 3.0)) return false;
     // membrane
-    // ...
+    const double d1 = round(r * 1.2), d2 = round(r * 0.85);
+    const MatrixXd &layer = image[round(z)];
+    int count = 0;
+    if (layer(x-d2, y-d2) > thres) count++;
+    if (layer(x-d1, y   ) > thres) count++;
+    if (layer(x-d2, y+d2) > thres) count++;
+    if (layer(x   , y+d1) > thres) count++;
+    if (layer(x+d2, y+d2) > thres) count++;
+    if (layer(x+d1, y   ) > thres) count++;
+    if (layer(x+d2, y-d2) > thres) count++;
+    if (layer(x   , y-d1) > thres) count++;
+    if (count < 8) return false;
+
     return true;
 }
 
@@ -122,7 +136,7 @@ int main(int argc, char **argv) {
                     yy = iy * gapY;
                     zz = iz * gapZ;
                     rr = rArray[ir];
-                    if (!ValidStartingPoint(bsplineSolver, xx, yy, zz, rr)) continue;
+                    if (!ValidStartingPoint(image, bsplineSolver, xx, yy, zz, rr)) continue;
 
                     sampleInput(sampleCount, 0) = xx;
                     sampleInput(sampleCount, 1) = yy;
