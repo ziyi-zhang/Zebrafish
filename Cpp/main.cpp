@@ -67,6 +67,7 @@ int main(int argc, char **argv) {
     tbb::task_scheduler_init scheduler(num_threads, stack_size);
     logger().info("Desired #threads = {}", num_threads);
 
+    // read image
     image_t image;
     cout << "====================================================" << endl;
     read_tif_image(image_path, image);
@@ -75,8 +76,10 @@ int main(int argc, char **argv) {
     // clip image
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
+        static Eigen::MatrixXd tmp;
         // img = img.block(305, 333, 638-306, 717-334);
-        img = img.block(305, 333, 30-5, 30-5);
+        tmp = img.block(305, 333, 638-306, 717-334);
+        img = tmp;
     }
     cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
     // normalize all layers
@@ -143,7 +146,9 @@ int main(int argc, char **argv) {
     logger().info("After search");
 
     // store results
+    const double energyThres = -0.05;
     for (int i=0; i<sampleCount; i++) {
-        printf("%f %f %f %f %f\n", sampleInput(i, 0), sampleInput(i, 1), sampleInput(i, 2), sampleInput(i, 3), sampleOutput(i));
+        if (sampleOutput(i) > energyThres) continue;
+        printf("%.2f %.2f %.2f %.2f %f\n", sampleInput(i, 0), sampleInput(i, 1), sampleInput(i, 2), sampleInput(i, 3), sampleOutput(i));
     }
 }
