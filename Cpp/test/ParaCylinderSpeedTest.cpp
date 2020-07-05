@@ -22,10 +22,10 @@ double func(double x, double y, double z) {
     // return x + y;
 
     // x^2 + y^2
-    // return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
+    return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
 
     // (x^2 + y^2)^(3/2)
-    return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
+    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
 
     // x^4 + y^4 + 2 * x^2 * y^2
     // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5) +
@@ -133,7 +133,4 @@ int main(int argc, char* argv[]) {
     cout << flush;
     cout << "#cylinders = " << trialNum << endl;
     cout << "#Interps = trialNum * 2 * 4 * 57 = " << trialNum * 2 * 4 * 57 << endl;
-    for (int i=0; i<100; i++) {
-        printf("x=%f y=%f energy=%f\n", sampleInput(i, 0), sampleInput(i, 1), sampleOutput[i]);
-    }
 }

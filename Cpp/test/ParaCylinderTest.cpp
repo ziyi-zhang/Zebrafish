@@ -1,6 +1,5 @@
-// Cylinder speed TEST parallel
-// Eval a lot of cylinders to test speed
-// do not care about result
+// Cylinder TEST Parallel
+// Care about correctness
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
@@ -11,7 +10,6 @@
 #include <tbb/enumerable_thread_specific.h>
 
 #include <math.h>
-#include <random>
 
 using namespace std;
 using namespace Eigen;
@@ -22,10 +20,10 @@ double func(double x, double y, double z) {
     // return x + y;
 
     // x^2 + y^2
-    // return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
+    return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
 
     // (x^2 + y^2)^(3/2)
-    return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
+    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
 
     // x^4 + y^4 + 2 * x^2 * y^2
     // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5) +
@@ -58,14 +56,9 @@ int main(int argc, char* argv[]) {
     int sizeX, sizeY, sizeZ;
     int x, y, z;
 
-    sizeX = 100;  // 0, 1, ..., 29
-    sizeY = 100;
+    sizeX = 30;  // 0, 1, ..., 29
+    sizeY = 30;
     sizeZ = 30;
-
-    if (argc < 2) {
-        cerr << "Not enough input arguments." << endl;
-        return 0;
-    }
 
     // TBB
     const size_t MB = 1024 * 1024;
@@ -88,52 +81,32 @@ int main(int argc, char* argv[]) {
         if (layer.maxCoeff() > maxPixel) maxPixel = layer.maxCoeff();
     }
 
-    // prepare B-spline
-    struct quadrature quad;
     const int bsplineDegree = 2;
-    bspline bsplineSolver(quad);
-    bsplineSolver.SetResolution(0.325, 0.325, 0.5);
-    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
+    for (int i=0; i<7; i++) {
 
-    // random
-    srand(time(NULL));
-    uniform_real_distribution<double> unif(8, sizeX-1-8);
-    default_random_engine re(0);
+        // prepare B-spline
+        struct quadrature quad;
+        double size = sizeArray[i];
+        bspline bsplineSolver(quad);
+        bsplineSolver.SetResolution(0.325, 0.325, 0.5);
+        bsplineSolver.CalcControlPts(image, size, size, size, bsplineDegree);
 
-    // eval
-    const int trialNum = 1e6;
-    double xx, yy, rr = 4;
-    double ans;
-    DScalar xxDS, yyDS, rrDS = DScalar(2, 4.0);
-    DScalar ansDS;
-    // create input/output array
-    vector<double> sampleOutput;
-    sampleOutput.resize(trialNum);
-    MatrixXd sampleInput;
-    sampleInput.resize(trialNum, 2);
-    for (int i=0; i<trialNum; i++) {
-        xx = unif(re);
-        yy = unif(re);
-        sampleInput(i, 0) = xx;
-        sampleInput(i, 1) = yy;
-    }
+        // double xx = 14.5, yy = 14.5, rr = 5;
+        // double ans;
+        DScalar xx = DScalar(14.5), yy = DScalar(14.5), rr = DScalar(5);
+        DScalar ans;
 
-    logger().info("Before Eval");
-    tbb::parallel_for( tbb::blocked_range<int>(0, trialNum),
-        [&](const tbb::blocked_range<int> &r) {
+        if (!cylinder::IsValid(bsplineSolver, xx, yy, 4, rr, 3))
+            cerr << "Invalid cylinder" << endl;
+        cylinder::EvaluateCylinder(bsplineSolver, xx, yy, 4, rr, 3, ans);
 
-            for (int ii = r.begin(); ii != r.end(); ++ii) {
+        cout.precision(10);
 
-                cylinder::EvaluateCylinder(bsplineSolver, sampleInput(ii, 0), sampleInput(ii, 1), 4, rr, 3, sampleOutput[ii]);
-            }
-        });
-    logger().info("After Eval");
-
-    // report
-    cout << flush;
-    cout << "#cylinders = " << trialNum << endl;
-    cout << "#Interps = trialNum * 2 * 4 * 57 = " << trialNum * 2 * 4 * 57 << endl;
-    for (int i=0; i<100; i++) {
-        printf("x=%f y=%f energy=%f\n", sampleInput(i, 0), sampleInput(i, 1), sampleOutput[i]);
+        double theory = -25.0;
+        cout << "Evaluated result: " << ans << " Error = " << ans - theory << endl;
+        cout << "Degree = " << bsplineSolver.Get_degree() << endl;
+        cout << "control size = " << size << endl;
+        cout << "maxPixel = " << maxPixel << "  normalized res = " << ans / maxPixel << endl;
+        cout << endl << flush;
     }
 }
