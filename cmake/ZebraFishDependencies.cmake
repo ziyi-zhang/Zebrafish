@@ -48,11 +48,13 @@ if(NOT TARGET spdlog::spdlog)
 endif()
 
 
+# LBFGS++
 if(NOT TARGET LBFGS)
   zebra_download_LBFGS()
   add_library(LBFGS INTERFACE)
-  target_include_directories(LBFGS INTERFACE ${ZEBRA_EXTERNAL}/LBFGS/include)
+  target_include_directories(LBFGS PUBLIC INTERFACE ${ZEBRA_EXTERNAL}/LBFGS/include)
 endif()
+
 
 if(NOT TARGET tbb_static)
   zebra_download_tbb()

@@ -1,49 +1,41 @@
-// Cylinder speed TEST parallel
-// Eval a lot of cylinders to test speed
-// do not care about result
+// Cylinder Grid Search (image) Parallel
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
+#include <zebrafish/LBFGS.h>
+#include <zebrafish/autodiff.h>
 #include <zebrafish/Logger.hpp>
+#include <zebrafish/TiffReader.h>
+#include <zebrafish/Quantile.h>
 
 #include <tbb/task_scheduler_init.h>
 #include <tbb/parallel_for.h>
 #include <tbb/enumerable_thread_specific.h>
 
 #include <math.h>
-#include <random>
+#include <CLI/CLI.hpp>
+#include <string>
+#include <igl/png/writePNG.h>
 
 using namespace std;
 using namespace Eigen;
 using namespace zebrafish;
+// using namespace LBFGSpp;
 
-double func(double x, double y, double z) {
-
-    // return x + y;
-
-    // x^2 + y^2
-    // return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
-
-    // (x^2 + y^2)^(3/2)
-    return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
-
-    // x^4 + y^4 + 2 * x^2 * y^2
-    // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5) +
-    //      2 * (y-14.5)*(y-14.5)* (x-14.5)*(x-14.5);
-
-    // x^5 + y^5
-    // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5)*(y-14.5);
-
-    // (x^2 + y^2)^(5/2)
-    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 2.5);
-
-    // (x^2 + y^2)^3
-    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 3.0);
-}
 
 DECLARE_DIFFSCALAR_BASE();
 
-int main(int argc, char* argv[]) {
+
+bool ValidStartingPoint(const bspline &bsp, double x, double y, double z, double r) {
+
+    // valid cylinder
+    if (!cylinder::IsValid(bsp, x, y, z, r, 3.0)) return false;
+    // membrane
+    // ...
+}
+
+
+int main(int argc, char **argv) {
 
     // logger
     bool is_quiet = false;
@@ -54,86 +46,104 @@ int main(int argc, char* argv[]) {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(log_level));
     spdlog::flush_every(std::chrono::seconds(3));
 
-    image_t image;  // 30 * 30 * 10
-    int sizeX, sizeY, sizeZ;
-    int x, y, z;
+    // read in
+    std::string image_path = "";
+    unsigned int num_threads = 32; // std::max(1u, std::thread::hardware_concurrency());
+    CLI::App command_line{"ZebraFish"};
+    command_line.add_option("-i,--img", image_path, "Input TIFF image to process")->check(CLI::ExistingFile);
+    command_line.add_option("-n", num_threads, "Input number of threads");
 
-    sizeX = 100;  // 0, 1, ..., 29
-    sizeY = 100;
-    sizeZ = 30;
-
-    if (argc < 2) {
-        cerr << "Not enough input arguments." << endl;
-        return 0;
+    try {
+        command_line.parse(argc, argv);
+    }
+    catch (const CLI::ParseError &e) {
+        return command_line.exit(e);
     }
 
     // TBB
     const size_t MB = 1024 * 1024;
     const size_t stack_size = 64 * MB;
-    unsigned int num_threads = atoi(argv[1]); // std::max(1u, std::thread::hardware_concurrency());
     tbb::task_scheduler_init scheduler(num_threads, stack_size);
     logger().info("Desired #threads = {}", num_threads);
 
-    // generate sample grid (3D)
-    double maxPixel = 0;
-    for (z=0; z<sizeZ; z++) {
-        
-        MatrixXd layer(sizeX, sizeY);
-        for (x=0; x<sizeX; x++)
-            for (y=0; y<sizeY; y++) {
-                layer(x, y) = func(x, y, z);
-            }
+    image_t image;
+    cout << "====================================================" << endl;
+    read_tif_image(image_path, image);
+    cout << "Total number of frames picked = " << image.size() << endl;
 
-        image.push_back(layer);
-        if (layer.maxCoeff() > maxPixel) maxPixel = layer.maxCoeff();
+    // clip image
+    double maxPixel = 0, tempMaxPixel;
+    for (auto it=image.begin(); it!=image.end(); it++) {
+        Eigen::MatrixXd &img = *it;
+        // img = img.block(305, 333, 638-306, 717-334);
+        img = img.block(305, 333, 30-5, 30-5);
     }
+    cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
+    // normalize all layers
+    double quantile = zebrafish::QuantileImage(image, 0.995);
+    cout << "Quantile of image with q=0.995 is " << quantile << endl;
+    for (auto it=image.begin(); it!=image.end(); it++) {
+        Eigen::MatrixXd &img = *it;
+        img.array() /= quantile;
+    }
+    cout << "Image normalized: most pixels will have value between 0 and 1" << endl;
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // main
 
     // prepare B-spline
-    struct quadrature quad;
-    const int bsplineDegree = 2;
+    quadrature quad;
     bspline bsplineSolver(quad);
-    bsplineSolver.SetResolution(0.325, 0.325, 0.5);
+    const int bsplineDegree = 2;
     bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
 
-    // random
-    srand(time(NULL));
-    uniform_real_distribution<double> unif(8, sizeX-1-8);
-    default_random_engine re(0);
+    // prepare sampleInput & sampleOutput
+    MatrixXd sampleInput, sampleOutput;
+    const int Nx = bsplineSolver.Get_Nx();
+    const int Ny = bsplineSolver.Get_Ny();
+    const int Nz = bsplineSolver.Get_Nz();
+    vector<double> rArray = {3, 4, 5, 6};
+    const int Nr = rArray.size();
+    const double gapX = 1.0;
+    const double gapY = 1.0;
+    const double gapZ = 1.0;
+    double xx, yy, zz, rr;
+    int sampleCount = 0;
+    sampleInput.resize(Nx*Ny*Nz*Nr, 4);
+    for (int ix=0; ix<floor(Nx/gapX); ix++)
+        for (int iy=0; iy<floor(Ny/gapY); iy++)
+            for (int iz=0; iz<floor(Nz/gapZ); iz++)
+                for (int ir=0; ir<Nr; ir++) {
 
-    // eval
-    const int trialNum = 1e6;
-    double xx, yy, rr = 4;
-    double ans;
-    DScalar xxDS, yyDS, rrDS = DScalar(2, 4.0);
-    DScalar ansDS;
-    // create input/output array
-    vector<double> sampleOutput;
-    sampleOutput.resize(trialNum);
-    MatrixXd sampleInput;
-    sampleInput.resize(trialNum, 2);
-    for (int i=0; i<trialNum; i++) {
-        xx = unif(re);
-        yy = unif(re);
-        sampleInput(i, 0) = xx;
-        sampleInput(i, 1) = yy;
-    }
+                    xx = ix * gapX;
+                    yy = iy * gapY;
+                    zz = iz * gapZ;
+                    rr = rArray[ir];
+                    if (!ValidStartingPoint(bsplineSolver, xx, yy, zz, rr)) continue;
 
-    logger().info("Before Eval");
-    tbb::parallel_for( tbb::blocked_range<int>(0, trialNum),
+                    sampleInput(sampleCount, 0) = xx;
+                    sampleInput(sampleCount, 1) = yy;
+                    sampleInput(sampleCount, 2) = zz;
+                    sampleInput(sampleCount, 3) = rr;
+                    sampleCount++;
+                }
+    sampleInput.resize(sampleCount, 4);
+    sampleOutput.resize(sampleCount, 1);
+    logger().info("Grid search samples prepared...");
+
+    // Search
+    logger().info("Before search");
+    tbb::parallel_for( tbb::blocked_range<int>(0, sampleCount),
         [&](const tbb::blocked_range<int> &r) {
 
             for (int ii = r.begin(); ii != r.end(); ++ii) {
-
-                cylinder::EvaluateCylinder(bsplineSolver, sampleInput(ii, 0), sampleInput(ii, 1), 4, rr, 3, sampleOutput[ii]);
+                cylinder::EvaluateCylinder(bsplineSolver, sampleInput(ii, 0), sampleInput(ii, 1), sampleInput(ii, 2), sampleInput(ii, 3), 3, sampleOutput(ii));
             }
         });
-    logger().info("After Eval");
+    logger().info("After search");
 
-    // report
-    cout << flush;
-    cout << "#cylinders = " << trialNum << endl;
-    cout << "#Interps = trialNum * 2 * 4 * 57 = " << trialNum * 2 * 4 * 57 << endl;
-    for (int i=0; i<100; i++) {
-        printf("x=%f y=%f energy=%f\n", sampleInput(i, 0), sampleInput(i, 1), sampleOutput[i]);
+    // store results
+    for (int i=0; i<sampleCount; i++) {
+        printf("%f %f %f %f %f\n", sampleInput(i, 0), sampleInput(i, 1), sampleInput(i, 2), sampleInput(i, 3), sampleOutput(i));
     }
 }
