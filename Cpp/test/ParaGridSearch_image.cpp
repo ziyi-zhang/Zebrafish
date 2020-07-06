@@ -1,4 +1,4 @@
-// Grid Search + BFGS (image) Parallel
+// Cylinder Grid Search (image) Parallel
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>

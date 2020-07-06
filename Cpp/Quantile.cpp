@@ -27,6 +27,7 @@ double QuantileImage(const zebrafish::image_t &image, double q) {
         }
     }
 
+    printf("Quantile %f = %f", q, heap.top());
     return heap.top();
 }
 
