@@ -26,6 +26,37 @@ using namespace LBFGSpp;
 DECLARE_DIFFSCALAR_BASE();
 
 
+class CylinderEnergy {
+private:
+    const bspline &bsplineSolver;
+    const double z;
+
+public:
+    // constructor
+    CylinderEnergy(const bspline &bsp, int z_) : bsplineSolver(bsp), z(z_) {
+
+    }
+
+    // evaluate
+    double operator()(const VectorXd& x, VectorXd& grad) {
+
+        DScalar ans;
+
+        if (!cylinder::IsValid(bsplineSolver, x(0), x(1), z, x(2), 3)) {
+            grad.setZero();
+            return 1.0;
+        }
+
+        cylinder::EvaluateCylinder(bsplineSolver, DScalar(0, x(0)), DScalar(1, x(1)), z, DScalar(2, x(2)), 3, ans);
+        grad.resize(3, 1);
+        grad = ans.getGradient();
+        // cout << evalCount++ << " " << x(0) << " " << x(1) << " " << x(2) << " " << ans.getValue() << endl;
+        // cout << "Grad = " << ans.getGradient().transpose() << endl;
+        return ans.getValue();
+    }
+};
+
+
 bool ValidStartingPoint(const image_t &image, const bspline &bsp, double x, double y, double z, double r) {
 
     static const double thres = QuantileImage(image, 0.8);
@@ -92,7 +123,8 @@ int main(int argc, char **argv) {
         Eigen::MatrixXd &img = *it;
         static Eigen::MatrixXd tmp;
         // img = img.block(305, 333, 638-306, 717-334);
-        tmp = img.block(305, 333, 638-306, 717-334);
+        // tmp = img.block(305, 333, 638-306, 717-334);
+        tmp = img.block(305, 333, 40, 40);
         img = tmp;
     }
     cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
@@ -114,7 +146,8 @@ int main(int argc, char **argv) {
     const int bsplineDegree = 2;
     bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
 
-    // prepare sampleInput & sampleOutput
+    /////////////////////////////////////////////////
+    // prepare sampleInput & sampleOutput for grid search
     MatrixXd sampleInput, sampleOutput;
     const int Nx = bsplineSolver.Get_Nx();
     const int Ny = bsplineSolver.Get_Ny();
@@ -159,10 +192,71 @@ int main(int argc, char **argv) {
         });
     logger().info("After search");
 
-    // store results
+    /////////////////////////////////////////////////
+    // prepare LBFGS
+    LBFGSParam<double> param;
+    param.epsilon = 1e-4;
+    param.max_iterations = 15;
+    LBFGSSolver<double> solver(param);
+
+    // prepare sampleInput & sampleOutput for Newtons
+    MatrixXd sampleInput_Newton, sampleOutput_Newton;
+    sampleInput_Newton.resize(sampleCount, 4);
+    int sampleCountNewton = 0;
     const double energyThres = -0.05;
     for (int i=0; i<sampleCount; i++) {
         if (sampleOutput(i) > energyThres) continue;
-        printf("%.2f %.2f %.2f %.2f %f\n", sampleInput(i, 0), sampleInput(i, 1), sampleInput(i, 2), sampleInput(i, 3), sampleOutput(i));
+        
+        sampleInput_Newton(sampleCountNewton, 0) = sampleInput(i, 0);  // x
+        sampleInput_Newton(sampleCountNewton, 1) = sampleInput(i, 1);  // y
+        sampleInput_Newton(sampleCountNewton, 2) = sampleInput(i, 2);  // z
+        sampleInput_Newton(sampleCountNewton, 3) = sampleInput(i, 3);  // r
+        sampleCountNewton++;
+    }
+    sampleOutput_Newton.resize(sampleCountNewton, 6);  // x, y, z, r, energy, iteration
+
+    // Optimization
+    logger().info("Before optimization");
+    tbb::parallel_for( tbb::blocked_range<int>(0, sampleCountNewton),
+        [&](const tbb::blocked_range<int> &r) {
+
+        for (int ii = r.begin(); ii != r.end(); ++ii) {          
+                Eigen::VectorXd vec(3, 1);
+                vec(0) = sampleInput_Newton(ii, 0);  // x
+                vec(1) = sampleInput_Newton(ii, 1);  // y
+                vec(2) = sampleInput_Newton(ii, 3);  // r
+                double res;
+
+                //////////////////////////
+                auto func = [&](const VectorXd& x, VectorXd& grad) {
+
+                        DScalar ans;
+
+                        if (!cylinder::IsValid(bsplineSolver, x(0), x(1), sampleInput_Newton(ii, 2), x(2), 3)) {
+                            grad.setZero();
+                            return 1.0;
+                        }
+                        cylinder::EvaluateCylinder(bsplineSolver, DScalar(0, x(0)), DScalar(1, x(1)), sampleInput_Newton(ii, 2), DScalar(2, x(2)), 3, ans);
+                        grad.resize(3, 1);
+                        grad = ans.getGradient();
+                        return ans.getValue();
+                    };
+                int it = solver.minimize(func, vec, res);
+                //////////////////////////
+
+                sampleOutput_Newton(ii, 0) = vec(0);  // x
+                sampleOutput_Newton(ii, 1) = vec(1);  // y
+                sampleOutput_Newton(ii, 2) = sampleInput_Newton(ii, 2);  // z
+                sampleOutput_Newton(ii, 3) = vec(2);  // r
+                sampleOutput_Newton(ii, 4) = res;     // energy
+                sampleOutput_Newton(ii, 5) = it;      // iteration
+        }
+    });
+    logger().info("After optimization");
+
+    // print result
+    for (int i=0; i<sampleCountNewton; i++) {
+        printf("%.3f %.3f %.1f %.3f %f %.0f\n", sampleOutput_Newton(i, 0), sampleOutput_Newton(i, 1), sampleOutput_Newton(i, 2), 
+               sampleOutput_Newton(i, 3), sampleOutput_Newton(i, 4), sampleOutput_Newton(i, 5));
     }
 }
