@@ -197,7 +197,6 @@ int main(int argc, char **argv) {
     LBFGSParam<double> param;
     param.epsilon = 1e-4;
     param.max_iterations = 15;
-    LBFGSSolver<double> solver(param);
 
     // prepare sampleInput & sampleOutput for Newtons
     MatrixXd sampleInput_Newton, sampleOutput_Newton;
@@ -218,9 +217,16 @@ int main(int argc, char **argv) {
     // Optimization
     logger().info("Before optimization");
     tbb::parallel_for( tbb::blocked_range<int>(0, sampleCountNewton),
-        [&](const tbb::blocked_range<int> &r) {
+        // lambda function for parallel_for
+        [&sampleInput_Newton, &sampleOutput_Newton, &bsplineSolver, &param]
+        (const tbb::blocked_range<int> &r) {
+        
+        LBFGSSolver<double> solver(param);
 
-        for (int ii = r.begin(); ii != r.end(); ++ii) {          
+        for (int ii = r.begin(); ii != r.end(); ++ii) {    
+
+                DiffScalarBase::setVariableCount(3);
+
                 Eigen::VectorXd vec(3, 1);
                 vec(0) = sampleInput_Newton(ii, 0);  // x
                 vec(1) = sampleInput_Newton(ii, 1);  // y
@@ -228,7 +234,9 @@ int main(int argc, char **argv) {
                 double res;
 
                 //////////////////////////
-                auto func = [&](const VectorXd& x, VectorXd& grad) {
+                // lambda function for optimizer
+                auto func = [&sampleInput_Newton, &bsplineSolver, ii]
+                (const VectorXd& x, VectorXd& grad) {
 
                         DScalar ans;
 
