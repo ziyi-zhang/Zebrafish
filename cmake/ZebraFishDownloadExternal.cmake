@@ -53,12 +53,37 @@ function(zebra_download_cli11)
     )
 endfunction()
 
+## spdlog MIT
+function(zebra_download_spdlog)
+    zebra_download_project(spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG         v1.3.1
+    )
+endfunction()
+
 ## Polysolve MIT
 function(zebra_download_polysolve)
     zebra_download_project(polysolve
         GIT_REPOSITORY     https://github.com/polyfem/polysolve.git
-        GIT_TAG            358fa9769e1b67c0e7883eb2b27f171ab3b59b62
+        GIT_TAG            b288fe7d52a758fe3594e711bd801530f440ff53
     )
 endfunction()
 
 
+## LBFGS MIT
+function(zebra_download_LBFGS)
+    zebra_download_project(LBFGS
+        GIT_REPOSITORY     https://github.com/yixuan/LBFGSpp.git
+        GIT_TAG            f047ef4586869855f00e72312e7b4d78d11694b1
+    )
+endfunction()
+
+
+
+## tbb Apache-2.0
+function(zebra_download_tbb)
+    zebra_download_project(tbb
+        GIT_REPOSITORY https://github.com/nTopology/tbb.git
+        GIT_TAG        41adc7a7fbe4e6d37fe57186bd85dde99fa61e66
+    )
+endfunction()

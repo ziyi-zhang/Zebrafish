@@ -1,4 +1,4 @@
-// Grid Search + BFGS (image) Parallel
+// Cylinder Grid Search (image) Parallel
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
@@ -24,7 +24,6 @@ using namespace LBFGSpp;
 
 
 DECLARE_DIFFSCALAR_BASE();
-
 
 
 bool ValidStartingPoint(const image_t &image, const bspline &bsp, double x, double y, double z, double r) {
@@ -94,7 +93,6 @@ int main(int argc, char **argv) {
         static Eigen::MatrixXd tmp;
         // img = img.block(305, 333, 638-306, 717-334);
         tmp = img.block(305, 333, 638-306, 717-334);
-        // tmp = img.block(305, 333, 40, 40);
         img = tmp;
     }
     cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
@@ -116,8 +114,7 @@ int main(int argc, char **argv) {
     const int bsplineDegree = 2;
     bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
 
-    /////////////////////////////////////////////////
-    // prepare sampleInput & sampleOutput for grid search
+    // prepare sampleInput & sampleOutput
     MatrixXd sampleInput, sampleOutput;
     const int Nx = bsplineSolver.Get_Nx();
     const int Ny = bsplineSolver.Get_Ny();
@@ -154,7 +151,7 @@ int main(int argc, char **argv) {
     // Search
     logger().info("Before search");
     tbb::parallel_for( tbb::blocked_range<int>(0, sampleCount),
-        [&sampleInput, &sampleOutput, &bsplineSolver](const tbb::blocked_range<int> &r) {
+        [&](const tbb::blocked_range<int> &r) {
 
             for (int ii = r.begin(); ii != r.end(); ++ii) {
                 cylinder::EvaluateCylinder(bsplineSolver, sampleInput(ii, 0), sampleInput(ii, 1), sampleInput(ii, 2), sampleInput(ii, 3), 3, sampleOutput(ii));
@@ -162,90 +159,10 @@ int main(int argc, char **argv) {
         });
     logger().info("After search");
 
-    /////////////////////////////////////////////////
-    // prepare LBFGS
-    LBFGSParam<double> param;
-    param.epsilon = 1e-4;
-    param.max_iterations = 15;
-
-    // prepare sampleInput & sampleOutput for Newtons
-    MatrixXd sampleInput_Newton, sampleOutput_Newton;
-    sampleInput_Newton.resize(sampleCount, 4);
-    int sampleCountNewton = 0;
+    // store results
     const double energyThres = -0.05;
     for (int i=0; i<sampleCount; i++) {
         if (sampleOutput(i) > energyThres) continue;
-        
-        sampleInput_Newton(sampleCountNewton, 0) = sampleInput(i, 0);  // x
-        sampleInput_Newton(sampleCountNewton, 1) = sampleInput(i, 1);  // y
-        sampleInput_Newton(sampleCountNewton, 2) = sampleInput(i, 2);  // z
-        sampleInput_Newton(sampleCountNewton, 3) = sampleInput(i, 3);  // r
-        sampleCountNewton++;
-    }
-    sampleOutput_Newton.resize(sampleCountNewton, 6);  // x, y, z, r, energy, iteration
-    logger().info("Optimization #starting points = {}", sampleCountNewton);
-
-    // Optimization
-    logger().info("Before optimization");
-    tbb::parallel_for( tbb::blocked_range<int>(0, sampleCountNewton),
-        //////////////////////////////////////
-        // lambda function for parallel_for //
-        //////////////////////////////////////
-        [&sampleInput_Newton, &sampleOutput_Newton, &bsplineSolver, &param]
-        (const tbb::blocked_range<int> &r) {
-        
-        // NOTE: LBFGSSolver is NOT thread safe. This must be 
-        LBFGSSolver<double> solver(param);
-
-        // NOTE: the "variable count" used by "Autodiff" will be stored in 
-        //       thread-local memory, so this must be set for every thread
-        DiffScalarBase::setVariableCount(3);
-
-        for (int ii = r.begin(); ii != r.end(); ++ii) {    
-
-                Eigen::VectorXd vec(3, 1);
-                vec(0) = sampleInput_Newton(ii, 0);  // x
-                vec(1) = sampleInput_Newton(ii, 1);  // y
-                vec(2) = sampleInput_Newton(ii, 3);  // r
-                double res;
-
-                ///////////////////////////////////
-                // lambda function for optimizer //
-                ///////////////////////////////////
-                auto func = [&sampleInput_Newton, &bsplineSolver, ii]
-                (const VectorXd& x, VectorXd& grad) {
-
-                        DScalar ans;
-
-                        if (!cylinder::IsValid(bsplineSolver, x(0), x(1), sampleInput_Newton(ii, 2), x(2), 3)) {
-                            grad.setZero();
-                            return 1.0;
-                        }
-                        cylinder::EvaluateCylinder(bsplineSolver, DScalar(0, x(0)), DScalar(1, x(1)), sampleInput_Newton(ii, 2), DScalar(2, x(2)), 3, ans);
-                        grad.resize(3, 1);
-                        grad = ans.getGradient();
-                        return ans.getValue();
-                    };
-                // NOTE: the template of "solver.minimize" does not accept a temprary variable (due to non-const argument)
-                //       so we define a "func" and pass it in every time
-                int it = solver.minimize(func, vec, res);
-                ///////////////////////////////////
-
-                sampleOutput_Newton(ii, 0) = vec(0);  // x
-                sampleOutput_Newton(ii, 1) = vec(1);  // y
-                sampleOutput_Newton(ii, 2) = sampleInput_Newton(ii, 2);  // z
-                sampleOutput_Newton(ii, 3) = vec(2);  // r
-                sampleOutput_Newton(ii, 4) = res;     // energy
-                sampleOutput_Newton(ii, 5) = it;      // iteration
-        }
-    });
-    logger().info("After optimization");
-
-    // print result
-    for (int i=0; i<sampleCountNewton; i++) {
-        // x y z r energy iter   x_start y_start z_start r_start
-        printf("%.3f %.3f %.1f %.3f %f %.0f   %.3f %.3f %.1f %.3f\n", sampleOutput_Newton(i, 0), sampleOutput_Newton(i, 1), sampleOutput_Newton(i, 2), 
-               sampleOutput_Newton(i, 3), sampleOutput_Newton(i, 4), sampleOutput_Newton(i, 5), sampleInput_Newton(i, 0), sampleInput_Newton(i, 1), 
-               sampleInput_Newton(i, 2), sampleInput_Newton(i, 3));
+        printf("%.2f %.2f %.2f %.2f %f\n", sampleInput(i, 0), sampleInput(i, 1), sampleInput(i, 2), sampleInput(i, 3), sampleOutput(i));
     }
 }

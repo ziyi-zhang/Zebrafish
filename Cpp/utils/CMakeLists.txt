@@ -1,6 +1,9 @@
 set(SOURCES
+    autodiff.h
 	TiffReader.cpp
     TiffReader.h
+    Logger.cpp
+    Logger.hpp
 )
 
 prepend_current_path(SOURCES)
@@ -13,4 +16,4 @@ target_sources(ZebraFish PRIVATE ${SOURCES})
 ################################################################################
 
 # add_subdirectory(xxx)
-
+# add_subdirectory(LBFGSpp)

@@ -10,7 +10,7 @@ else()
 endif()
 
 # project-options
-OPTION(ZEBRA_WITH_UNIT_TESTS "Enable unit test"  OFF)
+OPTION(ZEBRA_WITH_UNIT_TESTS "Enable unit test"  ON)
 
 # libigl
 option(LIBIGL_USE_STATIC_LIBRARY     "Use libigl as static library" OFF)
@@ -22,10 +22,10 @@ option(LIBIGL_WITH_EMBREE            "Use Embree"                   OFF)
 option(LIBIGL_WITH_LIM               "Use LIM"                      OFF)
 option(LIBIGL_WITH_MATLAB            "Use Matlab"                   OFF)
 option(LIBIGL_WITH_MOSEK             "Use MOSEK"                    OFF)
-option(LIBIGL_WITH_OPENGL            "Use OpenGL"                   OFF)
-option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"                     OFF)
-option(LIBIGL_WITH_OPENGL_GLFW_IMGUI "Use ImGui"                    OFF)
-option(LIBIGL_WITH_PNG               "Use PNG"                      OFF)
+option(LIBIGL_WITH_OPENGL            "Use OpenGL"                   ON)
+option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"                     ON)
+option(LIBIGL_WITH_OPENGL_GLFW_IMGUI "Use ImGui"                    ON)
+option(LIBIGL_WITH_PNG               "Use PNG"                      ON)
 option(LIBIGL_WITH_PYTHON            "Use Python"                   OFF)
 option(LIBIGL_WITH_TETGEN            "Use Tetgen"                   OFF)
 option(LIBIGL_WITH_TRIANGLE          "Use Triangle"                 OFF)
@@ -55,7 +55,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_BINARY_DIR}/include)
 add_subdirectory(Cpp)
 
 # libigl
-target_link_libraries(${PROJECT_NAME} PUBLIC igl::core)
+target_link_libraries(${PROJECT_NAME} PUBLIC igl::core igl::png)
 
 # Extra warnings
 target_link_libraries(${PROJECT_NAME} PRIVATE warnings::all)
@@ -66,7 +66,14 @@ target_link_libraries(${PROJECT_NAME} PUBLIC TinyTiff)
 #Polysolve
 target_link_libraries(${PROJECT_NAME} PUBLIC polysolve)
 
+#spdlog
+target_link_libraries(${PROJECT_NAME} PUBLIC spdlog::spdlog)
 
+#LBFGS
+target_link_libraries(${PROJECT_NAME} PUBLIC LBFGS)
+
+#TBB
+target_link_libraries(${PROJECT_NAME} PUBLIC tbb_static)
 
 
 ################################################################################
@@ -84,6 +91,7 @@ if(ZEBRA_TOPLEVEL_PROJECT)
 
   target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME})
   target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
+  # igl::opengl_glfw_imgui
 
 endif()
 

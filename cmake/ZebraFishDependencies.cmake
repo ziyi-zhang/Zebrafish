@@ -39,3 +39,33 @@ endif()
 
 zebra_download_polysolve()
 add_subdirectory(${ZEBRA_EXTERNAL}/polysolve)
+
+
+# spdlog
+if(NOT TARGET spdlog::spdlog)
+	zebra_download_spdlog()
+	add_subdirectory(${ZEBRA_EXTERNAL}/spdlog)
+endif()
+
+
+# LBFGS++
+if(NOT TARGET LBFGS)
+  zebra_download_LBFGS()
+  add_library(LBFGS INTERFACE)
+  target_include_directories(LBFGS INTERFACE ${ZEBRA_EXTERNAL}/LBFGS/include)
+endif()
+
+
+if(NOT TARGET tbb_static)
+  zebra_download_tbb()
+  set(TBB_BUILD_STATIC ON CACHE BOOL " " FORCE)
+  set(TBB_BUILD_SHARED OFF CACHE BOOL " " FORCE)
+  set(TBB_BUILD_TBBMALLOC OFF CACHE BOOL " " FORCE)
+  set(TBB_BUILD_TBBMALLOC_PROXY OFF CACHE BOOL " " FORCE)
+  set(TBB_BUILD_TESTS OFF CACHE BOOL " " FORCE)
+
+  add_subdirectory(${ZEBRA_EXTERNAL}/tbb tbb)
+  set_property(TARGET tbb_static tbb_def_files PROPERTY FOLDER "dependencies")
+
+  target_include_directories(tbb_static SYSTEM PUBLIC ${ZEBRA_EXTERNAL}/tbb/include)
+endif()

@@ -1,9 +1,15 @@
 set(SOURCES
-    common.h
+    Common.cpp
+    Common.h
 	Cylinder.cpp
     Cylinder.h
     Bspline.cpp
     Bspline.h
+    Quantile.cpp
+    Quantile.h
+    Quadrature.cpp
+    Quadrature.h
+    Quad.ipp
 )
 
 prepend_current_path(SOURCES)
