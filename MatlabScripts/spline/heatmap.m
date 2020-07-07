@@ -25,7 +25,7 @@ centers_z = (0:num_z-1).*gap_z + 1;
 % queries
 if true
     % xy
-    z = 25; % 5 ~ 35
+    z = 10; % 5 ~ 35
     queries = repmat([0, 0, z], 61*61, 1);
     t = repmat(20:80, 61, 1);
     queries(:, 1) = t(:);

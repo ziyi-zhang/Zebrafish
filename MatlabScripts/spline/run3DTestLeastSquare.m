@@ -1,7 +1,7 @@
 
 f = @(x, y, z) x.^2 + x.*z - y.*x;
 
-[x, y, z] = meshgrid(1:20, 1:20, 1:20);
+[x, y, z] = meshgrid(1:4, 1:4, 1:4);
 feval = f(x, y, z);
 
 % Least square fitting
@@ -9,9 +9,9 @@ N_x = size(z, 1);
 N_y = size(z, 2);
 N_z = size(z, 3);
 N = N_x * N_y * N_z;
-num_x = 20;
-num_y = 20;
-num_z = 20;
+num_x = 4;
+num_y = 4;
+num_z = 4;
 num = num_x * num_y * num_z;
 gap_x = (N_x-1) / (num_x-1);
 gap_y = (N_y-1) / (num_y-1);
@@ -35,6 +35,22 @@ for jz = 1:num_z
                         A(i, j) = basisfunc((ix-center_x)/gap_x) *...
                                   basisfunc((iy-center_y)/gap_y) *...
                                   basisfunc((iz-center_z)/gap_z);
+                              
+                              
+                        % a special fix to the border issue
+                        %{
+                        count = 0;
+                        if (ix==1 || ix==num_x), count = count+1;end
+                        if (iy==1 || iy==num_y), count = count+1;end
+                        if (iz==1 || iz==num_z), count = count+1;end
+                        if (count == 1)
+                            A(i, j) = A(i, j) / 0.8333;
+                        elseif (count == 2)
+                            A(i, j) = A(i, j) / 0.6944;
+                        elseif (count == 3)
+                            A(i, j) = A(i, j) / 0.5787;
+                        end
+                        %}
                     end
                 end
             end
