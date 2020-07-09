@@ -41,7 +41,7 @@ private:
     basisd_t basisXd, basisYd, basisZd;  // double  version
     basis_t  basisX,  basisY;            // DScalar version
 
-    void CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A);
+    void CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A, Eigen::SparseMatrix<double, Eigen::ColMajor> &Atranspose);
     template <typename T>
     void CalcBasisFunc(Eigen::Matrix< std::function<T(T)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, const int numT, const double gapT);
     void CreateControlPtsCache(); //Optional

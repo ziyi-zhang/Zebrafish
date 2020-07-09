@@ -118,12 +118,13 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
 
     // A[i, j]: the evaluation of basis j for the i-th sample point
     Eigen::SparseMatrix<double, Eigen::RowMajor> A(N, num);
-    Eigen::SparseMatrix<double, Eigen::RowMajor> Atranspose(num, N);
-    Eigen::SparseMatrix<double, Eigen::RowMajor> AtransposeA(num, num);
+    Eigen::SparseMatrix<double, Eigen::ColMajor> Atranspose(num, N);
+    Eigen::SparseMatrix<double, Eigen::ColMajor> AtransposeA(num, num);
     // Reserve space for least square matrix
     // At most [ (degree+1)^3 ] non-zero elements per row
     // This step is critical for efficiency
     A.reserve(Eigen::VectorXi::Constant(A.rows(), (degree==2 ? 27 : 64)));
+    Atranspose.reserve(Eigen::VectorXi::Constant(Atranspose.cols(), (degree==2 ? 27 : 64)));
 
     // the interval between two control points along a direction
     if (degree == 3) {
@@ -161,14 +162,12 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
 
     // Calculate & fill the least square matrix A
         logger().info("Calculating & filling least square matrix...");
-    CalcLeastSquareMat(A);
+    CalcLeastSquareMat(A, Atranspose);
         logger().debug("Least square matrix A size = {} * {}", A.rows(), A.cols());
         logger().debug("A: # non-zero elements = {}", A.nonZeros());
 
     // calculate control points based on least square
         logger().info("Calculating A'*A and A'*y...");
-        // TODO maybe CalcLeastSquareMat should compute A and At?
-    Atranspose = A.transpose();  // A'
     AtransposeA = (Atranspose * A).pruned();  // A' * A
         logger().debug("A' * A size = {} * {}", AtransposeA.rows(), AtransposeA.cols());
         logger().debug("A'A: # non-zero elements = {}", AtransposeA.nonZeros());
@@ -209,7 +208,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
 }
 
 
-void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A) {
+void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A, Eigen::SparseMatrix<double, Eigen::ColMajor> &Atranspose) {
 
     int i, j, ix, iy, iz, jx, jy, jz, refIdx_x, refIdx_y, refIdx_z;
     int jxMin, jxMax, jyMin, jyMax, jzMin, jzMax;
@@ -250,6 +249,7 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A
 
                             if (fabs(t) > 2e-15)
                                 A.insert(i, j) = t;  // O(1) insertion (space has been reserved)
+                                Atranspose.insert(j, i) = t;
                         }
                 ///////////// DEBUG ONLY
                 // if (fabs(rowSum-1.0)> 1e-8)  // if (rowSum != 1.0)
