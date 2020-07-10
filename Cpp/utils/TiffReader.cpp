@@ -47,7 +47,8 @@ namespace zebrafish {
             std::cout << TinyTIFFReader_getImageDescription(tiffr) << std::endl;
             const uint32_t frames = TinyTIFFReader_countFrames(tiffr);
             
-            uint32_t targetFrames = 82;  // only read first frame
+            // uint32_t targetFrames = 41 * 2;  // only read first frame
+            uint32_t targetFrames = 61 * 2;
             uint32_t countFrame = 0;
             bool channel1 = true;  // only read from channel 1
 

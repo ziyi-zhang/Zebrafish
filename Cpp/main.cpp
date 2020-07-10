@@ -2,7 +2,6 @@
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
-#include <zebrafish/LBFGS.h>
 #include <zebrafish/autodiff.h>
 #include <zebrafish/Logger.hpp>
 #include <zebrafish/TiffReader.h>
@@ -14,6 +13,7 @@
 
 #include <math.h>
 #include <CLI/CLI.hpp>
+#include <LBFGS.h>
 #include <string>
 #include <igl/png/writePNG.h>
 
@@ -29,7 +29,7 @@ DECLARE_DIFFSCALAR_BASE();
 
 bool ValidStartingPoint(const image_t &image, const bspline &bsp, double x, double y, double z, double r) {
 
-    static const double thres = QuantileImage(image, 0.8);
+    static const double thres = QuantileImage(image, 0.85);
 
     // valid cylinder
     if (!cylinder::IsValid(bsp, x, y, z, r, 3.0)) return false;
@@ -45,7 +45,7 @@ bool ValidStartingPoint(const image_t &image, const bspline &bsp, double x, doub
     if (layer(x+d1, y   ) > thres) count++;
     if (layer(x+d2, y-d2) > thres) count++;
     if (layer(x   , y-d1) > thres) count++;
-    if (count < 8) return false;
+    if (count < 7) return false;
 
     return true;
 }
@@ -92,9 +92,9 @@ int main(int argc, char **argv) {
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         static Eigen::MatrixXd tmp;
-        // img = img.block(305, 333, 638-306, 717-334);
-        tmp = img.block(305, 333, 638-306, 717-334);
-        // tmp = img.block(305, 333, 40, 40);
+        // tmp = img.block(305, 333, 40, 40);  // DEBUG only
+        // tmp = img.block(305, 333, 638-306, 717-334);  // for 6Jan2020
+        tmp = img.block(377, 304, 696-377, 684-304);  // for 6June_em1
         img = tmp;
     }
     cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
@@ -114,8 +114,9 @@ int main(int argc, char **argv) {
     quadrature quad;
     bspline bsplineSolver(quad);
     const int bsplineDegree = 2;
+    bsplineSolver.SetResolution(0.325, 0.325, 0.5);
     bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
-
+    return 0;
     /////////////////////////////////////////////////
     // prepare sampleInput & sampleOutput for grid search
     MatrixXd sampleInput, sampleOutput;

@@ -6,6 +6,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Core>
 #include <Eigen/Sparse>
+#include <Eigen/SparseQR>
 #include <polysolve/LinearSolver.hpp>
 #include <string>
 #include <cmath>
@@ -125,6 +126,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     // This step is critical for efficiency
     A.reserve(Eigen::VectorXi::Constant(A.rows(), (degree==2 ? 27 : 64)));
     Atranspose.reserve(Eigen::VectorXi::Constant(Atranspose.cols(), (degree==2 ? 27 : 64)));
+    AtransposeA.reserve(Eigen::VectorXi::Constant(AtransposeA.cols(), 3000));
 
     // the interval between two control points along a direction
     if (degree == 3) {
@@ -193,6 +195,16 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
         logger().info("Solving linear system...");
     controlPoints.resize(num, 1);
     solver->solve(vectorY, controlPoints);
+
+/*
+    logger().info("Prepare solver");
+    Eigen::SparseQR <Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> > solver;
+    A.makeCompressed();
+    logger().info("A compressed");
+    solver.compute(A);
+    logger().info("A factorized");
+    controlPoints = solver.solve(inputPts);
+*/
         /////////////// DEBUG ONLY ///////////
         // std::cout << ">>>>> control points >>>>>" << std::endl;
         // std::cout << controlPoints << std::endl;
@@ -247,9 +259,10 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A
                             t3 = basisZd(jz-refIdx_z, refIdx_z)(iz);
                             t = t1 * t2 * t3;
 
-                            if (fabs(t) > 2e-15)
+                            if (fabs(t) > 2e-15) {
                                 A.insert(i, j) = t;  // O(1) insertion (space has been reserved)
                                 Atranspose.insert(j, i) = t;
+                            }
                         }
                 ///////////// DEBUG ONLY
                 // if (fabs(rowSum-1.0)> 1e-8)  // if (rowSum != 1.0)
