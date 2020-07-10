@@ -3,6 +3,7 @@
 #include <zebrafish/Bspline.h>
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Quantile.h>
+#include <zebrafish/GUI.h>
 
 #include <zebrafish/Logger.hpp>
 
@@ -34,55 +35,58 @@ int main(int argc, char **argv)
         return command_line.exit(e);
     }
 
-    bool is_quiet = false;
-    std::string log_file = "";
-    int log_level = 2;
+    GUI gui;
+    gui.init();
 
-    Logger::init(!is_quiet, log_file);
-    log_level = std::max(0, std::min(6, log_level));
-    spdlog::set_level(static_cast<spdlog::level::level_enum>(log_level));
-    spdlog::flush_every(std::chrono::seconds(3));
+    // bool is_quiet = false;
+    // std::string log_file = "";
+    // int log_level = 2;
 
-    image_t image;
-    cout << "====================================================" << endl;
-    read_tif_image(image_path, image);
-    cout << "Total number of frames picked = " << image.size() << endl;
+    // Logger::init(!is_quiet, log_file);
+    // log_level = std::max(0, std::min(6, log_level));
+    // spdlog::set_level(static_cast<spdlog::level::level_enum>(log_level));
+    // spdlog::flush_every(std::chrono::seconds(3));
 
-    // clip image
-    double maxPixel = 0, tempMaxPixel;
-    for (auto it=image.begin(); it!=image.end(); it++) {
-        Eigen::MatrixXd &img = *it;
-        // img = img.block(305, 333, 638-306, 717-334);
-        img = img.block(305, 333, 100, 100);
-    }
-    cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
-    // normalize all layers
-    double quantile = zebrafish::QuantileImage(image, pixelQuantile);
-    cout << "Quantile of image with q=" << pixelQuantile << " is " << quantile << endl;
-    for (auto it=image.begin(); it!=image.end(); it++) {
-        Eigen::MatrixXd &img = *it;
-        // img.array() /= quantile;
-    }
-    cout << "Image normalized: most pixels will have value between 0 and 1" << endl;
+    // image_t image;
+    // cout << "====================================================" << endl;
+    // read_tif_image(image_path, image);
+    // cout << "Total number of frames picked = " << image.size() << endl;
 
-    // ofstream file("output.log");
-    // Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "[", "]", "[", "]");
-    // file << image[0].format(OctaveFmt);
-    /*
-    Eigen::MatrixXd frame1 = image[0];
-    Eigen::MatrixXd frame2 = image[1];
-    file << frame1 << std::endl;
-    file << frame2;
-    */
+    // // clip image
+    // double maxPixel = 0, tempMaxPixel;
+    // for (auto it=image.begin(); it!=image.end(); it++) {
+    //     Eigen::MatrixXd &img = *it;
+    //     // img = img.block(305, 333, 638-306, 717-334);
+    //     img = img.block(305, 333, 100, 100);
+    // }
+    // cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
+    // // normalize all layers
+    // double quantile = zebrafish::QuantileImage(image, pixelQuantile);
+    // cout << "Quantile of image with q=" << pixelQuantile << " is " << quantile << endl;
+    // for (auto it=image.begin(); it!=image.end(); it++) {
+    //     Eigen::MatrixXd &img = *it;
+    //     // img.array() /= quantile;
+    // }
+    // cout << "Image normalized: most pixels will have value between 0 and 1" << endl;
 
-    zebrafish::bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 0.5, 0.5, 1);
+    // // ofstream file("output.log");
+    // // Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "[", "]", "[", "]");
+    // // file << image[0].format(OctaveFmt);
+    // /*
+    // Eigen::MatrixXd frame1 = image[0];
+    // Eigen::MatrixXd frame2 = image[1];
+    // file << frame1 << std::endl;
+    // file << frame2;
+    // */
 
-    zebrafish::cylinder cylinder;
-    if (!cylinder.SampleCylinder(image, bsplineSolver, 66, 54, 16, 5, 4)) {
-        cerr << "Invalid cylinder" << endl;
-    }
-    cout << "Evaluated result: " << cylinder.EvaluateCylinder(image, bsplineSolver) << endl;
+    // zebrafish::bspline bsplineSolver;
+    // bsplineSolver.CalcControlPts(image, 0.5, 0.5, 1);
+
+    // zebrafish::cylinder cylinder;
+    // if (!cylinder.SampleCylinder(image, bsplineSolver, 66, 54, 16, 5, 4)) {
+    //     cerr << "Invalid cylinder" << endl;
+    // }
+    // cout << "Evaluated result: " << cylinder.EvaluateCylinder(image, bsplineSolver) << endl;
 
     return EXIT_SUCCESS;
 }

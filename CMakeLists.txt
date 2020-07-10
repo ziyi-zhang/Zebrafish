@@ -29,7 +29,7 @@ option(LIBIGL_WITH_PNG               "Use PNG"                      ON)
 option(LIBIGL_WITH_PYTHON            "Use Python"                   OFF)
 option(LIBIGL_WITH_TETGEN            "Use Tetgen"                   OFF)
 option(LIBIGL_WITH_TRIANGLE          "Use Triangle"                 OFF)
-option(LIBIGL_WITH_VIEWER            "Use OpenGL viewer"            OFF)
+option(LIBIGL_WITH_VIEWER            "Use OpenGL viewer"            ON)
 option(LIBIGL_WITH_XML               "Use XML"                      OFF)
 option(LIBIGL_WITH_PREDICATES        "Use exact predicates"         OFF)
 ################################################################################
@@ -91,7 +91,30 @@ if(ZEBRA_TOPLEVEL_PROJECT)
 
   target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME})
   target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
-  # igl::opengl_glfw_imgui
+
+
+  add_executable(${PROJECT_NAME}_gui
+    Cpp/main_origin.cpp
+    Cpp/gui/GUI.cpp
+    Cpp/gui/FileDialog.cpp
+  )
+  zebra_copy_headers(Cpp/gui/GUI.h Cpp/gui/FileDialog.h)
+
+  target_link_libraries(${PROJECT_NAME}_gui PUBLIC ${PROJECT_NAME})
+  target_link_libraries(${PROJECT_NAME}_gui PUBLIC CLI11::CLI11)
+  target_link_libraries(${PROJECT_NAME}_gui PUBLIC igl::opengl igl::opengl_glfw igl::opengl_glfw_imgui)
+
+  if(NOT TARGET tinyfiledialogs::tinyfiledialogs)
+	  zebra_download_tinyfiledialogs()
+	  set(TINYFILEDIALOGS_DIR "${ZEBRA_EXTERNAL}/tinyfiledialogs")
+	  add_library(tinyfiledialogs_tinyfiledialogs ${TINYFILEDIALOGS_DIR}/tinyfiledialogs.c)
+	  add_library(tinyfiledialogs::tinyfiledialogs ALIAS tinyfiledialogs_tinyfiledialogs)
+	  target_include_directories(tinyfiledialogs_tinyfiledialogs SYSTEM INTERFACE ${TINYFILEDIALOGS_DIR})
+	  set_target_properties(tinyfiledialogs_tinyfiledialogs PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  endif()
+  target_link_libraries(${PROJECT_NAME}_gui PUBLIC tinyfiledialogs::tinyfiledialogs)
+
+  #
 
 endif()
 
