@@ -284,34 +284,16 @@ void bspline::SolveLeastSquare(const Eigen::SparseMatrix<double, Eigen::RowMajor
         lscg.setTolerance(solverTol); 
             logger().info("LS conjugate gradient computing...");
         lscg.compute(A);
+
             logger().info("LSCG Estimating initial guess...");
         Eigen::VectorXd initialGuess;
-        initialGuess.resize(num, 1);
-        int i, j, idx_x, idx_y, idx_z;
-        for (int iz=0; iz<numZ; iz++)
-            for (int ix=0; ix<numX; ix++)
-                for (int iy=0; iy<numY; iy++) {
-
-                    i = iz * numX * numY + ix * numY + iy;
-                    idx_x = round((ix-0.5) * gapX);
-                    idx_y = round((iy-0.5) * gapY);
-                    idx_z = round((iz-0.5) * gapZ);
-                    if (idx_x<0) idx_x=0;
-                    if (idx_y<0) idx_y=0;
-                    if (idx_z<0) idx_z=0;
-                    if (idx_x>Nx-1) idx_x=Nx-1;
-                    if (idx_y>Ny-1) idx_y=Ny-1;
-                    if (idx_z>Nz-1) idx_z=Nz-1;
-                    j = idx_z * Nx * Ny + idx_y * Nx + idx_x;
-
-                    initialGuess(i) = inputPts(j);
-                }
-        initialGuess = Eigen::VectorXd::Zero(num);
+        CalcInitialGuess(inputPts, initialGuess);
+        
             logger().info("Solving linear system...");
         controlPoints.resize(num, 1);
-        // controlPoints = lscg.solve(inputPts);
         controlPoints = lscg.solveWithGuess(inputPts, initialGuess);
 
+        // log result
         initialGuess = (initialGuess - controlPoints).array().abs();
             logger().debug("guess mean_err = {}", initialGuess.mean());
             logger().debug("guess max_err = {}", initialGuess.maxCoeff());
@@ -339,6 +321,41 @@ void bspline::SolveLeastSquare(const Eigen::SparseMatrix<double, Eigen::RowMajor
         break;
     }
     }
+}
+
+
+void bspline::CalcInitialGuess(const Eigen::VectorXd &inputPts, Eigen::VectorXd &initialGuess) {
+// This function calculates the estimated "controlPts" based on "inputPts"
+// The guess is used as the starting point of LS conjugate gradient
+
+    initialGuess.resize(numX*numY*numZ, 1);
+
+    int i, j, idx_x, idx_y, idx_z;
+    const double delta = (degree == 2) ? 0.5 : 2.0;  // why delta? clamped B-spline
+
+    for (int iz=0; iz<numZ; iz++)
+        for (int ix=0; ix<numX; ix++)
+            for (int iy=0; iy<numY; iy++) {
+
+                i = iz * numX * numY + ix * numY + iy;
+                
+                idx_x = round((ix-delta) * gapX);
+                idx_y = round((iy-delta) * gapY);
+                idx_z = round((iz-delta) * gapZ);
+                if (idx_x < 0) idx_x = 0;
+                if (idx_y < 0) idx_y = 0;
+                if (idx_z < 0) idx_z = 0;
+                if (idx_x > Nx-1) idx_x = Nx-1;
+                if (idx_y > Ny-1) idx_y = Ny-1;
+                if (idx_z > Nz-1) idx_z = Nz-1;
+
+                j = idx_z * Nx * Ny + idx_y * Nx + idx_x;
+
+                initialGuess(i) = inputPts(j);
+            }
+    
+    // TEST only 
+    // initialGuess = Eigen::VectorXd::Zero(numX*numY*numZ);
 }
 
 

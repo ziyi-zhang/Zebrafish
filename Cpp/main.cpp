@@ -1,43 +1,22 @@
-// Interp TEST
-// Test interpolation of millions of random points
+// Cylinder TEST (image)
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
+#include <zebrafish/autodiff.h>
 #include <zebrafish/Logger.hpp>
+#include <zebrafish/TiffReader.h>
+#include <zebrafish/Quantile.h>
+#include <LBFGS.h>
 #include <math.h>
-#include <stdlib.h>
-#include <random>
-#include <queue>
-#include <vector>
-#include <chrono>
-
 #include <CLI/CLI.hpp>
+#include <string>
+#include <igl/png/writePNG.h>
 
 using namespace std;
 using namespace Eigen;
 using namespace zebrafish;
+using namespace LBFGSpp;
 
-double func(double x, double y, double z) {
-
-    // return x + y;
-
-    // x^2 + y^2
-    return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
-
-    // (x^2 + y^2)^(3/2)
-    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
-    // return (x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5);
-
-    // x^4 + y^4 + 2 * x^2 * y^2
-    // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5) +
-    //     2 * (y-14.5)*(y-14.5)* (x-14.5)*(x-14.5);
-
-    // x^5 + y^5
-    // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5)*(y-14.5);
-
-    // (x^2 + y^2)^(5/2)
-    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 2.5);
-}
 
 DECLARE_DIFFSCALAR_BASE();
 
@@ -53,8 +32,10 @@ int main(int argc, char **argv) {
     spdlog::flush_every(std::chrono::seconds(3));
 
     // read in
-    CLI::App command_line{"ZebraFish"};
+    std::string image_path = "";
     int lsMethod = 2;
+    CLI::App command_line{"ZebraFish"};
+    command_line.add_option("-i,--img", image_path, "Input TIFF image to process")->check(CLI::ExistingFile);
     command_line.add_option("-l", lsMethod, "Input least square solver method");
 
     try {
@@ -64,112 +45,70 @@ int main(int argc, char **argv) {
         // return command_line.exit(e);
     }
 
-    // image
-    image_t image;  // 30 * 30 * 10
-    int sizeX, sizeY, sizeZ, i;
-    double x, y, z;
+    image_t image;
+    cout << "====================================================" << endl;
+    read_tif_image(image_path, image);
+    cout << "Total number of frames picked = " << image.size() << endl;
 
-    sizeX = 300;  // 0, 1, ..., 29
-    sizeY = 300;
-    sizeZ = 30;
-
-    // generate sample grid (3D)
-    double maxPixel = 0;
-    for (z=0; z<sizeZ; z++) {
-        
-        MatrixXd layer(sizeX, sizeY);
-        for (x=0; x<sizeX; x++)
-            for (y=0; y<sizeY; y++) {
-                layer(x, y) = func(x, y, z);
-            }
-
-        image.push_back(layer);
-        if (layer.maxCoeff() > maxPixel) maxPixel = layer.maxCoeff();
+    // clip image
+    double maxPixel = 0, tempMaxPixel;
+    for (auto it=image.begin(); it!=image.end(); it++) {
+        Eigen::MatrixXd &img = *it;
+        static Eigen::MatrixXd tmp;
+        // tmp = img.block(377, 304, 200, 200);  // DEBUG only
+        // tmp = img.block(305, 333, 638-306, 717-334);  // for 6Jan2020
+        tmp = img.block(377, 304, 696-377, 684-304);  // for 6June_em1
+        img = tmp;
     }
+    cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
+    // normalize all layers
+    double quantile = zebrafish::QuantileImage(image, 0.995);
+    cout << "Quantile of image with q=0.995 is " << quantile << endl;
+    for (auto it=image.begin(); it!=image.end(); it++) {
+        Eigen::MatrixXd &img = *it;
+        img.array() /= quantile;
+    }
+    cout << "Image normalized: most pixels will have value between 0 and 1" << endl;
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // main
+    int quadArray[] = {99, 0, 1, 2, 3, 4, 5, 6};
+
     // prepare B-spline
-    struct quadrature quad;
-    const int bsplineDegree = 2;
+    quadrature quad;
     bspline bsplineSolver(quad);
+    const int bsplineDegree = 2;
     bsplineSolver.Set_leastSquareMethod(lsMethod);
-    bsplineSolver.SetResolution(0.325, 0.325, 0.5);
     bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
 
-    // random
-    srand(time(NULL));
-    uniform_real_distribution<double> unif(0, sizeX-1);
-    default_random_engine re(0);
+    double xx, yy, rr, ans;
+    MatrixXd query;
+    int numQuery = 6, diskQuadMethod;
+    query.resize(numQuery, 3);
+    query << 12.3524, 11.3772, 2.80271, 
+             13, 14, 3, 
+             10, 15, 3, 
+             8, 12, 4,
+             13, 10, 4,
+             14, 13, 4;
+    for (int j=0; j<numQuery; j++) {
 
-    // moving median
-    double tt, l_;
-    priority_queue<double, vector<double>, greater<double> > u;
-    priority_queue<double, vector<double>, less<double> > l;
+        xx = query(j, 0);
+        yy = query(j, 1);
+        rr = query(j, 2);
+        logger().info("===============");
 
-    // interp test
-    double err, sumerr = 0, minerr = 1.0, maxerr = 0.0;
-    const int trialNum = 1e7;
-    Matrix<double, Dynamic, 2> sampleInput;
-    Matrix<double, Dynamic, 1> sampleOutput;
-    sampleInput.resize(trialNum, 2);
-    sampleOutput.resize(trialNum, 1);
+        double refEnergy;
+        for (int i=0; i<8; i++) {
 
-    for (i = 0; i<trialNum; i++) {
+            diskQuadMethod = quadArray[i];
+            bsplineSolver.quad.LoadDiskParas(diskQuadMethod);
+            if (!cylinder::IsValid(bsplineSolver, xx, yy, 32, rr, 3))
+                cerr << "Invalid cylinder" << endl;
+            cylinder::EvaluateCylinder(bsplineSolver, xx, yy, 32, rr, 3, ans);
 
-        x = unif(re);
-        y = unif(re);
-        sampleInput(i, 0) = x;
-        sampleInput(i, 1) = y;
-    }
-
-    for (z = 5; z <= 5; z++) {
-
-        logger().info("Before Interp");
-        for (i = 0; i<trialNum; i++) {
-            
-            sampleOutput(i) = bsplineSolver.Interp3D(sampleInput(i, 0), sampleInput(i, 1), z);
-        }
-        logger().info("After Interp");
-
-        // calculate theoretical output
-        for (i = 0; i<trialNum; i++) {
-
-            err = func(sampleInput(i, 0), sampleInput(i, 1), z) - sampleOutput(i);
-            err = fabs(err);
-
-            // stats
-            sumerr += err;
-            if (err > maxerr) maxerr = err;
-            if (err < minerr) minerr = err;
-
-            // moving median
-            if (l.empty()) {l.push(err); continue;}
-            l_ = l.top();
-            if (err >= l_) {u.push(err);} else {l.push(err);}
-            if (u.size() > l.size()) {
-                tt = u.top();
-                u.pop();
-                l.push(tt);
-            }
-            if (l.size() > u.size() + 1) {
-                tt = l.top();
-                l.pop();
-                u.push(tt);
-            }
+            if (i == 0) refEnergy = ans;
+            logger().info("QuadMethod = {}, eval = {}, diff = {}", diskQuadMethod, ans, refEnergy-ans);
         }
     }
-
-    // output the first several samples
-    cout << "==============================" << endl;
-    cout << "First 5 sample points x, y = " << endl;
-    for (i=0; i<5; i++) {
-        cout << sampleInput(i, 0) << " " << sampleInput(i, 1) << endl;
-    }
-
-    // interp test report
-    cout << "==============================" << endl;
-    cout << "Degree = " << bsplineSolver.Get_degree() << endl;
-    cout << "Interp trial number = " << trialNum << endl;
-    cout << "Mean error = " << sumerr / double(trialNum) << endl;
-    cout << "Median error = " << l.top() << endl;
-    cout << "Min  error = " << minerr << endl;
-    cout << "Max  error = " << maxerr << endl;
 }

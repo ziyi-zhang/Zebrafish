@@ -94,9 +94,9 @@ int main(int argc, char **argv) {
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         static Eigen::MatrixXd tmp;
-        tmp = img.block(377, 304, 200, 200);  // DEBUG only
+        // tmp = img.block(377, 304, 200, 200);  // DEBUG only
         // tmp = img.block(305, 333, 638-306, 717-334);  // for 6Jan2020
-        // tmp = img.block(377, 304, 696-377, 684-304);  // for 6June_em1
+        tmp = img.block(377, 304, 696-377, 684-304);  // for 6June_em1
         img = tmp;
     }
     cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;

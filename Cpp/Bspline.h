@@ -44,6 +44,7 @@ private:
 
     void CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A, Eigen::SparseMatrix<double, Eigen::ColMajor> &Atranspose);
     void SolveLeastSquare(const Eigen::SparseMatrix<double, Eigen::RowMajor> &A, const Eigen::SparseMatrix<double, Eigen::ColMajor> &Atranspose, const Eigen::VectorXd &inputPts);
+    void CalcInitialGuess(const Eigen::VectorXd &inputPts, Eigen::VectorXd &initialGuess);
     template <typename T>
     void CalcBasisFunc(Eigen::Matrix< std::function<T(T)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, const int numT, const double gapT);
     void CreateControlPtsCache(); //Optional

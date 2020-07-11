@@ -2,11 +2,11 @@
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
-#include <zebrafish/LBFGS.h>
 #include <zebrafish/autodiff.h>
 #include <zebrafish/Logger.hpp>
 #include <zebrafish/TiffReader.h>
 #include <zebrafish/Quantile.h>
+#include <LBFGS.h>
 #include <math.h>
 #include <CLI/CLI.hpp>
 #include <string>
@@ -33,17 +33,16 @@ int main(int argc, char **argv) {
 
     // read in
     std::string image_path = "";
-
+    int lsMethod = 2;
     CLI::App command_line{"ZebraFish"};
     command_line.add_option("-i,--img", image_path, "Input TIFF image to process")->check(CLI::ExistingFile);
+    command_line.add_option("-l", lsMethod, "Input least square solver method");
 
-    try
-    {
+    try {
         command_line.parse(argc, argv);
     }
-    catch (const CLI::ParseError &e)
-    {
-        return command_line.exit(e);
+    catch (const CLI::ParseError &e) {
+        // return command_line.exit(e);
     }
 
     image_t image;
@@ -55,13 +54,16 @@ int main(int argc, char **argv) {
     double maxPixel = 0, tempMaxPixel;
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
-        // img = img.block(305, 333, 638-306, 717-334);
-        img = img.block(305, 333, 30-5, 30-5);
+        static Eigen::MatrixXd tmp;
+        // tmp = img.block(377, 304, 200, 200);  // DEBUG only
+        // tmp = img.block(305, 333, 638-306, 717-334);  // for 6Jan2020
+        tmp = img.block(377, 304, 696-377, 684-304);  // for 6June_em1
+        img = tmp;
     }
     cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
     // normalize all layers
-    double quantile = zebrafish::QuantileImage(image, pixelQuantile);
-    cout << "Quantile of image with q=" << pixelQuantile << " is " << quantile << endl;
+    double quantile = zebrafish::QuantileImage(image, 0.995);
+    cout << "Quantile of image with q=0.995 is " << quantile << endl;
     for (auto it=image.begin(); it!=image.end(); it++) {
         Eigen::MatrixXd &img = *it;
         img.array() /= quantile;
@@ -73,14 +75,15 @@ int main(int argc, char **argv) {
     int quadArray[] = {99, 0, 1, 2, 3, 4, 5, 6};
 
     // prepare B-spline
-    bspline bsplineSolver;
-    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7);
+    quadrature quad;
+    bspline bsplineSolver(quad);
+    const int bsplineDegree = 2;
+    bsplineSolver.Set_leastSquareMethod(lsMethod);
+    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
 
-    // prepare cylinder
-    cylinder cylinder;
-    double xx, yy, rr;
+    double xx, yy, rr, ans;
     MatrixXd query;
-    int numQuery = 6;
+    int numQuery = 6, diskQuadMethod;
     query.resize(numQuery, 3);
     query << 12.3524, 11.3772, 2.80271, 
              13, 14, 3, 
@@ -99,13 +102,13 @@ int main(int argc, char **argv) {
         for (int i=0; i<8; i++) {
 
             diskQuadMethod = quadArray[i];
-            cylinder.LoadQuadParas();
-            if (!cylinder.SampleCylinder(image, bsplineSolver, xx, yy, 32, rr, 3))
-                cerr << "Invalid cylinder 1" << endl;
-            DScalar ans1 = cylinder.EvaluateCylinder(image, bsplineSolver);
+            bsplineSolver.quad.LoadDiskParas(diskQuadMethod);
+            if (!cylinder::IsValid(bsplineSolver, xx, yy, 32, rr, 3))
+                cerr << "Invalid cylinder" << endl;
+            cylinder::EvaluateCylinder(bsplineSolver, xx, yy, 32, rr, 3, ans);
 
-            if (i == 0) refEnergy = ans1.getValue();
-            logger().info("QuadMethod = {}, eval = {}, diff = {}", diskQuadMethod, ans1.getValue(), refEnergy-ans1.getValue());
+            if (i == 0) refEnergy = ans;
+            logger().info("QuadMethod = {}, eval = {}, diff = {}", diskQuadMethod, ans, refEnergy-ans);
         }
     }
 }
