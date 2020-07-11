@@ -91,7 +91,7 @@ namespace zebrafish {
         {
             if(stage == 0)
             {
-                read_tif_image("/Users/teseo/Downloads/img.tif", img);
+                read_tif_image("../data/test_img.tif", img);
             }
             stage++;
             stage = std::min(stage, 2);

@@ -293,13 +293,20 @@ void bspline::SolveLeastSquare(const Eigen::SparseMatrix<double, Eigen::RowMajor
                 for (int iy=0; iy<numY; iy++) {
 
                     i = iz * numX * numY + ix * numY + iy;
-                    idx_x = round(ix * gapX);
-                    idx_y = round(iy * gapY);
-                    idx_z = round(iz * gapZ);
-                    j = idx_z * numX * numY + idx_y * numX + idx_x;
+                    idx_x = round((ix-0.5) * gapX);
+                    idx_y = round((iy-0.5) * gapY);
+                    idx_z = round((iz-0.5) * gapZ);
+                    if (idx_x<0) idx_x=0;
+                    if (idx_y<0) idx_y=0;
+                    if (idx_z<0) idx_z=0;
+                    if (idx_x>Nx-1) idx_x=Nx-1;
+                    if (idx_y>Ny-1) idx_y=Ny-1;
+                    if (idx_z>Nz-1) idx_z=Nz-1;
+                    j = idx_z * Nx * Ny + idx_y * Nx + idx_x;
 
                     initialGuess(i) = inputPts(j);
                 }
+        initialGuess = Eigen::VectorXd::Zero(num);
             logger().info("Solving linear system...");
         controlPoints.resize(num, 1);
         // controlPoints = lscg.solve(inputPts);
@@ -592,8 +599,8 @@ bspline::bspline(struct quadrature &quad_) : quad(quad_) {
     leastSquareMethod = 2;
     // solver by default very high accuracy
     solverMaxIt = 10000;    // 1000
-    solverConvTol = 1e-15;  // 1e-10
-    solverTol = 1e-15;      // 1e-10
+    solverConvTol = 1e-10;  // 1e-10
+    solverTol = 1e-10;      // 1e-10
     // whether enable control points cache
     controlPointsCacheFlag = false;
 }

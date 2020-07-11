@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
         command_line.parse(argc, argv);
     }
     catch (const CLI::ParseError &e) {
-        return command_line.exit(e);
+        // return command_line.exit(e);
     }
 
     // image
