@@ -11,6 +11,8 @@
 #include <vector>
 #include <chrono>
 
+#include <CLI/CLI.hpp>
+
 using namespace std;
 using namespace Eigen;
 using namespace zebrafish;
@@ -39,7 +41,7 @@ double func(double x, double y, double z) {
 
 DECLARE_DIFFSCALAR_BASE();
 
-int main() {
+int main(int argc, char **argv) {
 
     // logger
     bool is_quiet = false;
@@ -50,12 +52,25 @@ int main() {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(log_level));
     spdlog::flush_every(std::chrono::seconds(3));
 
+    // read in
+    CLI::App command_line{"ZebraFish"};
+    int lsMethod = 2;
+    command_line.add_option("-l", lsMethod, "Input least square solver method");
+
+    try {
+        command_line.parse(argc, argv);
+    }
+    catch (const CLI::ParseError &e) {
+        return command_line.exit(e);
+    }
+
+    // image
     image_t image;  // 30 * 30 * 10
     int sizeX, sizeY, sizeZ, i;
     double x, y, z;
 
-    sizeX = 100;  // 0, 1, ..., 29
-    sizeY = 100;
+    sizeX = 300;  // 0, 1, ..., 29
+    sizeY = 300;
     sizeZ = 30;
 
     // generate sample grid (3D)
@@ -75,8 +90,9 @@ int main() {
     struct quadrature quad;
     const int bsplineDegree = 2;
     bspline bsplineSolver(quad);
+    bsplineSolver.Set_leastSquareMethod(lsMethod);
     bsplineSolver.SetResolution(0.325, 0.325, 0.5);
-    bsplineSolver.CalcControlPts_um(image, 0.6, 0.6, 0.6, bsplineDegree);
+    bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
 
     // random
     srand(time(NULL));

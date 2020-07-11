@@ -33,6 +33,7 @@ private:
     double gapX, gapY, gapZ;  // the interval between two control points along a direction
     double resolutionX, resolutionY, resolutionZ;  // The distance between two pixels (in micrometers)
 
+    int leastSquareMethod;            // Which method to solve the least square problem
     int solverMaxIt;                  // Hypre solver max iterations
     double solverConvTol, solverTol;  // Hypre solver "convergence tolerance" and "tolerance"
     bool controlPointsCacheFlag;  // whether enable control points cache. By default inactive.
@@ -42,6 +43,7 @@ private:
     basis_t  basisX,  basisY;            // DScalar version
 
     void CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A, Eigen::SparseMatrix<double, Eigen::ColMajor> &Atranspose);
+    void SolveLeastSquare(const Eigen::SparseMatrix<double, Eigen::RowMajor> &A, const Eigen::SparseMatrix<double, Eigen::ColMajor> &Atranspose, const Eigen::VectorXd &inputPts);
     template <typename T>
     void CalcBasisFunc(Eigen::Matrix< std::function<T(T)>, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> &basisT, const int numT, const double gapT);
     void CreateControlPtsCache(); //Optional
@@ -93,6 +95,7 @@ public:
     int Get_Nx() const { return Nx;}
     int Get_Ny() const { return Ny;}
     int Get_Nz() const { return Nz;}
+    void Set_leastSquareMethod(int x) { leastSquareMethod = x; }
 
     // maintenance methods
     bspline(struct quadrature &quad);

@@ -7,6 +7,7 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 #include <Eigen/SparseQR>
+#include <Eigen/IterativeLinearSolvers>
 #include <polysolve/LinearSolver.hpp>
 #include <string>
 #include <cmath>
@@ -101,7 +102,7 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
 
     int N, num;
     double centerX, centerY, centerZ, t;
-    Eigen::VectorXd inputPts, vectorY;
+    Eigen::VectorXd inputPts;
 
     // dimension of sample points
     Nz = image.size();
@@ -120,13 +121,11 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
     // A[i, j]: the evaluation of basis j for the i-th sample point
     Eigen::SparseMatrix<double, Eigen::RowMajor> A(N, num);
     Eigen::SparseMatrix<double, Eigen::ColMajor> Atranspose(num, N);
-    Eigen::SparseMatrix<double, Eigen::ColMajor> AtransposeA(num, num);
     // Reserve space for least square matrix
     // At most [ (degree+1)^3 ] non-zero elements per row
     // This step is critical for efficiency
     A.reserve(Eigen::VectorXi::Constant(A.rows(), (degree==2 ? 27 : 64)));
     Atranspose.reserve(Eigen::VectorXi::Constant(Atranspose.cols(), (degree==2 ? 27 : 64)));
-    AtransposeA.reserve(Eigen::VectorXi::Constant(AtransposeA.cols(), 3000));
 
     // the interval between two control points along a direction
     if (degree == 3) {
@@ -168,48 +167,16 @@ void bspline::CalcControlPts(const image_t &image, const double xratio, const do
         logger().debug("Least square matrix A size = {} * {}", A.rows(), A.cols());
         logger().debug("A: # non-zero elements = {}", A.nonZeros());
 
-    // calculate control points based on least square
-        logger().info("Calculating A'*A and A'*y...");
-    AtransposeA = (Atranspose * A).pruned();  // A' * A
-        logger().debug("A' * A size = {} * {}", AtransposeA.rows(), AtransposeA.cols());
-        logger().debug("A'A: # non-zero elements = {}", AtransposeA.nonZeros());
-    vectorY.resize(N);
-    vectorY = Atranspose * inputPts;  // A' * y
+    // Solve the least square problem
+    // controlPts = inverse(A'*A) * (A'*inputPts)
+    SolveLeastSquare(A, Atranspose, inputPts);
 
-    // solve linear system for control points
-        // Deprecated eigen solver:
-        // Eigen::SimplicialCholesky<Eigen::SparseMatrix<double> > chol(AtransposeA);
-        // controlPoints = chol.solve(vectorY);
-    const std::string solverName = "Hypre";
-    auto solver = polysolve::LinearSolver::create(solverName, "");
-    const nlohmann::json params = {
-        {"max_iter", solverMaxIt},
-        {"conv_tol", solverConvTol},
-        {"tolerance", solverTol}
-    };
-    solver->setParameters(params);
-        logger().info("Analyzing matrix pattern...");
-    solver->analyzePattern(AtransposeA, AtransposeA.rows());
-        logger().info("Factorizing matrix...");
-    solver->factorize(AtransposeA);
-        logger().info("Solving linear system...");
-    controlPoints.resize(num, 1);
-    solver->solve(vectorY, controlPoints);
-
-/*
-    logger().info("Prepare solver");
-    Eigen::SparseQR <Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> > solver;
-    A.makeCompressed();
-    logger().info("A compressed");
-    solver.compute(A);
-    logger().info("A factorized");
-    controlPoints = solver.solve(inputPts);
-*/
         /////////////// DEBUG ONLY ///////////
         // std::cout << ">>>>> control points >>>>>" << std::endl;
         // std::cout << controlPoints << std::endl;
         // std::cout << "<<<<< control points <<<<<" << std::endl;
         /////////////// DEBUG ONLY ///////////
+
     if (controlPointsCacheFlag) {
         // optional optimization. By default disabled.
         logger().info("Creating control points cache...");
@@ -269,6 +236,81 @@ void bspline::CalcLeastSquareMat(Eigen::SparseMatrix<double, Eigen::RowMajor> &A
                 //    logger().error("RowSum error: ix={}, iy={}, iz={}, rowSum={}", ix, iy, iz, rowSum);
                 ///////////// DEBUG ONLY
             }
+}
+
+
+void bspline::SolveLeastSquare(const Eigen::SparseMatrix<double, Eigen::RowMajor> &A, const Eigen::SparseMatrix<double, Eigen::ColMajor> &Atranspose, const Eigen::VectorXd &inputPts) {
+
+    const int num = numX * numY * numZ;
+    const int N = Nx * Ny * Nz;
+    Eigen::VectorXd vectorY;
+    Eigen::SparseMatrix<double, Eigen::ColMajor> AtransposeA(num, num);
+
+    switch (leastSquareMethod) {
+    case 1: {
+        logger().info("Least square using method 1: Normal Function + Hypre Solver");
+        // calculate control points based on least square
+            logger().info("Calculating A'*A and A'*y...");
+        AtransposeA = (Atranspose * A).pruned();  // A' * A
+        vectorY.resize(N);
+        vectorY = Atranspose * inputPts;  // A' * y
+            logger().debug("A' * A size = {} * {}", AtransposeA.rows(), AtransposeA.cols());
+            logger().debug("A'A: # non-zero elements = {}", AtransposeA.nonZeros());
+
+        // solve linear system for control points
+            // Deprecated eigen solver:
+            // Eigen::SimplicialCholesky<Eigen::SparseMatrix<double> > chol(AtransposeA);
+            // controlPoints = chol.solve(vectorY);
+        const std::string solverName = "Hypre";
+        auto solver = polysolve::LinearSolver::create(solverName, "");
+        const nlohmann::json params = {
+            {"max_iter", solverMaxIt},
+            {"conv_tol", solverConvTol},
+            {"tolerance", solverTol}
+        };
+        solver->setParameters(params);
+            logger().info("Analyzing matrix pattern...");
+        solver->analyzePattern(AtransposeA, AtransposeA.rows());
+            logger().info("Factorizing matrix...");
+        solver->factorize(AtransposeA);
+            logger().info("Solving linear system...");
+        controlPoints.resize(num, 1);
+        solver->solve(vectorY, controlPoints);
+        break;
+    }
+    case 2: {
+            logger().info("Least square using method 2: Conjugate Gradient");
+        Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<double> > lscg;
+        lscg.setTolerance(solverTol); 
+            logger().info("LS conjugate gradient computing...");
+        lscg.compute(A);
+            logger().info("Solving linear system...");
+        controlPoints.resize(num, 1);
+        controlPoints = lscg.solve(inputPts);
+            logger().debug("LSCG #iteration = {}", lscg.iterations());
+            logger().debug("LSCG error = {}", lscg.error());
+        break;
+    }
+    case 3: {
+        assert(false);
+        break;
+        /*
+        // Deprecated QR least square solver
+        // This is too slow
+        logger().info("Prepare solver");
+        Eigen::SparseQR <Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> > solver;
+        A.makeCompressed();
+        logger().info("A compressed");
+        solver.compute(A);
+        logger().info("A factorized");
+        controlPoints = solver.solve(inputPts);
+        */
+    }
+    default: {
+        assert(false);
+        break;
+    }
+    }
 }
 
 
@@ -525,8 +567,10 @@ bspline::bspline(struct quadrature &quad_) : quad(quad_) {
     numX = 0;
     numY = 0;
     numZ = 0;
-    // Hypre solver by default very high accuracy
-    solverMaxIt = 20000;    // 1000
+    // By default use Eigen::LeastSquaresConjugateGradient
+    leastSquareMethod = 2;
+    // solver by default very high accuracy
+    solverMaxIt = 10000;    // 1000
     solverConvTol = 1e-15;  // 1e-10
     solverTol = 1e-15;      // 1e-10
     // whether enable control points cache
