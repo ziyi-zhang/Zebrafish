@@ -284,9 +284,30 @@ void bspline::SolveLeastSquare(const Eigen::SparseMatrix<double, Eigen::RowMajor
         lscg.setTolerance(solverTol); 
             logger().info("LS conjugate gradient computing...");
         lscg.compute(A);
+            logger().info("LSCG Estimating initial guess...");
+        Eigen::VectorXd initialGuess;
+        initialGuess.resize(num, 1);
+        int i, j, idx_x, idx_y, idx_z;
+        for (int iz=0; iz<numZ; iz++)
+            for (int ix=0; ix<numX; ix++)
+                for (int iy=0; iy<numY; iy++) {
+
+                    i = iz * numX * numY + ix * numY + iy;
+                    idx_x = round(ix * gapX);
+                    idx_y = round(iy * gapY);
+                    idx_z = round(iz * gapZ);
+                    j = idx_z * numX * numY + idx_y * numX + idx_x;
+
+                    initialGuess(i) = inputPts(j);
+                }
             logger().info("Solving linear system...");
         controlPoints.resize(num, 1);
-        controlPoints = lscg.solve(inputPts);
+        // controlPoints = lscg.solve(inputPts);
+        controlPoints = lscg.solveWithGuess(inputPts, initialGuess);
+
+        initialGuess = (initialGuess - controlPoints).array().abs();
+            logger().debug("guess mean_err = {}", initialGuess.mean());
+            logger().debug("guess max_err = {}", initialGuess.maxCoeff());
             logger().debug("LSCG #iteration = {}", lscg.iterations());
             logger().debug("LSCG error = {}", lscg.error());
         break;

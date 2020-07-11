@@ -65,9 +65,11 @@ int main(int argc, char **argv) {
     // read in
     std::string image_path = "";
     unsigned int num_threads = 32; // std::max(1u, std::thread::hardware_concurrency());
+    int lsMethod = 2;
     CLI::App command_line{"ZebraFish"};
     command_line.add_option("-i,--img", image_path, "Input TIFF image to process")->check(CLI::ExistingFile);
     command_line.add_option("-n", num_threads, "Input number of threads");
+    command_line.add_option("-l", lsMethod, "Input least square solver method");
 
     try {
         command_line.parse(argc, argv);
@@ -114,6 +116,7 @@ int main(int argc, char **argv) {
     quadrature quad;
     bspline bsplineSolver(quad);
     const int bsplineDegree = 2;
+    bsplineSolver.Set_leastSquareMethod(lsMethod);
     bsplineSolver.SetResolution(0.325, 0.325, 0.5);
     bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
     return 0;

@@ -1,55 +1,45 @@
-// Grid Search + BFGS (image) Parallel
+// Interp TEST
+// Test interpolation of millions of random points
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
-#include <zebrafish/autodiff.h>
 #include <zebrafish/Logger.hpp>
-#include <zebrafish/TiffReader.h>
-#include <zebrafish/Quantile.h>
-
-#include <tbb/task_scheduler_init.h>
-#include <tbb/parallel_for.h>
-#include <tbb/enumerable_thread_specific.h>
-
 #include <math.h>
+#include <stdlib.h>
+#include <random>
+#include <queue>
+#include <vector>
+#include <chrono>
+
 #include <CLI/CLI.hpp>
-#include <LBFGS.h>
-#include <string>
-#include <igl/png/writePNG.h>
 
 using namespace std;
 using namespace Eigen;
 using namespace zebrafish;
-using namespace LBFGSpp;
 
+double func(double x, double y, double z) {
 
-DECLARE_DIFFSCALAR_BASE();
+    // return x + y;
 
+    // x^2 + y^2
+    return (x-14.5)*(x-14.5) + (y-14.5)*(y-14.5);
 
+    // (x^2 + y^2)^(3/2)
+    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 1.5);
+    // return (x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5);
 
-bool ValidStartingPoint(const image_t &image, const bspline &bsp, double x, double y, double z, double r) {
+    // x^4 + y^4 + 2 * x^2 * y^2
+    // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5) +
+    //     2 * (y-14.5)*(y-14.5)* (x-14.5)*(x-14.5);
 
-    static const double thres = QuantileImage(image, 0.85);
+    // x^5 + y^5
+    // return (x-14.5)*(x-14.5)*(x-14.5)*(x-14.5)*(x-14.5) + (y-14.5)*(y-14.5)*(y-14.5)*(y-14.5)*(y-14.5);
 
-    // valid cylinder
-    if (!cylinder::IsValid(bsp, x, y, z, r, 3.0)) return false;
-    // membrane
-    const double d1 = round(r * 1.2), d2 = round(r * 0.85);
-    const MatrixXd &layer = image[round(z)];
-    int count = 0;
-    if (layer(x-d2, y-d2) > thres) count++;
-    if (layer(x-d1, y   ) > thres) count++;
-    if (layer(x-d2, y+d2) > thres) count++;
-    if (layer(x   , y+d1) > thres) count++;
-    if (layer(x+d2, y+d2) > thres) count++;
-    if (layer(x+d1, y   ) > thres) count++;
-    if (layer(x+d2, y-d2) > thres) count++;
-    if (layer(x   , y-d1) > thres) count++;
-    if (count < 7) return false;
-
-    return true;
+    // (x^2 + y^2)^(5/2)
+    // return pow((x-14.5)*(x-14.5) + (y-14.5)*(y-14.5), 2.5);
 }
 
+DECLARE_DIFFSCALAR_BASE();
 
 int main(int argc, char **argv) {
 
@@ -63,12 +53,8 @@ int main(int argc, char **argv) {
     spdlog::flush_every(std::chrono::seconds(3));
 
     // read in
-    std::string image_path = "";
-    unsigned int num_threads = 32; // std::max(1u, std::thread::hardware_concurrency());
-    int lsMethod = 2;
     CLI::App command_line{"ZebraFish"};
-    command_line.add_option("-i,--img", image_path, "Input TIFF image to process")->check(CLI::ExistingFile);
-    command_line.add_option("-n", num_threads, "Input number of threads");
+    int lsMethod = 2;
     command_line.add_option("-l", lsMethod, "Input least square solver method");
 
     try {
@@ -78,178 +64,112 @@ int main(int argc, char **argv) {
         return command_line.exit(e);
     }
 
-    // TBB
-    const size_t MB = 1024 * 1024;
-    const size_t stack_size = 64 * MB;
-    tbb::task_scheduler_init scheduler(num_threads, stack_size);
-    logger().info("Desired #threads = {}", num_threads);
+    // image
+    image_t image;  // 30 * 30 * 10
+    int sizeX, sizeY, sizeZ, i;
+    double x, y, z;
 
-    // read image
-    image_t image;
-    cout << "====================================================" << endl;
-    read_tif_image(image_path, image);
-    cout << "Total number of frames picked = " << image.size() << endl;
+    sizeX = 300;  // 0, 1, ..., 29
+    sizeY = 300;
+    sizeZ = 30;
 
-    // clip image
-    for (auto it=image.begin(); it!=image.end(); it++) {
-        Eigen::MatrixXd &img = *it;
-        static Eigen::MatrixXd tmp;
-        tmp = img.block(377, 304, 200, 200);  // DEBUG only
-        // tmp = img.block(305, 333, 638-306, 717-334);  // for 6Jan2020
-        // tmp = img.block(377, 304, 696-377, 684-304);  // for 6June_em1
-        img = tmp;
+    // generate sample grid (3D)
+    double maxPixel = 0;
+    for (z=0; z<sizeZ; z++) {
+        
+        MatrixXd layer(sizeX, sizeY);
+        for (x=0; x<sizeX; x++)
+            for (y=0; y<sizeY; y++) {
+                layer(x, y) = func(x, y, z);
+            }
+
+        image.push_back(layer);
+        if (layer.maxCoeff() > maxPixel) maxPixel = layer.maxCoeff();
     }
-    cout << "Each layer clipped to be " << image[0].rows() << " x " << image[0].cols() << endl;
-    // normalize all layers
-    double quantile = zebrafish::QuantileImage(image, 0.995);
-    cout << "Quantile of image with q=0.995 is " << quantile << endl;
-    for (auto it=image.begin(); it!=image.end(); it++) {
-        Eigen::MatrixXd &img = *it;
-        img.array() /= quantile;
-    }
-    cout << "Image normalized: most pixels will have value between 0 and 1" << endl;
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // main
-
     // prepare B-spline
-    quadrature quad;
-    bspline bsplineSolver(quad);
+    struct quadrature quad;
     const int bsplineDegree = 2;
+    bspline bsplineSolver(quad);
     bsplineSolver.Set_leastSquareMethod(lsMethod);
     bsplineSolver.SetResolution(0.325, 0.325, 0.5);
     bsplineSolver.CalcControlPts(image, 0.7, 0.7, 0.7, bsplineDegree);
-    return 0;
-    /////////////////////////////////////////////////
-    // prepare sampleInput & sampleOutput for grid search
-    MatrixXd sampleInput, sampleOutput;
-    const int Nx = bsplineSolver.Get_Nx();
-    const int Ny = bsplineSolver.Get_Ny();
-    const int Nz = bsplineSolver.Get_Nz();
-    vector<double> rArray = {3, 4, 5, 6};
-    const int Nr = rArray.size();
-    const double gapX = 1.0;
-    const double gapY = 1.0;
-    const double gapZ = 1.0;
-    double xx, yy, zz, rr;
-    int sampleCount = 0;
-    sampleInput.resize(Nx*Ny*Nz*Nr, 4);
-    for (int ix=0; ix<floor(Nx/gapX); ix++)
-        for (int iy=0; iy<floor(Ny/gapY); iy++)
-            for (int iz=0; iz<floor(Nz/gapZ); iz++)
-                for (int ir=0; ir<Nr; ir++) {
 
-                    xx = ix * gapX;
-                    yy = iy * gapY;
-                    zz = iz * gapZ;
-                    rr = rArray[ir];
-                    if (!ValidStartingPoint(image, bsplineSolver, xx, yy, zz, rr)) continue;
+    // random
+    srand(time(NULL));
+    uniform_real_distribution<double> unif(0, sizeX-1);
+    default_random_engine re(0);
 
-                    sampleInput(sampleCount, 0) = xx;
-                    sampleInput(sampleCount, 1) = yy;
-                    sampleInput(sampleCount, 2) = zz;
-                    sampleInput(sampleCount, 3) = rr;
-                    sampleCount++;
-                }
-    sampleOutput.resize(sampleCount, 1);
-    logger().info("Grid search #starting points = {}", sampleCount);
-    logger().info("Grid search samples prepared...");
+    // moving median
+    double tt, l_;
+    priority_queue<double, vector<double>, greater<double> > u;
+    priority_queue<double, vector<double>, less<double> > l;
 
-    // Search
-    logger().info("Before search");
-    tbb::parallel_for( tbb::blocked_range<int>(0, sampleCount),
-        [&sampleInput, &sampleOutput, &bsplineSolver](const tbb::blocked_range<int> &r) {
+    // interp test
+    double err, sumerr = 0, minerr = 1.0, maxerr = 0.0;
+    const int trialNum = 1e7;
+    Matrix<double, Dynamic, 2> sampleInput;
+    Matrix<double, Dynamic, 1> sampleOutput;
+    sampleInput.resize(trialNum, 2);
+    sampleOutput.resize(trialNum, 1);
 
-            for (int ii = r.begin(); ii != r.end(); ++ii) {
-                cylinder::EvaluateCylinder(bsplineSolver, sampleInput(ii, 0), sampleInput(ii, 1), sampleInput(ii, 2), sampleInput(ii, 3), 3, sampleOutput(ii));
-            }
-        });
-    logger().info("After search");
+    for (i = 0; i<trialNum; i++) {
 
-    /////////////////////////////////////////////////
-    // prepare LBFGS
-    LBFGSParam<double> param;
-    param.epsilon = 1e-4;
-    param.max_iterations = 15;
-
-    // prepare sampleInput & sampleOutput for Newtons
-    MatrixXd sampleInput_Newton, sampleOutput_Newton;
-    sampleInput_Newton.resize(sampleCount, 4);
-    int sampleCountNewton = 0;
-    const double energyThres = -0.05;
-    for (int i=0; i<sampleCount; i++) {
-        if (sampleOutput(i) > energyThres) continue;
-        
-        sampleInput_Newton(sampleCountNewton, 0) = sampleInput(i, 0);  // x
-        sampleInput_Newton(sampleCountNewton, 1) = sampleInput(i, 1);  // y
-        sampleInput_Newton(sampleCountNewton, 2) = sampleInput(i, 2);  // z
-        sampleInput_Newton(sampleCountNewton, 3) = sampleInput(i, 3);  // r
-        sampleCountNewton++;
+        x = unif(re);
+        y = unif(re);
+        sampleInput(i, 0) = x;
+        sampleInput(i, 1) = y;
     }
-    sampleOutput_Newton.resize(sampleCountNewton, 6);  // x, y, z, r, energy, iteration
-    logger().info("Optimization #starting points = {}", sampleCountNewton);
 
-    // Optimization
-    logger().info("Before optimization");
-    tbb::parallel_for( tbb::blocked_range<int>(0, sampleCountNewton),
-        //////////////////////////////////////
-        // lambda function for parallel_for //
-        //////////////////////////////////////
-        [&sampleInput_Newton, &sampleOutput_Newton, &bsplineSolver, &param]
-        (const tbb::blocked_range<int> &r) {
-        
-        // NOTE: LBFGSSolver is NOT thread safe. This must be 
-        LBFGSSolver<double> solver(param);
+    for (z = 5; z <= 5; z++) {
 
-        // NOTE: the "variable count" used by "Autodiff" will be stored in 
-        //       thread-local memory, so this must be set for every thread
-        DiffScalarBase::setVariableCount(3);
-
-        for (int ii = r.begin(); ii != r.end(); ++ii) {    
-
-                Eigen::VectorXd vec(3, 1);
-                vec(0) = sampleInput_Newton(ii, 0);  // x
-                vec(1) = sampleInput_Newton(ii, 1);  // y
-                vec(2) = sampleInput_Newton(ii, 3);  // r
-                double res;
-
-                ///////////////////////////////////
-                // lambda function for optimizer //
-                ///////////////////////////////////
-                auto func = [&sampleInput_Newton, &bsplineSolver, ii]
-                (const VectorXd& x, VectorXd& grad) {
-
-                        DScalar ans;
-
-                        if (!cylinder::IsValid(bsplineSolver, x(0), x(1), sampleInput_Newton(ii, 2), x(2), 3)) {
-                            grad.setZero();
-                            return 1.0;
-                        }
-                        cylinder::EvaluateCylinder(bsplineSolver, DScalar(0, x(0)), DScalar(1, x(1)), sampleInput_Newton(ii, 2), DScalar(2, x(2)), 3, ans);
-                        grad.resize(3, 1);
-                        grad = ans.getGradient();
-                        return ans.getValue();
-                    };
-                // NOTE: the template of "solver.minimize" does not accept a temprary variable (due to non-const argument)
-                //       so we define a "func" and pass it in every time
-                int it = solver.minimize(func, vec, res);
-                ///////////////////////////////////
-
-                sampleOutput_Newton(ii, 0) = vec(0);  // x
-                sampleOutput_Newton(ii, 1) = vec(1);  // y
-                sampleOutput_Newton(ii, 2) = sampleInput_Newton(ii, 2);  // z
-                sampleOutput_Newton(ii, 3) = vec(2);  // r
-                sampleOutput_Newton(ii, 4) = res;     // energy
-                sampleOutput_Newton(ii, 5) = it;      // iteration
+        logger().info("Before Interp");
+        for (i = 0; i<trialNum; i++) {
+            
+            sampleOutput(i) = bsplineSolver.Interp3D(sampleInput(i, 0), sampleInput(i, 1), z);
         }
-    });
-    logger().info("After optimization");
+        logger().info("After Interp");
 
-    // print result
-    for (int i=0; i<sampleCountNewton; i++) {
-        // x y z r energy iter   x_start y_start z_start r_start
-        printf("%.3f %.3f %.1f %.3f %f %.0f   %.3f %.3f %.1f %.3f\n", sampleOutput_Newton(i, 0), sampleOutput_Newton(i, 1), sampleOutput_Newton(i, 2), 
-               sampleOutput_Newton(i, 3), sampleOutput_Newton(i, 4), sampleOutput_Newton(i, 5), sampleInput_Newton(i, 0), sampleInput_Newton(i, 1), 
-               sampleInput_Newton(i, 2), sampleInput_Newton(i, 3));
+        // calculate theoretical output
+        for (i = 0; i<trialNum; i++) {
+
+            err = func(sampleInput(i, 0), sampleInput(i, 1), z) - sampleOutput(i);
+            err = fabs(err);
+
+            // stats
+            sumerr += err;
+            if (err > maxerr) maxerr = err;
+            if (err < minerr) minerr = err;
+
+            // moving median
+            if (l.empty()) {l.push(err); continue;}
+            l_ = l.top();
+            if (err >= l_) {u.push(err);} else {l.push(err);}
+            if (u.size() > l.size()) {
+                tt = u.top();
+                u.pop();
+                l.push(tt);
+            }
+            if (l.size() > u.size() + 1) {
+                tt = l.top();
+                l.pop();
+                u.push(tt);
+            }
+        }
     }
+
+    // output the first several samples
+    cout << "==============================" << endl;
+    cout << "First 5 sample points x, y = " << endl;
+    for (i=0; i<5; i++) {
+        cout << sampleInput(i, 0) << " " << sampleInput(i, 1) << endl;
+    }
+
+    // interp test report
+    cout << "==============================" << endl;
+    cout << "Degree = " << bsplineSolver.Get_degree() << endl;
+    cout << "Interp trial number = " << trialNum << endl;
+    cout << "Mean error = " << sumerr / double(trialNum) << endl;
+    cout << "Median error = " << l.top() << endl;
+    cout << "Min  error = " << minerr << endl;
+    cout << "Max  error = " << maxerr << endl;
 }
