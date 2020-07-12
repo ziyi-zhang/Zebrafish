@@ -9,6 +9,8 @@ set(SOURCES
     Quantile.h
     Quadrature.cpp
     Quadrature.h
+    ICP.cpp
+    ICP.h
     Quad.ipp
 )
 
