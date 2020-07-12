@@ -1,11 +1,21 @@
 #pragma once
 
+////////////////////////////////////////////////////////////////////////////////
 #include <igl/opengl/glfw/Viewer.h>
 #include <igl/opengl/glfw/imgui/ImGuiMenu.h>
+////////////////////////////////////////////////////////////////////////////////
 
 namespace zebrafish {
-class GUI : public igl::opengl::glfw::imgui::ImGuiMenu
-{
+
+class GUI : public igl::opengl::glfw::imgui::ImGuiMenu {
+
+private:
+    igl::opengl::glfw::Viewer viewer;
+    Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> texture;
+    std::vector<Eigen::MatrixXd> img;
+    int stage;
+    int slice;
+
 public:
     GUI();
     void init();
@@ -16,13 +26,6 @@ protected:
     void draw_menu_stage0();
     void draw_menu_stage1();
     void draw_menu_stage2();
-
-private:
-    igl::opengl::glfw::Viewer viewer;
-    Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> texture;
-    std::vector<Eigen::MatrixXd> img;
-    int stage;
-    int slice;
-
 };
-}
+
+}  // namespace zebrafish

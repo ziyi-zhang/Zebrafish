@@ -94,7 +94,7 @@ if(ZEBRA_TOPLEVEL_PROJECT)
 
 
   add_executable(${PROJECT_NAME}_gui
-    Cpp/main_origin.cpp
+    Cpp/main_gui.cpp
     Cpp/gui/GUI.cpp
     Cpp/gui/FileDialog.cpp
   )
