@@ -5,13 +5,10 @@
 
 namespace zebrafish {
 
-void GUI::draw_menu_stage0() {
-    if(ImGui::Button("Load Image")) {
-        std::string fname = FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});
-        if (!fname.empty())
-        {
+void GUI::DrawStage0() {
 
-        }
+    if(ImGui::Button("Load Image")) {
+        
     }
 
     ImGui::Text("Stage 0");
@@ -19,7 +16,7 @@ void GUI::draw_menu_stage0() {
 }
 
 
-void GUI::draw_menu_stage1() {
+void GUI::DrawStage1() {
 
     // if(ImGui::SliderInt2("Slide"))
     viewer.data().clear();
@@ -50,7 +47,7 @@ void GUI::draw_menu_stage1() {
 }
 
 
-void GUI::draw_menu_stage2() {
+void GUI::DrawStage2() {
 
     ImGui::Text("Stage 2");
 }
@@ -59,16 +56,18 @@ void GUI::draw_menu_stage2() {
 void GUI::draw_menu() {
 
     // igl::opengl::glfw::imgui::ImGuiMenu::draw_viewer_menu();
+    DrawMainMenuBar();
+
     switch (stage) {
-    case 0:
-        draw_menu_stage0();
-        break;
-    case 1:
-        draw_menu_stage1();
-        break;
-    case 2:
-        draw_menu_stage2();
-        break;
+        case 0:
+            DrawStage0();
+            break;
+        case 1:
+            DrawStage1();
+            break;
+        case 2:
+            DrawStage2();
+            break;
     }
 
     if (ImGui::Button("Next", ImVec2(-1, 0))) {
@@ -86,6 +85,48 @@ void GUI::draw_menu() {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// main menu
+
+
+void GUI::DrawMainMenuBar() {
+// File, Window
+
+    if (ImGui::BeginMainMenuBar()) {
+
+        if (ImGui::BeginMenu("File")) {
+            DrawMenuFile();
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Window")) {
+            DrawMenuWindow();
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
+}
+
+
+void GUI::DrawMenuFile() {
+// New, Open
+
+    ImGui::MenuItem("New", NULL, false, false);
+    if (ImGui::MenuItem("Open", "Ctrl+O")) { 
+        std::string fname = FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});
+        if (!fname.empty())
+        {
+            std::cout << fname << std::endl;
+        } 
+    }
+}
+
+
+void GUI::DrawMenuWindow() {
+
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
 // maintenance methods
 
 
@@ -96,10 +137,10 @@ GUI::GUI() : stage(0), slice(0) {
 
 void GUI::init() {
 
-    // viewer.core().background_color.setOnes();
+    viewer.core().background_color << 0.7f, 0.7f, 0.75f, 1.0f;
     // viewer.core.is_animating = true;
     viewer.plugins.push_back(this);
-    viewer.launch();
+    viewer.launch(true, false, "Zebrafish GUI");
 }
 
 }  // namespace zebrafish

@@ -16,6 +16,10 @@ private:
     int stage;
     int slice;
 
+    void DrawMainMenuBar();
+    void DrawMenuFile();
+    void DrawMenuWindow();
+
 public:
     GUI();
     void init();
@@ -23,9 +27,9 @@ public:
 protected:
     virtual void draw_menu() override;
 
-    void draw_menu_stage0();
-    void draw_menu_stage1();
-    void draw_menu_stage2();
+    void DrawStage0();
+    void DrawStage1();
+    void DrawStage2();
 };
 
 }  // namespace zebrafish
