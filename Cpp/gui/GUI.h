@@ -19,6 +19,9 @@ private:
     void DrawMainMenuBar();
     void DrawMenuFile();
     void DrawMenuWindow();
+    void DrawWindowGraphics();
+
+    bool show_graphics = false;
 
 public:
     GUI();

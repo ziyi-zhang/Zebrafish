@@ -5,6 +5,10 @@
 
 namespace zebrafish {
 
+// Function Decleration
+// static void DrawWindowGraphics(bool* p_open);
+
+
 void GUI::DrawStage0() {
 
     if(ImGui::Button("Load Image")) {
@@ -55,7 +59,8 @@ void GUI::DrawStage2() {
 
 void GUI::draw_menu() {
 
-    // igl::opengl::glfw::imgui::ImGuiMenu::draw_viewer_menu();
+    if (show_graphics) DrawWindowGraphics();
+
     DrawMainMenuBar();
 
     switch (stage) {
@@ -108,6 +113,7 @@ void GUI::DrawMainMenuBar() {
 
 void GUI::DrawMenuFile() {
 // New, Open
+// Accessed from [ Main menu - File ]
 
     ImGui::MenuItem("New", NULL, false, false);
     if (ImGui::MenuItem("Open", "Ctrl+O")) { 
@@ -121,8 +127,23 @@ void GUI::DrawMenuFile() {
 
 
 void GUI::DrawMenuWindow() {
+// Graphics
+// Accessed from [ Main menu - Window ]
+
+    if (ImGui::MenuItem("Graphics", NULL, &show_graphics)) {
+    }
+}
 
 
+void GUI::DrawWindowGraphics() {
+
+    if (!ImGui::Begin("Graphics", &show_graphics)) {
+        ImGui::End();
+        return;
+    }
+    igl::opengl::glfw::imgui::ImGuiMenu::draw_viewer_menu();
+    ImGui::Text("Test");
+    ImGui::End();
 }
 
 
@@ -138,7 +159,7 @@ GUI::GUI() : stage(0), slice(0) {
 void GUI::init() {
 
     viewer.core().background_color << 0.7f, 0.7f, 0.75f, 1.0f;
-    // viewer.core.is_animating = true;
+    // viewer.core().is_animating = true;
     viewer.plugins.push_back(this);
     viewer.launch(true, false, "Zebrafish GUI");
 }
