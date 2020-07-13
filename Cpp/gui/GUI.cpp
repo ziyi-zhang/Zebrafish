@@ -18,8 +18,9 @@ namespace {
 
 void GUI::post_resize(int w, int h) {
 
-    windowWidth = w;
-    windowHeight = h;
+    const double dpiScale = 2.0;  // FIXME
+    windowWidth = w / dpiScale;
+    windowHeight = h / dpiScale;
 }
 
 
@@ -45,7 +46,7 @@ void GUI::DrawZebrafishPanel() {
 // This panel cannot be closed
 
     ImGui::SetNextWindowPos(ImVec2(0.0, mainMenuHeight), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(zebrafishWidth, windowHeight-mainMenuHeight), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(zebrafishWidth, windowHeight-mainMenuHeight-2), ImGuiCond_FirstUseEver);
     ImGui::Begin("Zebrafish Config", NULL, 
         ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
 
@@ -160,6 +161,8 @@ void GUI::DrawWindowGraphics() {
 
 void GUI::DrawWindowLog() {
 
+    ImGui::SetNextWindowPos(ImVec2(zebrafishWidth, windowHeight-logHeight), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(windowWidth-zebrafishWidth-RHSPanelWidth, logHeight), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("Log", &show_log)) {
         ImGui::End();
         return;

@@ -24,6 +24,7 @@ int main(int argc, char **argv) {
     log_level = std::max(0, std::min(6, log_level));
     spdlog::set_level(static_cast<spdlog::level::level_enum>(log_level));
     spdlog::flush_every(std::chrono::seconds(3));
+    logger().info("Zebrafish_gui logger initialized.");
 
     // parse input
     std::string image_path = "";

@@ -32,7 +32,8 @@ private:
     int windowWidth = 1600;
     int windowHeight = 900;
     int zebrafishWidth = 300;
-
+    int logHeight = 150;
+    int RHSPanelWidth = 300;
     double mainMenuHeight;
 
     // bool flag indicating whether the panel is being rendered
