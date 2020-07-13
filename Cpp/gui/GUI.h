@@ -13,14 +13,18 @@ private:
     igl::opengl::glfw::Viewer viewer;
     Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> texture;
     std::vector<Eigen::MatrixXd> img;
-    int stage;
-    int slice;
+    int stage;  // stage in zebrafish_panel
+    int slice;  // which slice in the 3D image to show
 
-    void DrawMainMenuBar();
-    void DrawMenuFile();
-    void DrawMenuWindow();
-    void DrawWindowGraphics();
+    //////////////////////////////////////////////////
+    int windowWidth = 1600;
+    int windowHeight = 900;
+    int zebrafishWidth = 300;
 
+    double mainMenuHeight = 0;
+
+    // bool flag indicating whether the panel is being rendered
+    bool show_log = false;
     bool show_graphics = false;
 
 public:
@@ -28,11 +32,23 @@ public:
     void init();
 
 protected:
-    virtual void draw_menu() override;
+    void draw_menu() override;
+    void post_resize(int w, int h) override;
 
     void DrawStage0();
     void DrawStage1();
     void DrawStage2();
+
+private:
+    const int stageMax = 3;
+
+    void DrawMainMenuBar();
+    void DrawZebrafishPanel();
+    void DrawMenuFile();
+    void DrawMenuWindow();
+    
+    void DrawWindowGraphics();
+    void DrawWindowLog();
 };
 
 }  // namespace zebrafish

@@ -96,6 +96,9 @@ if(ZEBRA_TOPLEVEL_PROJECT)
   add_executable(${PROJECT_NAME}_gui
     Cpp/main_gui.cpp
     Cpp/gui/GUI.cpp
+    Cpp/gui/GUI_stage0.cpp
+    Cpp/gui/GUI_stage1.cpp
+    Cpp/gui/GUI_stage2.cpp
     Cpp/gui/FileDialog.cpp
   )
   zebra_copy_headers(Cpp/gui/GUI.h Cpp/gui/FileDialog.h)
