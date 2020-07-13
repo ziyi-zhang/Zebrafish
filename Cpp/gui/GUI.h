@@ -52,7 +52,7 @@ protected:
     void DrawStage2();
 
 private:
-    const int stageMax = 3;
+    const int stageMax = 2;  // 3 stages
 
     void DrawMainMenuBar();
     void DrawZebrafishPanel();

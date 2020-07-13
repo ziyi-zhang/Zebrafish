@@ -3,6 +3,7 @@
 #include <zebrafish/FileDialog.h>
 
 #include <string>
+#include <fstream>
 
 
 namespace zebrafish {
@@ -114,7 +115,10 @@ void GUI::DrawMenuFile() {
         std::string filename = FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});
         if (!filename.empty()) {
             imagePath = filename;
-            if (!ReadTifFirstImg(filename, layerPerImg, channelPerSlice, img)) {
+            if (ReadTifFirstImg(filename, layerPerImg, channelPerSlice, img)) {
+                // In case the tiff image is very small
+                layerPerImg = img.size();
+            } else {
                 std::cerr << "Error open tiff image" << std::endl;
             }
         } 
@@ -160,7 +164,14 @@ void GUI::DrawWindowLog() {
         ImGui::End();
         return;
     }
-    ImGui::Text("Test log");
+
+    static std::ifstream logFile;
+    logFile.open("Zebrafish_gui.log");
+    char log[100000];
+    while (!logFile.eof())
+        logFile >> log;
+
+    ImGui::TextUnformatted(log);
     ImGui::End();
 }
 
@@ -185,6 +196,8 @@ void GUI::init(std::string imagePath) {
     if (!imagePath.empty()) {
         // only true in debug mode
         ReadTifFirstImg(imagePath, layerPerImg, channelPerSlice, img);
+        // In case the tiff image is very small
+        layerPerImg = img.size();
     }
 
     // libigl viewer

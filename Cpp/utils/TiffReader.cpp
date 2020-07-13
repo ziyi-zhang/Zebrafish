@@ -140,6 +140,17 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
         free(buffer8);
         free(buffer16);
         free(buffer32);
+
+        if (countSlice < targetSlices) {
+        // The tiff image is very small, even small than the default guess
+
+            if (img.empty()) 
+                ok = false;
+            else {
+                imgData.push_back(img);
+                img.clear();
+            }
+        }
     }
     
     TinyTIFFReader_close(tiffr);
