@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
 
     // Start GUI
     GUI gui;
-    gui.init();
+    gui.init(image_path);
 
     return EXIT_SUCCESS;
 }

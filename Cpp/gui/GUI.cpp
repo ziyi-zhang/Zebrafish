@@ -2,6 +2,8 @@
 #include <zebrafish/TiffReader.h>
 #include <zebrafish/FileDialog.h>
 
+#include <string>
+
 
 namespace zebrafish {
 
@@ -53,9 +55,6 @@ void GUI::DrawZebrafishPanel() {
         stage = std::max(0, stage);
     }
     if (ImGui::Button("Next Stage", ImVec2(zebrafishWidth / 2.0, 0))) {
-        if(stage == 0) {
-            read_tif_image("../data/test_img.tif", img);
-        }
         stage++;
         stage = std::min(stage, stageMax);
     }
@@ -106,17 +105,24 @@ void GUI::DrawMainMenuBar() {
 
 
 void GUI::DrawMenuFile() {
-// [ New ] [ Open ]
+// [ New ] [ Open ] [Close]
 // Accessed from [ Main menu - File ]
 
     ImGui::MenuItem("New", NULL, false, false);
     if (ImGui::MenuItem("Open", "Ctrl+O")) { 
-        std::string fname = FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});
-        if (!fname.empty())
-        {
-            std::cout << fname << std::endl;
+        // Only accept tif/tiff files
+        std::string filename = FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});
+        if (!filename.empty()) {
+            imagePath = filename;
+            if (!ReadTifFirstImg(filename, layerPerImg, channelPerSlice, img)) {
+                std::cerr << "Error open tiff image" << std::endl;
+            }
         } 
     }
+
+    ImGui::Separator();
+
+    ImGui::MenuItem("Close", NULL, false, false);
 }
 
 
@@ -163,12 +169,23 @@ void GUI::DrawWindowLog() {
 // maintenance methods
 
 
-GUI::GUI() : stage(0), slice(0) {
+GUI::GUI() {
 
+    stage = 0;
+    slice = 0;
+
+    layerPerImg = 40;  // a random guess to preview the image file
+    channelPerSlice = 2;  // a random guess to preview the image file
 }
 
 
-void GUI::init() {
+void GUI::init(std::string imagePath) {
+
+    // Debug purpose
+    if (!imagePath.empty()) {
+        // only true in debug mode
+        ReadTifFirstImg(imagePath, layerPerImg, channelPerSlice, img);
+    }
 
     // libigl viewer
     viewer.core().background_color << 0.7f, 0.7f, 0.75f, 1.0f;

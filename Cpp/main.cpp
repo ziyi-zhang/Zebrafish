@@ -66,10 +66,12 @@ int main(int argc, char **argv) {
     std::string image_path = "";
     unsigned int num_threads = 32; // std::max(1u, std::thread::hardware_concurrency());
     int lsMethod = 2;
+    int layerPerImg;
     CLI::App command_line{"ZebraFish"};
     command_line.add_option("-i,--img", image_path, "Input TIFF image to process")->check(CLI::ExistingFile);
     command_line.add_option("-n", num_threads, "Input number of threads");
     command_line.add_option("-l", lsMethod, "Input least square solver method");
+    command_line.add_option("-h", layerPerImg, "Input the number of layers (slices) in each 3D scan");
 
     try {
         command_line.parse(argc, argv);
@@ -87,7 +89,7 @@ int main(int argc, char **argv) {
     // read image
     image_t image;
     cout << "====================================================" << endl;
-    read_tif_image(image_path, image);
+    ReadTifFirstImg(image_path, layerPerImg, 2, image);
     cout << "Total number of frames picked = " << image.size() << endl;
 
     // clip image
