@@ -165,13 +165,21 @@ void GUI::DrawWindowLog() {
         return;
     }
 
-    static std::ifstream logFile;
-    logFile.open("Zebrafish_gui.log");
-    char log[100000];
-    while (!logFile.eof())
-        logFile >> log;
+    ImGui::Separator();
+    ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
-    ImGui::TextUnformatted(log);
+    std::ifstream logFile("Zebrafish_gui.log", std::ios::binary | std::ios::ate);
+    std::streamsize size = logFile.tellg();
+    logFile.seekg(0, std::ios::beg);
+    char logBuffer[size];
+
+    if (logFile.read(logBuffer, size)) {
+        ImGui::TextUnformatted(logBuffer);
+    } else {
+        ImGui::Text("Failed to load log file.");
+    }
+
+    ImGui::EndChild();
     ImGui::End();
 }
 

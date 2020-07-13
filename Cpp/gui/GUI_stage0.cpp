@@ -1,6 +1,7 @@
 #include <zebrafish/GUI.h>
 #include <zebrafish/TiffReader.h>
 #include <zebrafish/FileDialog.h>
+#include <zebrafish/Logger.hpp>
 
 
 namespace zebrafish {
@@ -50,6 +51,9 @@ void GUI::DrawStage0() {
         viewer.data().set_texture(texture, texture, texture);
     }
 
+    if (ImGui::Button("Print some log")) {
+        logger().info("test");
+    }
     ImGui::Text("Stage 0");
     // viewer.core().set_rotation_type(igl::opengl::ViewerCore::RotationType::ROTATION_TYPE_TRACKBALL);
 }
