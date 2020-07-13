@@ -15,23 +15,13 @@ namespace {
 
 void GUI::DrawStage0() {
 
-    
+    ImGui::SliderInt("Slice", &slice, 0, img.size()-1);
 
-    if(ImGui::Button("Load Image")) {
-        
-    }
+    viewer.data().clear();
+    viewer.core().set_rotation_type(igl::opengl::ViewerCore::RotationType::ROTATION_TYPE_NO_ROTATION);
 
-    ImGui::SliderInt("Slice", &slice, 0, layerPerImg-1);
-
-
-    // Plot "img"
     if (!img.empty()) {
-
-        viewer.data().clear();
-        viewer.core().set_rotation_type(igl::opengl::ViewerCore::RotationType::ROTATION_TYPE_NO_ROTATION);
-
         texture = (img[slice].array()).cast<unsigned char>();
-
         int xMax = img[slice].cols();
         int yMax = img[slice].rows();
         Eigen::MatrixXd V(4, 3);
@@ -54,6 +44,46 @@ void GUI::DrawStage0() {
     if (ImGui::Button("Print some log")) {
         logger().info("test");
     }
+
+    ImGui::InputInt("Layers Per Image", &layerPerImg);
+    ImGui::InputInt("Channels Per Slice", &channelPerSlice);
+
+    ImGui::Separator();
+
+    if (ImGui::Checkbox("Mouse Crop", &cropActive)) {
+        if (!cropActive) 
+            logger().info("Mouse crop: de-activated.");
+        else
+            logger().info("Mouse crop: activated.");
+    }
+
+    ImGui::PushItemWidth(40);
+    ImGui::InputInt("R0", &r0);
+    ImGui::SameLine();
+    ImGui::InputInt("C0", &c0);
+
+    ImGui::InputInt("R1", &r1);
+    ImGui::SameLine();
+    ImGui::InputInt("C1", &c1);
+    ImGui::PopItemWidth();
+
+    ImGui::Separator();
+
+    if (ImGui::Button("(Re)load image")) {
+        if (imagePath.empty()) {
+            imagePath = FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});
+        }
+        logger().info("(Re)load image {}", imagePath);
+        if (ReadTifFirstImg(imagePath, layerPerImg, channelPerSlice, img, r0, c0, r1, c1)) {
+            // In case the tiff image is very small
+            layerPerImg = img.size();
+            logger().info("Image reloaded");
+        } else {
+            logger().error("Error open tiff image (reload)");
+            std::cerr << "Error open tiff image (reload)" << std::endl;
+        }
+    }
+
     ImGui::Text("Stage 0");
     // viewer.core().set_rotation_type(igl::opengl::ViewerCore::RotationType::ROTATION_TYPE_TRACKBALL);
 }

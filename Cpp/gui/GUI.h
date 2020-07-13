@@ -26,19 +26,27 @@ private:
     int layerPerImg, channelPerSlice;
     int slice;  // which slice in the 3D image to show
 
+    // crop image
+    bool cropActive;
+    int clickCount;
+    int r0, c0, r1, c1;  // upper-left [r0, c0]
+
     //////////////////////////////////////////////////
     // visualization
     Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> texture;
-    int windowWidth = 1600;
-    int windowHeight = 900;
-    int zebrafishWidth = 300;
-    int logHeight = 150;
-    int RHSPanelWidth = 300;
+    int windowWidth;
+    int windowHeight;
+    int zebrafishWidth;
+    int logHeight;
+    int Image3DViewerHeight;
+    int RHSPanelWidth;
     double mainMenuHeight;
 
     // bool flag indicating whether the panel is being rendered
-    bool show_log = false;
-    bool show_graphics = false;
+    bool show_log;
+    bool show_3DImage_viewer;
+    bool show_property_inspector;
+    bool show_graphics;
 
 public:
     GUI();
@@ -47,6 +55,7 @@ public:
 protected:
     void draw_menu() override;
     void post_resize(int w, int h) override;
+    bool MouseDownCallback(igl::opengl::glfw::Viewer &viewer, int button, int modifier);
 
     void DrawStage0();
     void DrawStage1();
@@ -60,8 +69,9 @@ private:
     void DrawMenuFile();
     void DrawMenuWindow();
     
-    void DrawWindowGraphics();
     void DrawWindowLog();
+    void DrawWindow3DImageViewer();
+    void DrawWindowGraphics();
 };
 
 }  // namespace zebrafish

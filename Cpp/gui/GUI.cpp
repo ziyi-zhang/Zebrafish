@@ -24,6 +24,17 @@ void GUI::post_resize(int w, int h) {
 }
 
 
+bool GUI::MouseDownCallback(igl::opengl::glfw::Viewer &viewer, int button, int modifier) {
+
+    if (cropActive) {
+        std::cout << viewer.down_mouse_x << " " << viewer.down_mouse_y << std::endl;
+        // disable ligigl default mouse_down
+        return true;
+    }
+    return false;
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////////
 /// This is the main starting point
 /// We override the libigl function "draw_menu" as the main GUI function
@@ -34,6 +45,7 @@ void GUI::draw_menu() {
     DrawZebrafishPanel();
 
     if (show_log) DrawWindowLog();
+    if (show_3DImage_viewer) DrawWindow3DImageViewer();
     if (show_graphics) DrawWindowGraphics();
 }
 
@@ -46,7 +58,7 @@ void GUI::DrawZebrafishPanel() {
 // This panel cannot be closed
 
     ImGui::SetNextWindowPos(ImVec2(0.0, mainMenuHeight), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(zebrafishWidth, windowHeight-mainMenuHeight-2), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(zebrafishWidth, windowHeight-mainMenuHeight), ImGuiCond_FirstUseEver);
     ImGui::Begin("Zebrafish Config", NULL, 
         ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
 
@@ -136,22 +148,12 @@ void GUI::DrawMenuWindow() {
 // Accessed from [ Main menu - Window ]
 
     ImGui::MenuItem("Log", NULL, &show_log);
+    ImGui::MenuItem("3D Image Viewer", NULL, &show_3DImage_viewer);
+    ImGui::MenuItem("Property Inspector", NULL, &show_property_inspector);
+
+    ImGui::Separator();
+
     ImGui::MenuItem("Graphics", NULL, &show_graphics);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////
-// window: graphics
-
-
-void GUI::DrawWindowGraphics() {
-
-    if (!ImGui::Begin("Graphics", &show_graphics)) {
-        ImGui::End();
-        return;
-    }
-    igl::opengl::glfw::imgui::ImGuiMenu::draw_viewer_menu();
-    ImGui::End();
 }
 
 
@@ -178,11 +180,78 @@ void GUI::DrawWindowLog() {
 
     if (logFile.read(logBuffer, size)) {
         ImGui::TextUnformatted(logBuffer);
+        ImGui::SetScrollHere(1.0f);
     } else {
         ImGui::Text("Failed to load log file.");
     }
 
     ImGui::EndChild();
+    ImGui::End();
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// window: 3D image viewer
+
+
+void GUI::DrawWindow3DImageViewer() {
+
+    ImGui::SetNextWindowPos(ImVec2(windowWidth-RHSPanelWidth, windowHeight-Image3DViewerHeight), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(RHSPanelWidth, Image3DViewerHeight), ImGuiCond_FirstUseEver);
+    if (!ImGui::Begin("3D Image Viewer", &show_3DImage_viewer)) {
+        ImGui::End();
+        return;
+    }
+
+    // Plot "img"
+    if (!img.empty()) {
+
+        ImGui::Text("Not implemented yet");
+        /*
+        ImGui::Image()
+        viewer.data().clear();
+        viewer.core().set_rotation_type(igl::opengl::ViewerCore::RotationType::ROTATION_TYPE_NO_ROTATION);
+
+        texture = (img[slice].array()).cast<unsigned char>();
+
+        int xMax = img[slice].cols();
+        int yMax = img[slice].rows();
+        Eigen::MatrixXd V(4, 3);
+        V << 0, 0, 0, yMax, 0, 0, yMax, xMax, 0, 0, xMax, 0;
+        viewer.core().align_camera_center(V);
+
+        Eigen::MatrixXi F(2, 3);
+        F << 0, 1, 2, 2, 3, 0;
+
+        Eigen::MatrixXd UV(4, 2);
+        UV << 0, 1, 1, 1, 1, 0, 0, 0;
+        viewer.data().set_mesh(V, F);
+        viewer.data().set_uv(UV);
+        viewer.data().show_faces = true;
+        viewer.data().show_lines = false;
+        viewer.data().show_texture = true;
+        viewer.data().set_texture(texture, texture, texture);
+        */
+    } else {
+
+        ImGui::Text("No 3D image registered.");
+    }
+
+    ImGui::End();
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// window: graphics
+
+
+void GUI::DrawWindowGraphics() {
+
+    if (!ImGui::Begin("Graphics", &show_graphics)) {
+        ImGui::End();
+        return;
+    }
+    igl::opengl::glfw::imgui::ImGuiMenu::draw_viewer_menu();
     ImGui::End();
 }
 
@@ -196,8 +265,31 @@ GUI::GUI() {
     stage = 0;
     slice = 0;
 
+    // clip image
+    cropActive = false;
+    clickCount = 0;
+    r0 = -1;
+    c0 = -1; 
+    r1 = -1;
+    c1 = -1;
+
+    // image (imageData)
     layerPerImg = 40;  // a random guess to preview the image file
     channelPerSlice = 2;  // a random guess to preview the image file
+
+    // visualization
+    windowWidth = 1600;
+    windowHeight = 900;
+    zebrafishWidth = 300;
+    logHeight = 150;
+    Image3DViewerHeight = 320;
+    RHSPanelWidth = 300;
+
+    // bool flag indicating whether the panel is being rendered
+    show_log = false;
+    show_3DImage_viewer = false;
+    show_property_inspector = false;
+    show_graphics = false;
 }
 
 
@@ -210,6 +302,11 @@ void GUI::init(std::string imagePath) {
         // In case the tiff image is very small
         layerPerImg = img.size();
     }
+
+    // callback
+    viewer.callback_mouse_down = [this](igl::opengl::glfw::Viewer &viewer, int button, int modifier) {
+        return this->MouseDownCallback(viewer, button, modifier);
+    };
 
     // libigl viewer
     viewer.core().background_color << 0.7f, 0.7f, 0.75f, 1.0f;

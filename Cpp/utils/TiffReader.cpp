@@ -40,7 +40,7 @@ namespace {
 
 ////////////////////////////////////////////////////////////
 
-bool ReadTifFirstImg(const std::string &path, const int layerPerImg, const int numChannel, image_t &img) {
+bool ReadTifFirstImg(const std::string &path, const int layerPerImg, const int numChannel, image_t &img, int r0, int c0, int r1, int c1) {
 /// This function only read channel 1 from the first 3D image
 
     std::vector<bool> channelVec(numChannel, false);
@@ -49,14 +49,14 @@ bool ReadTifFirstImg(const std::string &path, const int layerPerImg, const int n
     imageData_t imgData;
     bool ok;
 
-    ok = ReadTif(path, layerPerImg, channelVec, 1, imgData);
+    ok = ReadTif(path, layerPerImg, channelVec, 1, imgData, r0, c0, r1, c1);
     
     if (ok) img = imgData[0];
     return ok;
 }
 
 
-bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<bool> &channelVec, const int targetNumImg, imageData_t &imgData) {
+bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<bool> &channelVec, const int targetNumImg, imageData_t &imgData, int r0, int c0, int r1, int c1) {
 
     bool ok = false;
     TinyTIFFReaderFile *tiffr = NULL;
@@ -120,7 +120,10 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
                 std::string descStr = TinyTIFFReader_getImageDescription(tiffr);
 
                 // push a slice to "img"
-                img.push_back(sliceMat);
+                if (r0 >=0 && c0 >= 0 && r1 >=0 && c1 >= 0)
+                    img.push_back(sliceMat.block(r0, c0, r1-r0+1, c1-c0+1));
+                else
+                    img.push_back(sliceMat);
             }
 
             // This needs to be executed even if this is not a desired channel
@@ -131,7 +134,7 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
             }
 
             // progress
-            if (countSlice % 20 == 0) {
+            if (countSlice % 50 == 0) {
                 logger().trace("Processed {} slices / {} slices (total {})", countSlice, targetSlices, ttlSlices);
             }
 
