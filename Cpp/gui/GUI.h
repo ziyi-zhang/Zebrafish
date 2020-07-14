@@ -13,18 +13,35 @@
 
 namespace zebrafish {
 
+typedef struct pointRecord_t {
+
+    int num;
+    Eigen::Matrix<bool,   Eigen::Dynamic, 1> alive;
+    Eigen::Matrix<double, Eigen::Dynamic, 5> grid_search;
+    Eigen::Matrix<double, Eigen::Dynamic, 6> optimization;
+
+    pointRecord_t() : num(0) {}
+} pointRecord_t;
+
+////////////////////////////////////////////////////////
+// GUI
+
 class GUI : public igl::opengl::glfw::imgui::ImGuiMenu {
 
 private:
-    // Core private variables
     igl::opengl::glfw::Viewer viewer;
-
     int stage;  // stage in zebrafish_panel
 
+    //////////////////////////////////////////////////
     // core
     bspline bsplineSolver;
-    Eigen::MatrixXd gridSampleInput, gridSampleOutput;
 
+    double gridEnergyThres;
+    pointRecord_t pointRecord;
+    ///       |   Grid Search  |   Optimization
+    /// alive | x y z r energy | x y z r energy iter
+
+    //////////////////////////////////////////////////
     // image (imageData)
     std::string imagePath;
     imageData_t imgData;
@@ -34,11 +51,13 @@ private:
     int slice;  // which slice in the 3D image to show
     double normalizeQuantile;
 
+    //////////////////////////////////////////////////
     // crop image
     bool cropActive;
     int clickCount;
     int r0, c0, r1, c1;  // upper-left [r0, c0]
 
+    //////////////////////////////////////////////////
     // property editor
     int propertyListType;
 
@@ -53,6 +72,7 @@ private:
     int RHSPanelWidth;
     double mainMenuHeight;
 
+    //////////////////////////////////////////////////
     // bool flag indicating whether the panel is being rendered
     bool show_log;
     bool show_3DImage_viewer;
@@ -85,9 +105,13 @@ private:
     void DrawWindowPropertyEditor();
     void DrawWindowGraphics();
 
+    //////////////////////////////////////////////////
     // Stage 1
     void GridSearch();
     void Optimization();
+    void UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen::MatrixXd &gridSampleOutput);
+    /// This function will clear "pointRecord" and intialize it 
+    /// with grid search results
 };
 
 }  // namespace zebrafish

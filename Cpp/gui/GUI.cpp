@@ -4,6 +4,7 @@
 
 #include <string>
 #include <fstream>
+#include <algorithm>
 
 
 namespace zebrafish {
@@ -12,19 +13,37 @@ namespace {
 
 struct PropertyEditorItem {
 
-    static void AppendItem(const char* prefix, int uid, const Eigen::MatrixXd &sampleInput, const Eigen::MatrixXd &sampleOutput) {
+    static void AppendPointRecordItem(const char* prefix, int uid, const pointRecord_t &pointRecord) {
 
         ImGui::PushID(uid);
         ImGui::AlignTextToFramePadding();
         bool nodeOpen = ImGui::TreeNode("Object", "%s %u", prefix, uid);
         ImGui::NextColumn();
         ImGui::AlignTextToFramePadding();
-        bool enabled = true;
-        ImGui::Checkbox("Promising", &enabled);
+        static bool enabled = true; //
+        if (pointRecord.optimization(0, 0) == 0)
+            ImGui::Checkbox("to be optimized", &enabled);
+        else
+            ImGui::Text("has been optimized");
+
         ImGui::NextColumn();
 
         if (nodeOpen) {
-            ImGui::Text("%f", sampleOutput(uid, 0));
+            static const std::vector<std::string> itemName{"Energy", "x", "y", "z", "h"};
+            for (int i=0; i<5; i++) {
+                ImGui::PushID(i);
+                ImGui::AlignTextToFramePadding();
+                ImGui::TreeNodeEx(itemName[i].c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet);
+                ImGui::NextColumn();
+                if (i == 0) {
+                    ImGui::Text("%.4f", pointRecord.grid_search(uid, 4));
+                } else {
+                    ImGui::Text("%.2f", pointRecord.grid_search(uid, i-1));
+                }
+                ImGui::NextColumn();
+                ImGui::PopID();
+            }
+            ImGui::TreePop();
         }
 
         ImGui::PopID();
@@ -277,31 +296,41 @@ void GUI::DrawWindowPropertyEditor() {
     }
 
     ImGui::PushItemWidth(RHSPanelWidth/2.0);
-    std::vector<std::string> typeName{"Grid Search", "Cylinders"};
+    std::vector<std::string> typeName{"Grid Search & Opt", "Cylinders"};
     ImGui::Combo("Property List Type", &propertyListType, typeName);
     ImGui::PopItemWidth();
 
     ImGui::Separator();
+    ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
     switch (propertyListType) {
     case 0:
         // Grid Search
-        if (gridSampleOutput.rows() < 1) {
-            ImGui::Text("Grid Search List Empty");
+        if (pointRecord.num == 0) {
+            ImGui::Text("Optimization point list is empty");
         } else {
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
             ImGui::Columns(2);
 
-            for (int i=0; i<10; i++)
-                PropertyEditorItem::AppendItem("Point", i, gridSampleInput, gridSampleOutput);
+            const int maxNumItemDisplayed = 300;
+            const int ttlItem = pointRecord.num;
+            const int numItemToDisplay = std::min(maxNumItemDisplayed, ttlItem);
+            for (int i=0; i<numItemToDisplay; i++) {
+
+                PropertyEditorItem::AppendPointRecordItem("Point", i, pointRecord);
+            }
 
             ImGui::Columns(1);
+            if (ttlItem >= maxNumItemDisplayed) {
+                ImGui::Text("Only the first %d items will be displayed", maxNumItemDisplayed);
+            }
             ImGui::PopID();
         }
         break;
 
     case 1:
-        ImGui::Text("Candidate Cylinder List Empty");
+        // Optimized Cylinders
+        ImGui::Text("Candidate cylinder list is empty");
         break;
 
     default:
@@ -309,6 +338,7 @@ void GUI::DrawWindowPropertyEditor() {
         break;
     }
 
+    ImGui::EndChild();
     ImGui::End();
 }
 
@@ -332,10 +362,14 @@ void GUI::DrawWindowGraphics() {
 // maintenance methods
 
 
-GUI::GUI() : bsplineSolver() {
+GUI::GUI() : bsplineSolver(), pointRecord() {
 
     stage = 0;
     slice = 0;
+
+    // core
+    gridEnergyThres = -0.05;
+
 
     // image (imageData)
     layerPerImg = 40;  // a random guess to preview the image file
