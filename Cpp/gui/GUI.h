@@ -3,6 +3,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
+#include <zebrafish/Cylinder.h>
+#include <zebrafish/autodiff.h>
 
 #include <string>
 #include <igl/opengl/glfw/Viewer.h>
@@ -19,12 +21,17 @@ private:
 
     int stage;  // stage in zebrafish_panel
 
+    // core
+    bspline bsplineSolver;
+
     // image (imageData)
     std::string imagePath;
     imageData_t imgData;
     image_t img;
     int layerPerImg, channelPerSlice;
+    double resolutionX, resolutionY, resolutionZ;
     int slice;  // which slice in the 3D image to show
+    double normalizeQuantile;
 
     // crop image
     bool cropActive;

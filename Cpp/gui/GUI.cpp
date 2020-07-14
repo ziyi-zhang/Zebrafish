@@ -260,7 +260,7 @@ void GUI::DrawWindowGraphics() {
 // maintenance methods
 
 
-GUI::GUI() {
+GUI::GUI() : bsplineSolver() {
 
     stage = 0;
     slice = 0;
@@ -276,6 +276,10 @@ GUI::GUI() {
     // image (imageData)
     layerPerImg = 40;  // a random guess to preview the image file
     channelPerSlice = 2;  // a random guess to preview the image file
+    resolutionX = 0;
+    resolutionY = 0;
+    resolutionZ = 0;
+    normalizeQuantile = 0.995;
 
     // visualization
     windowWidth = 1600;

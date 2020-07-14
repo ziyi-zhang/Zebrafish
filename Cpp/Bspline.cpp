@@ -602,6 +602,27 @@ void bspline::InterpDisk(const double  x, const double  y, const double z, const
 // maintenance methods
 
 
+bspline::bspline() : quad(6) {
+
+    DiffScalarBase::setVariableCount(3);  // x, y, r
+
+    degree = 0;
+    controlPoints.setZero();
+    controlPointsCache.setZero();
+    numX = 0;
+    numY = 0;
+    numZ = 0;
+    // By default use Eigen::LeastSquaresConjugateGradient
+    leastSquareMethod = 2;
+    // solver by default very high accuracy
+    solverMaxIt = 10000;    // 1000
+    solverConvTol = 1e-10;  // 1e-10
+    solverTol = 1e-10;      // 1e-10
+    // whether enable control points cache
+    controlPointsCacheFlag = false;
+}
+
+
 bspline::bspline(struct quadrature &quad_) : quad(quad_) {
 
     DiffScalarBase::setVariableCount(3);  // x, y, r

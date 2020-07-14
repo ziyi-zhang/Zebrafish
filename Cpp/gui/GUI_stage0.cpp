@@ -2,11 +2,24 @@
 #include <zebrafish/TiffReader.h>
 #include <zebrafish/FileDialog.h>
 #include <zebrafish/Logger.hpp>
+#include <zebrafish/Quantile.h>
 
 
 namespace zebrafish {
 
 namespace {
+
+void NormalizeImage(image_t &image) {
+
+    // normalize all layers
+    double quantile = zebrafish::QuantileImage(image, 0.995);
+    logger().info("Quantile of image with q=0.995 is {}", quantile);
+    for (auto it=image.begin(); it!=image.end(); it++) {
+        Eigen::MatrixXd &img = *it;
+        img.array() /= quantile;
+    }
+    logger().info("Image normalized: most pixels will have value between 0 and 1");
+}
 
 }  // anonymous namespace
 
@@ -21,7 +34,8 @@ void GUI::DrawStage0() {
     viewer.core().set_rotation_type(igl::opengl::ViewerCore::RotationType::ROTATION_TYPE_NO_ROTATION);
 
     if (!img.empty()) {
-        texture = (img[slice].array()).cast<unsigned char>();
+        int scale = (img[slice](0, 0) > 1) ? 1 : 255;
+        texture = (img[slice].array() * scale).cast<unsigned char>();
         int xMax = img[slice].cols();
         int yMax = img[slice].rows();
         Eigen::MatrixXd V(4, 3);
@@ -45,8 +59,10 @@ void GUI::DrawStage0() {
         logger().info("test");
     }
 
+    ImGui::PushItemWidth(zebrafishWidth / 3.0);
     ImGui::InputInt("Layers Per Image", &layerPerImg);
     ImGui::InputInt("Channels Per Slice", &channelPerSlice);
+    ImGui::PopItemWidth();
 
     ImGui::Separator();
 
@@ -57,7 +73,7 @@ void GUI::DrawStage0() {
             logger().info("Mouse crop: activated.");
     }
 
-    ImGui::PushItemWidth(40);
+    ImGui::PushItemWidth(80);
     ImGui::InputInt("R0", &r0);
     ImGui::SameLine();
     ImGui::InputInt("C0", &c0);
@@ -69,6 +85,29 @@ void GUI::DrawStage0() {
 
     ImGui::Separator();
 
+    ImGui::Text("Histogram of pixel brightness");
+    ImGui::Text("Not yet implemented");
+    ImGui::PushItemWidth(zebrafishWidth / 3.0);
+    ImGui::InputDouble("Quantile Threshold", &normalizeQuantile);
+    ImGui::PopItemWidth();
+
+    ImGui::Separator();
+
+    ImGui::PushItemWidth(zebrafishWidth / 3.0);
+    ImGui::InputDouble("Resolution X (um)", &resolutionX);
+    ImGui::InputDouble("Resolution Y (um)", &resolutionY);
+    ImGui::InputDouble("Resolution Z (um)", &resolutionZ);
+    ImGui::PopItemWidth();
+
+    ImGui::Separator();
+
+    ImGui::Text("Bspline config ... ...");
+    ImGui::Text("Not yet implemented");
+
+    ImGui::Separator();
+
+    //////////////////////////////////////////////////////////////////////////
+
     if (ImGui::Button("(Re)load image")) {
         if (imagePath.empty()) {
             imagePath = FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});
@@ -78,6 +117,7 @@ void GUI::DrawStage0() {
             // In case the tiff image is very small
             layerPerImg = img.size();
             logger().info("Image reloaded");
+            NormalizeImage(img);
         } else {
             logger().error("Error open tiff image (reload)");
             std::cerr << "Error open tiff image (reload)" << std::endl;

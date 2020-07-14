@@ -99,6 +99,7 @@ public:
     void Set_leastSquareMethod(int x) { leastSquareMethod = x; }
 
     // maintenance methods
+    bspline();
     bspline(struct quadrature &quad);
     ~bspline();
 };
