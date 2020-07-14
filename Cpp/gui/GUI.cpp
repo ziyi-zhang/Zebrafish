@@ -58,7 +58,7 @@ struct PropertyEditorItem {
 
 void GUI::post_resize(int w, int h) {
 
-    const double dpiScale = 1.0;  // FIXME
+    const double dpiScale = hidpi_scaling();
     windowWidth = w / dpiScale;
     windowHeight = h / dpiScale;
 }
