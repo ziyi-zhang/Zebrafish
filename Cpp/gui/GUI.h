@@ -38,6 +38,9 @@ private:
     int clickCount;
     int r0, c0, r1, c1;  // upper-left [r0, c0]
 
+    // property editor
+    int propertyListType;
+
     //////////////////////////////////////////////////
     // visualization
     Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> texture;
@@ -52,7 +55,7 @@ private:
     // bool flag indicating whether the panel is being rendered
     bool show_log;
     bool show_3DImage_viewer;
-    bool show_property_inspector;
+    bool show_property_editor;
     bool show_graphics;
 
 public:
@@ -78,7 +81,12 @@ private:
     
     void DrawWindowLog();
     void DrawWindow3DImageViewer();
+    void DrawWindowPropertyEditor();
     void DrawWindowGraphics();
+
+    // Stage 1
+    void GridSearch();
+    void Optimization();
 };
 
 }  // namespace zebrafish

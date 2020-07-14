@@ -115,8 +115,7 @@ int main(int argc, char **argv) {
     // main
 
     // prepare B-spline
-    quadrature quad;
-    bspline bsplineSolver(quad);
+    bspline bsplineSolver;
     const int bsplineDegree = 2;
     bsplineSolver.Set_leastSquareMethod(lsMethod);
     bsplineSolver.SetResolution(0.325, 0.325, 0.5);

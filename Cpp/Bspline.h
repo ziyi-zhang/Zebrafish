@@ -100,7 +100,6 @@ public:
 
     // maintenance methods
     bspline();
-    bspline(struct quadrature &quad);
     ~bspline();
 };
 

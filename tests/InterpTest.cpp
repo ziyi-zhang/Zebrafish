@@ -65,9 +65,8 @@ void interpolate(const Func &func, int &degree, double &mean_error, double &medi
     }
 
     // prepare B-spline
-    struct quadrature quad;
     const int bsplineDegree = degree;
-    bspline bsplineSolver(quad);
+    bspline bsplineSolver;
     bsplineSolver.SetResolution(0.325, 0.325, 0.5);
     bsplineSolver.CalcControlPts_um(image, 0.6, 0.6, 0.6, bsplineDegree);
 

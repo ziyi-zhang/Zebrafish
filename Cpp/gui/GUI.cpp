@@ -46,6 +46,7 @@ void GUI::draw_menu() {
 
     if (show_log) DrawWindowLog();
     if (show_3DImage_viewer) DrawWindow3DImageViewer();
+    if (show_property_editor) DrawWindowPropertyEditor();
     if (show_graphics) DrawWindowGraphics();
 }
 
@@ -149,7 +150,7 @@ void GUI::DrawMenuWindow() {
 
     ImGui::MenuItem("Log", NULL, &show_log);
     ImGui::MenuItem("3D Image Viewer", NULL, &show_3DImage_viewer);
-    ImGui::MenuItem("Property Inspector", NULL, &show_property_inspector);
+    ImGui::MenuItem("Property Editor", NULL, &show_property_editor);
 
     ImGui::Separator();
 
@@ -242,6 +243,30 @@ void GUI::DrawWindow3DImageViewer() {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// window: property editor
+
+
+void GUI::DrawWindowPropertyEditor() {
+
+    ImGui::SetNextWindowPos(ImVec2(windowWidth-RHSPanelWidth, mainMenuHeight), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(RHSPanelWidth, windowHeight-Image3DViewerHeight-mainMenuHeight), ImGuiCond_FirstUseEver);
+    if (!ImGui::Begin("Property Editor", &show_3DImage_viewer)) {
+        ImGui::End();
+        return;
+    }
+
+    ImGui::PushItemWidth(RHSPanelWidth/2.0);
+    std::vector<std::string> typeName{"Grid Starting Points", "Cylinders"};
+    ImGui::Combo("Property List Type", &propertyListType, typeName);
+    ImGui::PopItemWidth();
+
+    ImGui::Separator();
+
+    ImGui::End();
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
 // window: graphics
 
 
@@ -265,14 +290,6 @@ GUI::GUI() : bsplineSolver() {
     stage = 0;
     slice = 0;
 
-    // clip image
-    cropActive = false;
-    clickCount = 0;
-    r0 = -1;
-    c0 = -1; 
-    r1 = -1;
-    c1 = -1;
-
     // image (imageData)
     layerPerImg = 40;  // a random guess to preview the image file
     channelPerSlice = 2;  // a random guess to preview the image file
@@ -281,6 +298,18 @@ GUI::GUI() : bsplineSolver() {
     resolutionZ = 0;
     normalizeQuantile = 0.995;
 
+    // clip image
+    cropActive = false;
+    clickCount = 0;
+    r0 = -1;
+    c0 = -1; 
+    r1 = -1;
+    c1 = -1;
+
+    // property editor
+    propertyListType = 0;
+
+    //////////////////////////////////////////////////
     // visualization
     windowWidth = 1600;
     windowHeight = 900;
@@ -292,7 +321,7 @@ GUI::GUI() : bsplineSolver() {
     // bool flag indicating whether the panel is being rendered
     show_log = false;
     show_3DImage_viewer = false;
-    show_property_inspector = false;
+    show_property_editor = false;
     show_graphics = false;
 }
 
