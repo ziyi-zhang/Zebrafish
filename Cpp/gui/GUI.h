@@ -88,12 +88,12 @@ protected:
     void post_resize(int w, int h) override;
     bool MouseDownCallback(igl::opengl::glfw::Viewer &viewer, int button, int modifier);
 
-    void DrawStage0();
     void DrawStage1();
     void DrawStage2();
+    void DrawStage3();
 
 private:
-    const int stageMax = 2;  // 3 stages
+    const int stageMax = 3;  // 3 stages
 
     void DrawMainMenuBar();
     void DrawZebrafishPanel();
@@ -106,7 +106,7 @@ private:
     void DrawWindowGraphics();
 
     //////////////////////////////////////////////////
-    // Stage 1
+    // Stage 2
     void GridSearch();
     void Optimization();
     void UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen::MatrixXd &gridSampleOutput);
