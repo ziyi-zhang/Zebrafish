@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
 
     // logger
     bool is_quiet = false;
-    std::string log_file = "Zebrafish_gui.log";
+    std::string log_file = ""; //Zebrafish_gui.log";
     int log_level = 0;
     Logger::init(!is_quiet, log_file);
     log_level = std::max(0, std::min(6, log_level));
