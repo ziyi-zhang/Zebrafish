@@ -58,7 +58,7 @@ struct PropertyEditorItem {
 
 void GUI::post_resize(int w, int h) {
 
-    const double dpiScale = 2.0;  // FIXME
+    const double dpiScale = hidpi_scaling();
     windowWidth = w / dpiScale;
     windowHeight = h / dpiScale;
 }
@@ -107,7 +107,7 @@ void GUI::DrawZebrafishPanel() {
     ImGui::Separator();
     if (ImGui::Button("Prev Stage", ImVec2(zebrafishWidth / 2.0, 0))) {
         stage--;
-        stage = std::max(0, stage);
+        stage = std::max(1, stage);
     }
     if (ImGui::Button("Next Stage", ImVec2(zebrafishWidth / 2.0, 0))) {
         stage++;
@@ -118,14 +118,14 @@ void GUI::DrawZebrafishPanel() {
     // Stage specific GUI
     ImGui::Separator();
     switch (stage) {
-        case 0:
-            DrawStage0();
-            break;
         case 1:
             DrawStage1();
             break;
         case 2:
             DrawStage2();
+            break;
+        case 3:
+            DrawStage3();
             break;
         default:
             assert(false);
@@ -364,7 +364,7 @@ void GUI::DrawWindowGraphics() {
 
 GUI::GUI() : bsplineSolver(), pointRecord() {
 
-    stage = 0;
+    stage = 1;
     slice = 0;
 
     // core
