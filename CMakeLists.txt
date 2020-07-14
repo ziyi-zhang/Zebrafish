@@ -80,6 +80,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC tbb_static)
 # Executable
 ################################################################################
 if(ZEBRA_TOPLEVEL_PROJECT)
+
   add_executable(${PROJECT_NAME}_bin
     Cpp/main.cpp
   )
@@ -88,12 +89,10 @@ if(ZEBRA_TOPLEVEL_PROJECT)
   zebra_download_cli11()
   add_subdirectory(${ZEBRA_EXTERNAL}/cli11)
 
-
   target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME})
   target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
 
-
-  ##
+  ######################################
 
   add_executable(${PROJECT_NAME}_gui_bin
   Cpp/main_gui.cpp
@@ -110,13 +109,11 @@ if(ZEBRA_TOPLEVEL_PROJECT)
   target_link_libraries(${PROJECT_NAME}_gui_bin PUBLIC igl::opengl igl::opengl_glfw igl::opengl_glfw_imgui)
   target_link_libraries(${PROJECT_NAME}_gui_bin PUBLIC tinyfiledialogs::tinyfiledialogs)
 
-  ##
-
+  ######################################
 
   if (APPLE)
     set(BUILD_TYPE MACOSX_BUNDLE)
   endif()
-
 
   add_executable(${PROJECT_NAME}_gui ${BUILD_TYPE}
     Cpp/main_gui.cpp
