@@ -77,8 +77,7 @@ void GUI::DrawStage1() {
 
 void GUI::GridSearch() {
 
-    // prepare sampleInput & sampleOutput for grid search
-    Eigen::MatrixXd sampleInput, sampleOutput;
+    // prepare gridSampleInput & gridSampleOutput for grid search
     const int Nx = bsplineSolver.Get_Nx();
     const int Ny = bsplineSolver.Get_Ny();
     const int Nz = bsplineSolver.Get_Nz();
@@ -89,7 +88,7 @@ void GUI::GridSearch() {
     const double gapZ = 1.0;
     double xx, yy, zz, rr;
     int sampleCount = 0;
-    sampleInput.resize(Nx*Ny*Nz*Nr, 4);
+    gridSampleInput.resize(Nx*Ny*Nz*Nr, 4);
     for (int ix=0; ix<floor(Nx/gapX); ix++)
         for (int iy=0; iy<floor(Ny/gapY); iy++)
             for (int iz=0; iz<floor(Nz/gapZ); iz++)
@@ -101,23 +100,23 @@ void GUI::GridSearch() {
                     rr = rArray[ir];
                     if (!ValidStartingPoint(img, bsplineSolver, xx, yy, zz, rr)) continue;
 
-                    sampleInput(sampleCount, 0) = xx;
-                    sampleInput(sampleCount, 1) = yy;
-                    sampleInput(sampleCount, 2) = zz;
-                    sampleInput(sampleCount, 3) = rr;
+                    gridSampleInput(sampleCount, 0) = xx;
+                    gridSampleInput(sampleCount, 1) = yy;
+                    gridSampleInput(sampleCount, 2) = zz;
+                    gridSampleInput(sampleCount, 3) = rr;
                     sampleCount++;
                 }
-    sampleOutput.resize(sampleCount, 1);
+    gridSampleOutput.resize(sampleCount, 1);
     logger().info("Grid search #starting points = {}", sampleCount);
     logger().info("Grid search samples prepared...");
 
     // Search
     logger().info(">>>>>>>>>> Before grid search >>>>>>>>>>");
     tbb::parallel_for( tbb::blocked_range<int>(0, sampleCount),
-        [&sampleInput, &sampleOutput, this/*.bsplineSolver*/](const tbb::blocked_range<int> &r) {
+        [this/*.bsplineSolver, .gridSampleInput, .gridSampleOutput*/](const tbb::blocked_range<int> &r) {
 
             for (int ii = r.begin(); ii != r.end(); ++ii) {
-                cylinder::EvaluateCylinder(bsplineSolver, sampleInput(ii, 0), sampleInput(ii, 1), sampleInput(ii, 2), sampleInput(ii, 3), 3, sampleOutput(ii));
+                cylinder::EvaluateCylinder(bsplineSolver, gridSampleInput(ii, 0), gridSampleInput(ii, 1), gridSampleInput(ii, 2), gridSampleInput(ii, 3), 3, gridSampleOutput(ii));
             }
         });
     logger().info("<<<<<<<<<< After grid search <<<<<<<<<<");

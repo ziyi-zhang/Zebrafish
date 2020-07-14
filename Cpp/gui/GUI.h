@@ -23,6 +23,7 @@ private:
 
     // core
     bspline bsplineSolver;
+    Eigen::MatrixXd gridSampleInput, gridSampleOutput;
 
     // image (imageData)
     std::string imagePath;

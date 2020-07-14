@@ -10,6 +10,27 @@ namespace zebrafish {
 
 namespace {
 
+struct PropertyEditorItem {
+
+    static void AppendItem(const char* prefix, int uid, const Eigen::MatrixXd &sampleInput, const Eigen::MatrixXd &sampleOutput) {
+
+        ImGui::PushID(uid);
+        ImGui::AlignTextToFramePadding();
+        bool nodeOpen = ImGui::TreeNode("Object", "%s %u", prefix, uid);
+        ImGui::NextColumn();
+        ImGui::AlignTextToFramePadding();
+        bool enabled = true;
+        ImGui::Checkbox("Promising", &enabled);
+        ImGui::NextColumn();
+
+        if (nodeOpen) {
+            ImGui::Text("%f", sampleOutput(uid, 0));
+        }
+
+        ImGui::PopID();
+    }
+};
+
 }  // anonymous namespace
 
 //////////////////////
@@ -256,11 +277,37 @@ void GUI::DrawWindowPropertyEditor() {
     }
 
     ImGui::PushItemWidth(RHSPanelWidth/2.0);
-    std::vector<std::string> typeName{"Grid Starting Points", "Cylinders"};
+    std::vector<std::string> typeName{"Grid Search", "Cylinders"};
     ImGui::Combo("Property List Type", &propertyListType, typeName);
     ImGui::PopItemWidth();
 
     ImGui::Separator();
+
+    switch (propertyListType) {
+    case 0:
+        // Grid Search
+        if (gridSampleOutput.rows() < 1) {
+            ImGui::Text("Grid Search List Empty");
+        } else {
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+            ImGui::Columns(2);
+
+            for (int i=0; i<10; i++)
+                PropertyEditorItem::AppendItem("Point", i, gridSampleInput, gridSampleOutput);
+
+            ImGui::Columns(1);
+            ImGui::PopID();
+        }
+        break;
+
+    case 1:
+        ImGui::Text("Candidate Cylinder List Empty");
+        break;
+
+    default:
+        assert(false);
+        break;
+    }
 
     ImGui::End();
 }
