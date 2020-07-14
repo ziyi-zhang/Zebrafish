@@ -35,6 +35,10 @@ option(LIBIGL_WITH_PREDICATES        "Use exact predicates"         OFF)
 ################################################################################
 
 
+option(POLYSOLVE_WITH_MKL              "Enable MKL library"                OFF)
+
+
+
 
 
 ### Configuration
