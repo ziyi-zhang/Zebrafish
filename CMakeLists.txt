@@ -146,6 +146,7 @@ if(ZEBRA_TOPLEVEL_PROJECT)
 
   if (APPLE)
     # Build an application bundle on OSX
+    set_target_properties(${PROJECT_NAME}_gui PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist)
     set_target_properties(${PROJECT_NAME}_gui PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME}_gui)
     set_target_properties(${PROJECT_NAME}_gui PROPERTIES MACOSX_BUNDLE_EXECUTABLE_NAME ${PROJECT_NAME}_gui)
     set_target_properties(${PROJECT_NAME}_gui PROPERTIES MACOSX_BUNDLE_GUI_IDENTIFIER com.im.zebrafish)
@@ -171,6 +172,7 @@ if(ZEBRA_TOPLEVEL_PROJECT)
     set(CPACK_GENERATOR "DragNDrop")
     set(CPACK_DMG_FORMAT "UDBZ")
     set(CPACK_DMG_VOLUME_NAME "${PROJECT_NAME}")
+    # set(CPACK_BUNDLE_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist)
     # set(CPACK_BUNDLE_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/resources/MacOSXBundleInfo.plist.in)
     # set(CPACK_OSX_PACKAGE_VERSION "10.13")
 
