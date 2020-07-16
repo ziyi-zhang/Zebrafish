@@ -3,7 +3,7 @@
 #include <zebrafish/FileDialog.h>
 
 #include <string>
-#include <fstream>
+#include <sstream>
 #include <algorithm>
 
 
@@ -214,17 +214,10 @@ void GUI::DrawWindowLog() {
     ImGui::Separator();
     ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
-    std::ifstream logFile("Zebrafish_gui.log", std::ios::binary | std::ios::ate);
-    std::streamsize size = logFile.tellg();
-    logFile.seekg(0, std::ios::beg);
-    char logBuffer[size];
+    std::string log = oss.str();
 
-    if (logFile.read(logBuffer, size)) {
-        ImGui::TextUnformatted(logBuffer);
-        ImGui::SetScrollHere(1.0f);
-    } else {
-        ImGui::Text("Failed to load log file.");
-    }
+    ImGui::TextUnformatted(log.c_str());
+    ImGui::SetScrollHere(1.0f);
 
     ImGui::EndChild();
     ImGui::End();
@@ -407,7 +400,10 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
 }
 
 
-void GUI::init(std::string imagePath) {
+void GUI::init(std::string imagePath, std::ostringstream &ostr) {
+
+    // log
+    oss = ostr;
 
     // Debug purpose
     if (!imagePath.empty()) {

@@ -10,8 +10,9 @@
 #include <math.h>
 #include <CLI/CLI.hpp>
 #include <string>
+#include <algorithm>
+#include <sstream>
 
-using namespace std;
 using namespace zebrafish;
 
 
@@ -20,19 +21,9 @@ DECLARE_DIFFSCALAR_BASE();
 
 int main(int argc, char **argv) {
 
-    // logger
-    bool is_quiet = false;
-    std::string log_file = ""; //Zebrafish_gui.log";
-    int log_level = 0;
-    Logger::init(!is_quiet, log_file);
-    log_level = std::max(0, std::min(6, log_level));
-    spdlog::set_level(static_cast<spdlog::level::level_enum>(log_level));
-    spdlog::flush_every(std::chrono::seconds(3));
-    logger().info("Zebrafish_gui logger initialized.");
-
     // parse input
     std::string image_path = "";
-    unsigned int num_threads = 4; // std::max(1u, std::thread::hardware_concurrency());
+    unsigned int num_threads = std::min(32u, std::max(1u, std::thread::hardware_concurrency()));
     int lsMethod = 2;
     CLI::App command_line{"ZebraFish"};
     command_line.add_option("-i,--img", image_path, "Input TIFF image to process")->check(CLI::ExistingFile);
@@ -46,6 +37,15 @@ int main(int argc, char **argv) {
         return command_line.exit(e);
     }
 
+    // logger
+    int log_level = 0;
+    std::ostringstream ostr;
+    Logger::init(ostr);
+    log_level = std::max(0, std::min(6, log_level));
+    spdlog::set_level(static_cast<spdlog::level::level_enum>(log_level));
+    spdlog::flush_every(std::chrono::seconds(3));
+    logger().info("Zebrafish_gui logger initialized.");
+
     // TBB
     const size_t MB = 1024 * 1024;
     const size_t stack_size = 64 * MB;
@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
 
     // Start GUI
     GUI gui;
-    gui.init(image_path);
+    gui.init(image_path, ostr);
 
     return EXIT_SUCCESS;
 }

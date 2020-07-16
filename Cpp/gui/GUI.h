@@ -7,6 +7,7 @@
 #include <zebrafish/autodiff.h>
 
 #include <string>
+#include <sstream>
 #include <igl/opengl/glfw/Viewer.h>
 #include <igl/opengl/glfw/imgui/ImGuiMenu.h>
 ////////////////////////////////////////////////////////////////////////////////
@@ -30,6 +31,7 @@ class GUI : public igl::opengl::glfw::imgui::ImGuiMenu {
 
 private:
     igl::opengl::glfw::Viewer viewer;
+    std::ostringstream oss;
     int stage;  // stage in zebrafish_panel
 
     //////////////////////////////////////////////////
@@ -81,7 +83,7 @@ private:
 
 public:
     GUI();
-    void init(std::string imagePath);
+    void init(std::string imagePath, std::ostringstream &ostr);
 
 protected:
     void draw_menu() override;
