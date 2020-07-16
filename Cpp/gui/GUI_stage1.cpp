@@ -49,6 +49,10 @@ void GUI::DrawStage1() {
         UV << 0, 1, 1, 1, 1, 0, 0, 0;
         viewer.data().set_mesh(V, F);
         viewer.data().set_uv(UV);
+        Eigen::Vector3d ambient = Eigen::Vector3d(146./255., 172./255., 178./255.);
+        Eigen::Vector3d diffuse = Eigen::Vector3d(146./255., 172./255., 178./255.);
+        Eigen::Vector3d specular = Eigen::Vector3d(146./255., 172./255., 178./255.);
+        viewer.data().uniform_colors(ambient,diffuse,specular);
         viewer.data().show_faces = true;
         viewer.data().show_lines = false;
         viewer.data().show_texture = true;
