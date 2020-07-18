@@ -416,6 +416,7 @@ void GUI::init(std::string imagePath) {
     };
 
     // libigl viewer
+    viewer.core().set_rotation_type(igl::opengl::ViewerCore::RotationType::ROTATION_TYPE_NO_ROTATION);
     viewer.core().background_color << 0.7f, 0.7f, 0.75f, 1.0f;
         // viewer.core().is_animating = true;
     viewer.plugins.push_back(this);

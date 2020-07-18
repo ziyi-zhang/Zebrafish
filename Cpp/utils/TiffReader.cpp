@@ -100,16 +100,18 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
                 uint16_t samples = TinyTIFFReader_getBitsPerSample(tiffr);
                 if(samples == 8) {
                     ok = read_mem_to_eigen<uint8_t>(tiffr, buffer8, sliceMat);
+                    // scale to 0~1 for visualization
+                    sliceMat /= double((1 << 8) - 1);
                 }
                 else if (samples == 16) {
                     ok = read_mem_to_eigen<uint16_t>(tiffr, buffer16, sliceMat);
-                    // scale to unsigned char for visualization
-                    sliceMat /= double((1 << 8) + 1);
+                    // scale to 0~1 for visualization
+                    sliceMat /= double((1 << 16) - 1);
                 }
                 else if (samples == 32) {
                     ok = read_mem_to_eigen<uint32_t>(tiffr, buffer32, sliceMat);
-                    // scale to unsigned char for visualization
-                    sliceMat /= double((1 << 24) + 1);
+                    // scale to 0~1 for visualization
+                    sliceMat /= double((1 << 32) - 1);
                 } 
                 else {
                     logger().error("ERROR: TinyTIFFReader_getBitsPerSample wrong format");

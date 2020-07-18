@@ -4,6 +4,8 @@
 #include <zebrafish/Logger.hpp>
 #include <zebrafish/Quantile.h>
 
+#include <igl/unproject_on_plane.h>
+
 
 namespace zebrafish {
 
@@ -31,15 +33,14 @@ void GUI::DrawStage1() {
     ImGui::SliderInt("Slice", &slice, 0, img.size()-1);
 
     viewer.data().clear();
-    viewer.core().set_rotation_type(igl::opengl::ViewerCore::RotationType::ROTATION_TYPE_NO_ROTATION);
 
     if (!img.empty()) {
-        int scale = (img[slice](0, 0) > 1) ? 1 : 255;
-        texture = (img[slice].array() * scale).cast<unsigned char>();
+        texture = (img[slice].array() * 255).cast<unsigned char>();
+        texture.transposeInPlace();
         int xMax = img[slice].cols();
         int yMax = img[slice].rows();
         Eigen::MatrixXd V(4, 3);
-        V << 0, 0, 0, yMax, 0, 0, yMax, xMax, 0, 0, xMax, 0;
+        V << 0, 0, 0, xMax, 0, 0, xMax, yMax, 0, 0, yMax, 0;
         viewer.core().align_camera_center(V);
 
         Eigen::MatrixXi F(2, 3);
@@ -51,12 +52,18 @@ void GUI::DrawStage1() {
         viewer.data().set_uv(UV);
         Eigen::Vector3d ambient = Eigen::Vector3d(146./255., 172./255., 178./255.);
         Eigen::Vector3d diffuse = Eigen::Vector3d(146./255., 172./255., 178./255.);
-        Eigen::Vector3d specular = Eigen::Vector3d(146./255., 172./255., 178./255.);
+        Eigen::Vector3d specular = Eigen::Vector3d(0., 0., 0.);
         viewer.data().uniform_colors(ambient,diffuse,specular);
         viewer.data().show_faces = true;
         viewer.data().show_lines = false;
         viewer.data().show_texture = true;
         viewer.data().set_texture(texture, texture, texture);
+
+        Eigen::MatrixXd points(1, 3);
+        points << 0, 1, 0;
+        Eigen::MatrixXd pointColor(1, 3);
+        pointColor << 1, 0, 0;
+        viewer.data().add_points(points, pointColor);
     }
 
     if (ImGui::Button("Print some log")) {
