@@ -38,9 +38,9 @@ int main(int argc, char **argv) {
     }
 
     // logger
+    GUI gui;
     int log_level = 0;
-    std::ostringstream ostr;
-    Logger::init(ostr);
+    Logger::init(gui.oss);
     log_level = std::max(0, std::min(6, log_level));
     spdlog::set_level(static_cast<spdlog::level::level_enum>(log_level));
     spdlog::flush_every(std::chrono::seconds(3));
@@ -53,8 +53,7 @@ int main(int argc, char **argv) {
     logger().info("Desired #threads = {}", num_threads);
 
     // Start GUI
-    GUI gui;
-    gui.init(image_path, ostr);
+    gui.init(image_path);
 
     return EXIT_SUCCESS;
 }

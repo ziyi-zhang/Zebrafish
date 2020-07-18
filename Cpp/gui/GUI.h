@@ -31,7 +31,6 @@ class GUI : public igl::opengl::glfw::imgui::ImGuiMenu {
 
 private:
     igl::opengl::glfw::Viewer viewer;
-    std::ostringstream oss;
     int stage;  // stage in zebrafish_panel
 
     //////////////////////////////////////////////////
@@ -82,8 +81,10 @@ private:
     bool show_graphics;
 
 public:
+    std::ostringstream oss;
+
     GUI();
-    void init(std::string imagePath, std::ostringstream &ostr);
+    void init(std::string imagePath);
 
 protected:
     void draw_menu() override;

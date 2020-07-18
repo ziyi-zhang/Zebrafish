@@ -400,10 +400,7 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
 }
 
 
-void GUI::init(std::string imagePath, std::ostringstream &ostr) {
-
-    // log
-    oss = ostr;
+void GUI::init(std::string imagePath) {
 
     // Debug purpose
     if (!imagePath.empty()) {
