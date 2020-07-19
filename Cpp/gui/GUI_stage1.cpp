@@ -4,8 +4,7 @@
 #include <zebrafish/Logger.hpp>
 #include <zebrafish/Quantile.h>
 
-#include <igl/unproject_on_plane.h>
-
+#include <igl/unproject_onto_mesh.h>
 
 namespace zebrafish {
 
@@ -37,9 +36,9 @@ void GUI::DrawStage1() {
     if (!img.empty()) {
         texture = (img[slice].array() * 255).cast<unsigned char>();
         texture.transposeInPlace();
-        int xMax = img[slice].cols();
-        int yMax = img[slice].rows();
-        V << 0, 0, 0, xMax, 0, 0, xMax, yMax, 0, 0, yMax, 0;
+        int imgCols = img[slice].cols();
+        int imgRows = img[slice].rows();
+        V << 0, 0, 0, imgCols, 0, 0, imgCols, imgRows, 0, 0, imgRows, 0;
         F << 0, 1, 2, 2, 3, 0;
         viewer.core().align_camera_center(V);
         Eigen::MatrixXd UV(4, 2);
@@ -60,6 +59,17 @@ void GUI::DrawStage1() {
         Eigen::MatrixXd pointColor(1, 3);
         pointColor << 1, 0, 0;
         viewer.data().add_points(points, pointColor);
+
+        if (cropActive) {
+            Eigen::MatrixXd lineColor(1, 3);
+            pointColor << 1, 0, 1;
+            Eigen::MatrixXd lineX, lineY;
+            lineX.resize(1, 3);
+            lineY.resize(1, 3);
+            lineX << baseLoc(0), imgRows - baseLoc(1), baseLoc(2);
+            lineY << currentLoc(0), imgRows - currentLoc(1), currentLoc(2);
+            viewer.data().add_edges(lineX, lineY, lineColor);
+        }
     }
 
     if (ImGui::Button("Print some log")) {
@@ -133,6 +143,56 @@ void GUI::DrawStage1() {
 
     ImGui::Text("Stage 1");
     // viewer.core().set_rotation_type(igl::opengl::ViewerCore::RotationType::ROTATION_TYPE_TRACKBALL);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Crop image
+
+
+void GUI::CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype) {
+
+    static int fid;
+    static Eigen::Vector3f bc, loc;
+    static bool hit;
+
+    hit = igl::unproject_onto_mesh(
+        mouse, 
+        viewer.core().view, 
+        viewer.core().proj,
+        viewer.core().viewport, 
+        V, 
+        F, 
+        fid, 
+        bc);
+
+    if (hit) {
+        // has hit
+
+        loc(0) = (V(F(fid, 0), 0) * bc(0) + V(F(fid, 1), 0) * bc(1) + V(F(fid, 2), 0) * bc(2));
+        loc(1) = (V(F(fid, 0), 1) * bc(0) + V(F(fid, 1), 1) * bc(1) + V(F(fid, 2), 1) * bc(2));
+        loc(2) = (V(F(fid, 0), 2) * bc(0) + V(F(fid, 1), 2) * bc(1) + V(F(fid, 2), 2) * bc(2));
+    
+        if (mousetype == MOUSEDOWN) {
+
+            logger().debug("Mouse down: fid = {} | bc = {:.2f} x {:.2f} x {:.2f} | loc = {:.2f} x {:.2f} x {:.2f}", fid, bc(0), bc(1), bc(2), loc(0), loc(1), loc(2));
+            baseLoc = loc;
+            currentLoc = loc;
+        } else if (mousetype == MOUSEUP) {
+            logger().debug("Mouse up:   fid = {} | bc = {:.2f} x {:.2f} x {:.2f} | loc = {:.2f} x {:.2f} x {:.2f}", fid, bc(0), bc(1), bc(2), loc(0), loc(1), loc(2));
+
+        } else if (mousetype == MOUSEMOVE) {
+            currentLoc = loc;
+        }
+    } else {
+        // no hit
+
+        if (mousetype == MOUSEDOWN) {
+            logger().debug("Mouse down: no hit");
+        } else if (mousetype == MOUSEUP) {
+            logger().debug("Mouse up:   no hit");
+        }
+    }
 }
 
 }  // namespace zebrafish

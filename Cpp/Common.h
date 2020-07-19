@@ -11,6 +11,12 @@
 
 namespace zebrafish {
 
+enum MOUSE_TYPE {
+    MOUSEDOWN = 1, 
+    MOUSEUP   = 2,
+    MOUSEMOVE = 3
+};
+
 ///////////
 // types //
 ///////////

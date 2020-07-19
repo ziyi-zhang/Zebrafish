@@ -60,7 +60,7 @@ private:
     //////////////////////////////////////////////////
     // crop image
     bool cropActive;
-    int clickCount;
+    Eigen::Vector3f baseLoc, currentLoc;
     int r0, c0, r1, c1;  // upper-left [r0, c0]
 
     //////////////////////////////////////////////////
@@ -95,6 +95,8 @@ protected:
     void draw_menu() override;
     void post_resize(int w, int h) override;
     bool MouseDownCallback(igl::opengl::glfw::Viewer &viewer, int button, int modifier);
+    bool MouseUpCallback(igl::opengl::glfw::Viewer &viewer, int button, int modifier);
+    bool MouseMoveCallback(igl::opengl::glfw::Viewer &viewer, int mouse_x, int mouse_y);
 
     void DrawStage1();
     void DrawStage2();
@@ -112,6 +114,10 @@ private:
     void DrawWindow3DImageViewer();
     void DrawWindowPropertyEditor();
     void DrawWindowGraphics();
+
+    //////////////////////////////////////////////////
+    // Stage 1
+    void CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype);
 
     //////////////////////////////////////////////////
     // Stage 2

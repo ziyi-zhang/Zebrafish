@@ -3,7 +3,6 @@
 #include <zebrafish/FileDialog.h>
 #include <zebrafish/Logger.hpp>
 
-#include <igl/unproject_onto_mesh.h>
 #include <string>
 #include <sstream>
 #include <algorithm>
@@ -70,36 +69,46 @@ bool GUI::MouseDownCallback(igl::opengl::glfw::Viewer &viewer, int button, int m
 
     if (cropActive) {
 
-        static int fid;
-        static Eigen::Vector3f bc, loc;
-        static bool hit;
-        hit = igl::unproject_onto_mesh(
-            Eigen::Vector2f(viewer.down_mouse_x, viewer.down_mouse_y), 
-            viewer.core().view, 
-            viewer.core().proj,
-            viewer.core().viewport, 
-            V, 
-            F, 
-            fid, 
-            bc);
+        Eigen::Vector2f mouse;
+        mouse << viewer.down_mouse_x, viewer.down_mouse_y;
+        logger().info("Mouse down call back");
+        CropImage(mouse, MOUSEDOWN);
 
-        logger().debug("Mouse = [{} x {}]", viewer.down_mouse_x, viewer.down_mouse_y);
-        if (hit) {
-            loc(0) = (V(F(fid, 0), 0) * bc(0) + V(F(fid, 1), 0) * bc(1) + V(F(fid, 2), 0) * bc(2));
-            loc(1) = (V(F(fid, 0), 1) * bc(0) + V(F(fid, 1), 1) * bc(1) + V(F(fid, 2), 1) * bc(2));
-            loc(2) = (V(F(fid, 0), 2) * bc(0) + V(F(fid, 1), 2) * bc(1) + V(F(fid, 2), 2) * bc(2));
-            logger().debug("fid = {} | bc = {:.2f} x {:.2f} x {:.2f} | loc = {:.2f} x {:.2f} x {:.2f}", fid, bc(0), bc(1), bc(2), loc(0), loc(1), loc(2));
-        } else {
-            logger().debug("No hit on image");
-        }
-
-        
         // disable ligigl default mouse_down
         return true;
     }
     return false;
 }
 
+
+bool GUI::MouseUpCallback(igl::opengl::glfw::Viewer &viewer, int button, int modifier) {
+
+    if (cropActive) {
+
+        Eigen::Vector2f mouse;
+        mouse << viewer.down_mouse_x, viewer.down_mouse_y;
+        CropImage(mouse, MOUSEUP);
+
+        // disable ligigl default mouse_up
+        return true;
+    }
+    return false;
+}
+
+
+bool GUI::MouseMoveCallback(igl::opengl::glfw::Viewer &viewer, int mouse_x, int mouse_y) {
+
+    if (cropActive) {
+
+        Eigen::Vector2f mouse;
+        mouse << mouse_x, mouse_y;
+        CropImage(mouse, MOUSEMOVE);
+
+        // disable ligigl default mouse_move
+        return true;
+    }
+    return false;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// This is the main starting point
@@ -404,7 +413,6 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
 
     // crop image
     cropActive = false;
-    clickCount = 0;
     r0 = -1;
     c0 = -1; 
     r1 = -1;
@@ -443,6 +451,12 @@ void GUI::init(std::string imagePath) {
     // callback
     viewer.callback_mouse_down = [this](igl::opengl::glfw::Viewer &viewer, int button, int modifier) {
         return this->MouseDownCallback(viewer, button, modifier);
+    };
+    viewer.callback_mouse_up   = [this](igl::opengl::glfw::Viewer &viewer, int button, int modifier) {
+        return this->MouseUpCallback(viewer, button, modifier);
+    };
+    viewer.callback_mouse_move = [this](igl::opengl::glfw::Viewer &viewer, int mouse_x, int mouse_y) {
+        return this->MouseMoveCallback(viewer, mouse_x, mouse_y);
     };
 
     // libigl viewer
