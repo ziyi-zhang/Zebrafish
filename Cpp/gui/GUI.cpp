@@ -205,6 +205,8 @@ void GUI::DrawMenuFile() {
         if (!filename.empty()) {
             imagePath = filename;
             if (ReadTifFirstImg(filename, layerPerImg, channelPerSlice, img)) {
+                imgRows = img[0].rows();
+                imgCols = img[0].cols();
                 // In case the tiff image is very small
                 layerPerImg = img.size();
             } else {
@@ -413,6 +415,8 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
 
     // crop image
     cropActive = false;
+    baseLoc << 0.0f, 0.0f, 0.0f;
+    currentLoc << 0.0f, 0.0f, 0.0f;
     r0 = -1;
     c0 = -1; 
     r1 = -1;
@@ -444,6 +448,8 @@ void GUI::init(std::string imagePath) {
     if (!imagePath.empty()) {
         // only true in debug mode
         ReadTifFirstImg(imagePath, layerPerImg, channelPerSlice, img);
+        imgRows = img[0].rows();
+        imgCols = img[0].cols();
         // In case the tiff image is very small
         layerPerImg = img.size();
     }

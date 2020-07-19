@@ -47,6 +47,7 @@ private:
     std::string imagePath;
     imageData_t imgData;
     image_t img;
+    int imgRows, imgCols;
     int layerPerImg, channelPerSlice;
     double resolutionX, resolutionY, resolutionZ;
     int slice;  // which slice in the 3D image to show

@@ -5,6 +5,7 @@
 #include <zebrafish/Quantile.h>
 
 #include <igl/unproject_onto_mesh.h>
+#include <algorithm>
 
 namespace zebrafish {
 
@@ -36,8 +37,6 @@ void GUI::DrawStage1() {
     if (!img.empty()) {
         texture = (img[slice].array() * 255).cast<unsigned char>();
         texture.transposeInPlace();
-        int imgCols = img[slice].cols();
-        int imgRows = img[slice].rows();
         V << 0, 0, 0, imgCols, 0, 0, imgCols, imgRows, 0, 0, imgRows, 0;
         F << 0, 1, 2, 2, 3, 0;
         viewer.core().align_camera_center(V);
@@ -60,14 +59,27 @@ void GUI::DrawStage1() {
         pointColor << 1, 0, 0;
         viewer.data().add_points(points, pointColor);
 
-        if (cropActive) {
+        if (cropActive && baseLoc(0) != 0) {
+            // crop activated & has been updated (not default value)
             Eigen::MatrixXd lineColor(1, 3);
             pointColor << 1, 0, 1;
             Eigen::MatrixXd lineX, lineY;
-            lineX.resize(1, 3);
-            lineY.resize(1, 3);
-            lineX << baseLoc(0), imgRows - baseLoc(1), baseLoc(2);
-            lineY << currentLoc(0), imgRows - currentLoc(1), currentLoc(2);
+            lineX.resize(4, 3);
+            lineY.resize(4, 3);
+            // upper-left corner (x1, y0)
+            // lower-right corner (x1, y1)
+            int x0 = std::round(baseLoc(0));
+            int x1 = std::max(x0, int(std::round(currentLoc(0))));
+            int y0 = std::round(imgRows - baseLoc(1));
+            int y1 = std::min(y0, int(std::round(imgRows - currentLoc(1))));
+            lineX << x0, y0, 0.1, 
+                     x0, y1, 0.1, 
+                     x1, y1, 0.1, 
+                     x1, y0, 0.1;
+            lineY << x0, y1, 0.1, 
+                     x1, y1, 0.1, 
+                     x1, y0, 0.1, 
+                     x0, y0, 0.1;
             viewer.data().add_edges(lineX, lineY, lineColor);
         }
     }
@@ -131,6 +143,8 @@ void GUI::DrawStage1() {
         }
         logger().info("(Re)load image {}", imagePath);
         if (ReadTifFirstImg(imagePath, layerPerImg, channelPerSlice, img, r0, c0, r1, c1)) {
+            imgRows = img[0].rows();
+            imgCols = img[0].cols();
             // In case the tiff image is very small
             layerPerImg = img.size();
             logger().info("Image reloaded");
@@ -180,7 +194,12 @@ void GUI::CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype) {
             currentLoc = loc;
         } else if (mousetype == MOUSEUP) {
             logger().debug("Mouse up:   fid = {} | bc = {:.2f} x {:.2f} x {:.2f} | loc = {:.2f} x {:.2f} x {:.2f}", fid, bc(0), bc(1), bc(2), loc(0), loc(1), loc(2));
+            cropActive = false;
 
+            c0 = std::round(baseLoc(0));
+            c1 = std::round(currentLoc(0));
+            r0 = std::round(baseLoc(1));
+            r1 = std::round(currentLoc(1));
         } else if (mousetype == MOUSEMOVE) {
             currentLoc = loc;
         }
@@ -191,6 +210,7 @@ void GUI::CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype) {
             logger().debug("Mouse down: no hit");
         } else if (mousetype == MOUSEUP) {
             logger().debug("Mouse up:   no hit");
+            cropActive = false;
         }
     }
 }
