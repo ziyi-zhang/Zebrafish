@@ -6,6 +6,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <regex>
+
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace zebrafish {
@@ -39,6 +41,52 @@ namespace {
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////
+
+bool GetDescription(const std::string &path, int &layerPerImg, int &numChannel) {
+
+    TinyTIFFReaderFile *tiffr = NULL;
+    tiffr = TinyTIFFReader_open(path.c_str());
+    logger().info("Trying to phase image description with path {}", path);
+
+    if (tiffr) {
+        // get a random description
+        std::string str = TinyTIFFReader_getImageDescription(tiffr);
+        // search for "slices=" & "channels="
+        std::smatch m;
+        std::regex e1("(slices=)[0-9]+");
+        std::regex_search(str, m, e1);
+        if (m.size() == 0) {
+            // did not find "slices="
+            return false;  
+        } else {
+            std::string temp = m[0].str();
+            int num = std::stoi(temp.substr(7));
+            if (num > 0 && num < 1000)
+                layerPerImg = num;
+            else
+                return false;
+        }
+
+        std::regex e2("(channels=)[0-9]+");
+        std::regex_search(str, m, e2);
+        if (m.size() == 0) {
+            // did not find "slices="
+            return false;  
+        } else {
+            std::string temp = m[0].str();
+            int num = std::stoi(temp.substr(9));
+            if (num > 0 && num < 1000)
+                numChannel = num;
+            else
+                return false;
+        }
+
+        logger().info("Image description successfully phased: layerPerImg={} numChannel={}", layerPerImg, numChannel);
+        return true;
+    }
+
+    return false;
+}
 
 bool ReadTifFirstImg(const std::string &path, const int layerPerImg, const int numChannel, image_t &img, int r0, int c0, int r1, int c1) {
 /// This function only read channel 1 from the first 3D image
@@ -111,7 +159,7 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
                 else if (samples == 32) {
                     ok = read_mem_to_eigen<uint32_t>(tiffr, buffer32, sliceMat);
                     // scale to 0~1 for visualization
-                    sliceMat /= double((1 << 32) - 1);
+                    sliceMat /= double((1ll << 32) - 1);
                 } 
                 else {
                     logger().error("ERROR: TinyTIFFReader_getBitsPerSample wrong format");

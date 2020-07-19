@@ -204,6 +204,7 @@ void GUI::DrawMenuFile() {
         std::string filename = FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});
         if (!filename.empty()) {
             imagePath = filename;
+            GetDescription(imagePath, layerPerImg, channelPerSlice);
             if (ReadTifFirstImg(filename, layerPerImg, channelPerSlice, img)) {
                 imgRows = img[0].rows();
                 imgCols = img[0].cols();
@@ -449,6 +450,7 @@ void GUI::init(std::string imagePath) {
     // Debug purpose
     if (!imagePath.empty()) {
         // only true in debug mode
+        GetDescription(imagePath, layerPerImg, channelPerSlice);
         ReadTifFirstImg(imagePath, layerPerImg, channelPerSlice, img);
         imgRows = img[0].rows();
         imgCols = img[0].cols();
