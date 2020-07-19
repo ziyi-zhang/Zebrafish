@@ -30,68 +30,34 @@ void NormalizeImage(image_t &image) {
 
 void GUI::DrawStage1() {
 
-    ImGui::SliderInt("Slice", &slice, 0, img.size()-1);
+    // cropActive
+    if (cropActive && downClicked) {
+        // crop activated & has been updated (not default value)
+        Eigen::MatrixXd lineColor(1, 3);
+        lineColor << 0.77, 0.28, 0.24;
 
-    viewer.data().clear();
-
-    if (!img.empty()) {
-        texture = (img[slice].array() * 255).cast<unsigned char>();
-        texture.transposeInPlace();
-        V << 0, 0, 0, imgCols, 0, 0, imgCols, imgRows, 0, 0, imgRows, 0;
-        F << 0, 1, 2, 2, 3, 0;
-        viewer.core().align_camera_center(V);
-        Eigen::MatrixXd UV(4, 2);
-        UV << 0, 1, 1, 1, 1, 0, 0, 0;
-        viewer.data().set_mesh(V, F);
-        viewer.data().set_uv(UV);
-        Eigen::Vector3d ambient = Eigen::Vector3d(146./255., 172./255., 178./255.);
-        Eigen::Vector3d diffuse = Eigen::Vector3d(146./255., 172./255., 178./255.);
-        Eigen::Vector3d specular = Eigen::Vector3d(0., 0., 0.);
-        viewer.data().uniform_colors(ambient,diffuse,specular);
-        viewer.data().show_faces = true;
-        viewer.data().show_lines = false;
-        viewer.data().show_texture = true;
-        viewer.data().set_texture(texture, texture, texture);
-
-        Eigen::MatrixXd points(1, 3);
-        points << 0, 1, 5;
-        Eigen::MatrixXd pointColor(1, 3);
-        pointColor << 1, 0, 0;
-        viewer.data().add_points(points, pointColor);
-
-        // cropActive
-        if (cropActive && downClicked) {
-            // crop activated & has been updated (not default value)
-            Eigen::MatrixXd lineColor(1, 3);
-            lineColor << 0.77, 0.28, 0.24;
-
-            // upper-left corner (x0, y0)
-            // lower-right corner (x1, y1)
-            float x0 = baseLoc(0);
-            float x1 = std::max(x0, currentLoc(0));
-            float y0 = imgRows - baseLoc(1);
-            float y1 = std::min(y0, imgRows - currentLoc(1));
-            DrawRect(x0, y0, x1, y1, lineColor);
-        }
-
-        // showCropArea
-        if (showCropArea) {
-            // show the area specified by current [r0, c0] x [r1, c1]
-            Eigen::MatrixXd lineColor(1, 3);
-            lineColor << 0.77, 0.28, 0.24;
-
-            // upper-left corner (x0, y0)
-            // lower-right corner (x1, y1)
-            float x0 = (c0 == -1) ? 0 : c0;
-            float x1 = (c1 == -1) ? imgCols : c1;
-            float y0 = (r0 == -1) ? imgRows : imgRows - r0;
-            float y1 = (r1 == -1) ? 0 : imgRows - r1;
-            DrawRect(x0, y0, x1, y1, lineColor);
-        }
+        // upper-left corner (x0, y0)
+        // lower-right corner (x1, y1)
+        float x0 = baseLoc(0);
+        float x1 = std::max(x0, currentLoc(0));
+        float y0 = imgRows - baseLoc(1);
+        float y1 = std::min(y0, imgRows - currentLoc(1));
+        DrawRect(x0, y0, x1, y1, lineColor);
     }
 
-    if (ImGui::Button("Print some log")) {
-        logger().info("test");
+    // showCropArea
+    if (showCropArea) {
+        // show the area specified by current [r0, c0] x [r1, c1]
+        Eigen::MatrixXd lineColor(1, 3);
+        lineColor << 0.77, 0.28, 0.24;
+
+        // upper-left corner (x0, y0)
+        // lower-right corner (x1, y1)
+        float x0 = (c0 == -1) ? 0 : c0;
+        float x1 = (c1 == -1) ? imgCols : c1;
+        float y0 = (r0 == -1) ? imgRows : imgRows - r0;
+        float y1 = (r1 == -1) ? 0 : imgRows - r1;
+        DrawRect(x0, y0, x1, y1, lineColor);
     }
 
     ImGui::PushItemWidth(zebrafishWidth / 3.0);
@@ -99,7 +65,12 @@ void GUI::DrawStage1() {
     ImGui::InputInt("Channels Per Slice", &channelPerSlice);
     ImGui::PopItemWidth();
 
-    ImGui::Separator();
+    ImGui::Separator(); /////////////////////////////////////////
+
+    ImGui::SliderInt("Slice index start", &layerBegin, 0, layerEnd);
+    ImGui::SliderInt("Slice index end", &layerEnd, layerBegin, layerPerImg-1);
+
+    ImGui::Separator(); /////////////////////////////////////////
 
     if (ImGui::Checkbox("Mouse Crop", &cropActive)) {
         if (!cropActive) 
@@ -119,13 +90,20 @@ void GUI::DrawStage1() {
     ImGui::InputInt("R0", &r0);
     ImGui::SameLine();
     ImGui::InputInt("C0", &c0);
-
     ImGui::InputInt("R1", &r1);
     ImGui::SameLine();
     ImGui::InputInt("C1", &c1);
     ImGui::PopItemWidth();
 
-    ImGui::Separator();
+    ImGui::Separator(); /////////////////////////////////////////
+
+    ImGui::PushItemWidth(zebrafishWidth / 3.0);
+    ImGui::InputDouble("Resolution X (um)", &resolutionX);
+    ImGui::InputDouble("Resolution Y (um)", &resolutionY);
+    ImGui::InputDouble("Resolution Z (um)", &resolutionZ);
+    ImGui::PopItemWidth();
+
+    ImGui::Separator(); /////////////////////////////////////////
 
     ImGui::Text("Histogram of pixel brightness");
     ImGui::Text("Not yet implemented");
@@ -135,31 +113,23 @@ void GUI::DrawStage1() {
 
     ImGui::Separator();
 
-    ImGui::PushItemWidth(zebrafishWidth / 3.0);
-    ImGui::InputDouble("Resolution X (um)", &resolutionX);
-    ImGui::InputDouble("Resolution Y (um)", &resolutionY);
-    ImGui::InputDouble("Resolution Z (um)", &resolutionZ);
-    ImGui::PopItemWidth();
-
-    ImGui::Separator();
-
     ImGui::Text("Bspline config ... ...");
     ImGui::Text("Not yet implemented");
 
-    ImGui::Separator();
+    ImGui::Separator(); /////////////////////////////////////////
 
     //////////////////////////////////////////////////////////////////////////
 
-    if (ImGui::Button("(Re)load image")) {
+    if (ImGui::Button("Re-load image")) {
         if (imagePath.empty()) {
-            imagePath = FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});
+            return;  // invalid operation
+                     // only entry is through "File" - "Open"
+            // imagePath = FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});
         }
-        logger().info("(Re)load image {}", imagePath);
+        logger().info("Re-load image {}", imagePath);
         if (ReadTifFirstImg(imagePath, layerPerImg, channelPerSlice, img, r0, c0, r1, c1)) {
             imgRows = img[0].rows();
             imgCols = img[0].cols();
-            // In case the tiff image is very small
-            layerPerImg = img.size();
             logger().info("Image reloaded");
             NormalizeImage(img);
         } else {

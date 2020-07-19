@@ -49,14 +49,16 @@ private:
     image_t img;
     int imgRows, imgCols;
     int layerPerImg, channelPerSlice;
+    int layerBegin, layerEnd;  // only slices in this interval in each 3D image will be computed
     double resolutionX, resolutionY, resolutionZ;
     int slice;  // which slice in the 3D image to show
     double normalizeQuantile;
 
     //////////////////////////////////////////////////
-    // texture image
+    // 3D image viewer
     Eigen::MatrixXd V;
     Eigen::MatrixXi F;
+    int imageViewerType;
 
     //////////////////////////////////////////////////
     // crop image
@@ -68,11 +70,11 @@ private:
 
     //////////////////////////////////////////////////
     // property editor
-    int propertyListType;
+    int propertyListType;  // 0 for compressed, 1 for per slice
 
     //////////////////////////////////////////////////
     // visualization
-    Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> texture;
+    Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> texture, compressedImgTexture;
     int windowWidth;
     int windowHeight;
     int zebrafishWidth;
@@ -108,6 +110,8 @@ protected:
 private:
     const int stageMax = 3;  // 3 stages
 
+    void Draw3DImage();
+    void ComputeCompressedImg();
     void DrawMainMenuBar();
     void DrawZebrafishPanel();
     void DrawMenuFile();

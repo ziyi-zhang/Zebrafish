@@ -116,6 +116,7 @@ bool GUI::MouseMoveCallback(igl::opengl::glfw::Viewer &viewer, int mouse_x, int 
 
 void GUI::draw_menu() {
 
+    Draw3DImage();
     DrawMainMenuBar();
     DrawZebrafishPanel();
 
@@ -123,6 +124,73 @@ void GUI::draw_menu() {
     if (show_3DImage_viewer) DrawWindow3DImageViewer();
     if (show_property_editor) DrawWindowPropertyEditor();
     if (show_graphics) DrawWindowGraphics();
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Draw 3D image
+
+
+void GUI::Draw3DImage() {
+
+    viewer.data().clear();
+
+    if (img.empty()) return;
+
+    static Eigen::Vector3d ambient = Eigen::Vector3d(146./255., 172./255., 178./255.);
+    static Eigen::Vector3d diffuse = Eigen::Vector3d(146./255., 172./255., 178./255.);
+    static Eigen::Vector3d specular = Eigen::Vector3d(0., 0., 0.);
+    static Eigen::MatrixXd UV(4, 2);
+    static int layerBegin_cache = -1, layerEnd_cache = -1;
+    UV << 0, 1, 1, 1, 1, 0, 0, 0;
+    V << 0, 0, 0, imgCols, 0, 0, imgCols, imgRows, 0, 0, imgRows, 0;
+    F << 0, 1, 2, 2, 3, 0;
+
+    if (imageViewerType == 0) {
+        // compressed view
+
+        if (layerBegin_cache != layerBegin || layerEnd_cache != layerEnd) {
+            ComputeCompressedImg();
+            layerBegin_cache = layerBegin;
+            layerEnd_cache = layerEnd;
+        }
+        texture = compressedImgTexture;
+    } else {
+        // per slice view
+
+        texture = (img[slice].array() * 255).cast<unsigned char>();
+        texture.transposeInPlace();
+    }
+
+    viewer.core().align_camera_center(V);
+    viewer.data().set_mesh(V, F);
+    viewer.data().set_uv(UV);
+    viewer.data().uniform_colors(ambient, diffuse, specular);
+    viewer.data().show_faces = true;
+    viewer.data().show_lines = false;
+    viewer.data().show_texture = true;
+    viewer.data().set_texture(texture, texture, texture);
+}
+
+
+void GUI::ComputeCompressedImg() {
+
+    const int num = img.size();
+    assert(num > 0);
+    assert(layerBegin >= 0 && layerBegin < num);
+    assert(layerEnd >=0 && layerEnd < num);
+    assert(layerBegin <= layerEnd);
+
+    Eigen::MatrixXd compressed;
+    compressed = Eigen::MatrixXd::Zero(imgRows, imgCols);
+    for (int i=layerBegin; i<layerEnd; i++) {
+        compressed += img[i];
+    }
+    
+    compressedImgTexture = (compressed.array() * (255.0 / double(layerEnd-layerBegin+1))).cast<unsigned char>();
+    compressedImgTexture.transposeInPlace();
+
+    logger().info("Compressed image texture re-computed: slice index {} to {}", layerBegin, layerEnd);
 }
 
 
@@ -210,6 +278,7 @@ void GUI::DrawMenuFile() {
                 imgCols = img[0].cols();
                 // In case the tiff image is very small
                 layerPerImg = img.size();
+                layerEnd = layerPerImg - 1;
             } else {
                 std::cerr << "Error open tiff image" << std::endl;
             }
@@ -278,32 +347,26 @@ void GUI::DrawWindow3DImageViewer() {
     // Plot "img"
     if (!img.empty()) {
 
-        ImGui::Text("Not implemented yet");
-        /*
-        ImGui::Image()
-        viewer.data().clear();
-        viewer.core().set_rotation_type(igl::opengl::ViewerCore::RotationType::ROTATION_TYPE_NO_ROTATION);
+        ImGui::PushItemWidth(RHSPanelWidth/2.0);
+        std::vector<std::string> typeName{"Compressed", "Per Slice"};
+        ImGui::Combo("3D Image Viewer Type", &imageViewerType, typeName);
+        ImGui::PopItemWidth();
 
-        texture = (img[slice].array()).cast<unsigned char>();
+        ImGui::Separator(); ////////////////////////
 
-        int xMax = img[slice].cols();
-        int yMax = img[slice].rows();
-        Eigen::MatrixXd V(4, 3);
-        V << 0, 0, 0, yMax, 0, 0, yMax, xMax, 0, 0, xMax, 0;
-        viewer.core().align_camera_center(V);
+        if (imageViewerType == 0) {
+            // compressed viewer
 
-        Eigen::MatrixXi F(2, 3);
-        F << 0, 1, 2, 2, 3, 0;
+        } else {
+            // per slice view
+            ImGui::SliderInt("Slice", &slice, 0, img.size()-1);
+        }
 
-        Eigen::MatrixXd UV(4, 2);
-        UV << 0, 1, 1, 1, 1, 0, 0, 0;
-        viewer.data().set_mesh(V, F);
-        viewer.data().set_uv(UV);
-        viewer.data().show_faces = true;
-        viewer.data().show_lines = false;
-        viewer.data().show_texture = true;
-        viewer.data().set_texture(texture, texture, texture);
-        */
+        ImGui::Separator(); ////////////////////////
+
+        ImGui::Text("layer per image = %d", layerPerImg);
+        ImGui::Text("channel per slice = %d", channelPerSlice);
+
     } else {
 
         ImGui::Text("No 3D image registered.");
@@ -405,19 +468,22 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     // image (imageData)
     layerPerImg = 40;  // a random guess to preview the image file
     channelPerSlice = 2;  // a random guess to preview the image file
+    layerBegin = 0;
+    layerEnd = layerPerImg - 1;
     resolutionX = 0;
     resolutionY = 0;
     resolutionZ = 0;
     normalizeQuantile = 0.995;
 
-    // texture image
+    // 3D image viewer
     V.resize(4, 3);
     F.resize(2, 3);
+    imageViewerType = 0;
 
     // crop image
     cropActive = false;
     downClicked = false;
-    showCropArea = true;
+    showCropArea = false;
     baseLoc << 0.0f, 0.0f, 0.0f;
     currentLoc << 0.0f, 0.0f, 0.0f;
     r0 = -1;
@@ -456,6 +522,7 @@ void GUI::init(std::string imagePath) {
         imgCols = img[0].cols();
         // In case the tiff image is very small
         layerPerImg = img.size();
+        layerEnd = layerPerImg - 1;
     }
 
     // callback

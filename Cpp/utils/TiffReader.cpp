@@ -61,9 +61,9 @@ bool GetDescription(const std::string &path, int &layerPerImg, int &numChannel) 
         } else {
             std::string temp = m[0].str();
             int num = std::stoi(temp.substr(7));
-            if (num > 0 && num < 1000)
+            if (num > 0 && num < 1000) {
                 layerPerImg = num;
-            else
+            } else
                 return false;
         }
 
