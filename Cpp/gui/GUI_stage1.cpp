@@ -60,6 +60,9 @@ void GUI::DrawStage1() {
         DrawRect(x0, y0, x1, y1, lineColor);
     }
 
+    ImGui::Separator(); /////////////////////////////////////////
+
+    ImGui::Text("Tiff Image Info");
     ImGui::PushItemWidth(zebrafishWidth / 3.0);
     ImGui::InputInt("Layers Per Image", &layerPerImg);
     ImGui::InputInt("Channels Per Slice", &channelPerSlice);
@@ -67,12 +70,14 @@ void GUI::DrawStage1() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
+    ImGui::Text("Depth Cropping");
     ImGui::SliderInt("Slice index start", &layerBegin, 0, layerEnd);
     ImGui::SliderInt("Slice index end", &layerEnd, layerBegin, layerPerImg-1);
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    if (ImGui::Checkbox("Mouse Crop", &cropActive)) {
+    ImGui::Text("Area Cropping");
+    if (ImGui::Checkbox("Activate Mouse Crop", &cropActive)) {
         if (!cropActive) 
             logger().info("Mouse crop: de-activated.");
         else
@@ -97,6 +102,7 @@ void GUI::DrawStage1() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
+    ImGui::Text("Microscope");
     ImGui::PushItemWidth(zebrafishWidth / 3.0);
     ImGui::InputDouble("Resolution X (um)", &resolutionX);
     ImGui::InputDouble("Resolution Y (um)", &resolutionY);
@@ -105,6 +111,7 @@ void GUI::DrawStage1() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
+    ImGui::Text("Preprocess");
     ImGui::Text("Histogram of pixel brightness");
     ImGui::Text("Not yet implemented");
     ImGui::PushItemWidth(zebrafishWidth / 3.0);
@@ -113,14 +120,13 @@ void GUI::DrawStage1() {
 
     ImGui::Separator();
 
-    ImGui::Text("Bspline config ... ...");
+    ImGui::Text("B-spline Config");
     ImGui::Text("Not yet implemented");
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    //////////////////////////////////////////////////////////////////////////
-
-    if (ImGui::Button("Re-load image")) {
+    ImGui::Text("Finalize");
+    if (ImGui::Button("Preview Result")) {
         if (imagePath.empty()) {
             return;  // invalid operation
                      // only entry is through "File" - "Open"
@@ -130,8 +136,10 @@ void GUI::DrawStage1() {
         if (ReadTifFirstImg(imagePath, layerPerImg, channelPerSlice, img, r0, c0, r1, c1)) {
             imgRows = img[0].rows();
             imgCols = img[0].cols();
-            logger().info("Image reloaded");
             NormalizeImage(img);
+            ComputeCompressedImg();  // re-compute compressed image texture
+            showCropArea = false;  // turn this into false
+            logger().info("Image reloaded");
         } else {
             logger().error("Error open tiff image (reload)");
             std::cerr << "Error open tiff image (reload)" << std::endl;

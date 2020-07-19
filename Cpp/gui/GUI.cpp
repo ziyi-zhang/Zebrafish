@@ -359,11 +359,13 @@ void GUI::DrawWindow3DImageViewer() {
 
         } else {
             // per slice view
-            ImGui::SliderInt("Slice", &slice, 0, img.size()-1);
+            ImGui::SliderInt("Slice", &slice, layerBegin, layerEnd);
         }
 
         ImGui::Separator(); ////////////////////////
 
+        ImGui::Text("%s", imagePath.c_str());
+        ImGui::Text("Using slices (top-down) %d to %d", layerBegin, layerEnd);
         ImGui::Text("layer per image = %d", layerPerImg);
         ImGui::Text("channel per slice = %d", channelPerSlice);
 

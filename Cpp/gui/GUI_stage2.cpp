@@ -51,7 +51,7 @@ void GUI::DrawStage2() {
         bsplineSolver.CalcControlPts(img, 0.7, 0.7, 0.7, bsplineDegree);
     }
 
-    ImGui::Separator();
+    ImGui::Separator(); ////////////////////////
 
     ImGui::Text("Grid Search");
     if (ImGui::Button("Grid Search")) {
@@ -66,7 +66,7 @@ void GUI::DrawStage2() {
     ImGui::InputDouble("Grid Search Energy Threshold", &gridEnergyThres);
     ImGui::PopItemWidth();
 
-    ImGui::Separator();
+    ImGui::Separator(); ////////////////////////
 
     ImGui::Text("Optimization");
     if (ImGui::Button("Optimization")) {
