@@ -60,7 +60,9 @@ private:
 
     //////////////////////////////////////////////////
     // crop image
-    bool cropActive;
+    bool cropActive;  // user use mouse to crop a rectangular area
+    bool downClicked;  // helper variable used by "cropActive"
+    bool showCropArea;  // visualize the current [r0, c0] x [r1, c1] area
     Eigen::Vector3f baseLoc, currentLoc;
     int r0, c0, r1, c1;  // upper-left [r0, c0]
 
@@ -119,6 +121,7 @@ private:
     //////////////////////////////////////////////////
     // Stage 1
     void CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype);
+    void DrawRect(double x0, double y0, double x1, double y1, const Eigen::MatrixXd &lineColor);
 
     //////////////////////////////////////////////////
     // Stage 2

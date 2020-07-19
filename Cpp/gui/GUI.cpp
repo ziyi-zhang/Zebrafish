@@ -415,6 +415,8 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
 
     // crop image
     cropActive = false;
+    downClicked = false;
+    showCropArea = true;
     baseLoc << 0.0f, 0.0f, 0.0f;
     currentLoc << 0.0f, 0.0f, 0.0f;
     r0 = -1;

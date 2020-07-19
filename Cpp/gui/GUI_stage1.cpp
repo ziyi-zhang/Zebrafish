@@ -59,28 +59,34 @@ void GUI::DrawStage1() {
         pointColor << 1, 0, 0;
         viewer.data().add_points(points, pointColor);
 
-        if (cropActive && baseLoc(0) != 0) {
+        // cropActive
+        if (cropActive && downClicked) {
             // crop activated & has been updated (not default value)
             Eigen::MatrixXd lineColor(1, 3);
-            pointColor << 1, 0, 1;
-            Eigen::MatrixXd lineX, lineY;
-            lineX.resize(4, 3);
-            lineY.resize(4, 3);
-            // upper-left corner (x1, y0)
+            lineColor << 0.77, 0.28, 0.24;
+
+            // upper-left corner (x0, y0)
             // lower-right corner (x1, y1)
-            int x0 = std::round(baseLoc(0));
-            int x1 = std::max(x0, int(std::round(currentLoc(0))));
-            int y0 = std::round(imgRows - baseLoc(1));
-            int y1 = std::min(y0, int(std::round(imgRows - currentLoc(1))));
-            lineX << x0, y0, 0.1, 
-                     x0, y1, 0.1, 
-                     x1, y1, 0.1, 
-                     x1, y0, 0.1;
-            lineY << x0, y1, 0.1, 
-                     x1, y1, 0.1, 
-                     x1, y0, 0.1, 
-                     x0, y0, 0.1;
-            viewer.data().add_edges(lineX, lineY, lineColor);
+            float x0 = baseLoc(0);
+            float x1 = std::max(x0, currentLoc(0));
+            float y0 = imgRows - baseLoc(1);
+            float y1 = std::min(y0, imgRows - currentLoc(1));
+            DrawRect(x0, y0, x1, y1, lineColor);
+        }
+
+        // showCropArea
+        if (showCropArea) {
+            // show the area specified by current [r0, c0] x [r1, c1]
+            Eigen::MatrixXd lineColor(1, 3);
+            lineColor << 0.77, 0.28, 0.24;
+
+            // upper-left corner (x0, y0)
+            // lower-right corner (x1, y1)
+            float x0 = (c0 == -1) ? 0 : c0;
+            float x1 = (c1 == -1) ? imgCols : c1;
+            float y0 = (r0 == -1) ? imgRows : imgRows - r0;
+            float y1 = (r1 == -1) ? 0 : imgRows - r1;
+            DrawRect(x0, y0, x1, y1, lineColor);
         }
     }
 
@@ -100,6 +106,13 @@ void GUI::DrawStage1() {
             logger().info("Mouse crop: de-activated.");
         else
             logger().info("Mouse crop: activated.");
+    }
+    ImGui::Checkbox("Show cropped area", &showCropArea);
+    if (ImGui::Button("Reset crop area")) {
+        r0 = -1;
+        c0 = -1;
+        r1 = -1;
+        c1 = -1;
     }
 
     ImGui::PushItemWidth(80);
@@ -190,11 +203,14 @@ void GUI::CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype) {
         if (mousetype == MOUSEDOWN) {
 
             logger().debug("Mouse down: fid = {} | bc = {:.2f} x {:.2f} x {:.2f} | loc = {:.2f} x {:.2f} x {:.2f}", fid, bc(0), bc(1), bc(2), loc(0), loc(1), loc(2));
+            downClicked = true;
+
             baseLoc = loc;
             currentLoc = loc;
         } else if (mousetype == MOUSEUP) {
             logger().debug("Mouse up:   fid = {} | bc = {:.2f} x {:.2f} x {:.2f} | loc = {:.2f} x {:.2f} x {:.2f}", fid, bc(0), bc(1), bc(2), loc(0), loc(1), loc(2));
             cropActive = false;
+            downClicked = false;
 
             c0 = std::round(baseLoc(0));
             c1 = std::round(currentLoc(0));
@@ -208,11 +224,33 @@ void GUI::CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype) {
 
         if (mousetype == MOUSEDOWN) {
             logger().debug("Mouse down: no hit");
+            downClicked = true;
         } else if (mousetype == MOUSEUP) {
             logger().debug("Mouse up:   no hit");
             cropActive = false;
+            downClicked = false;
         }
     }
+}
+
+
+void GUI::DrawRect(double x0, double y0, double x1, double y1, const Eigen::MatrixXd &lineColor) {
+
+
+    static Eigen::MatrixXd lineX, lineY;
+    lineX.resize(4, 3);
+    lineY.resize(4, 3);
+    // upper-left corner (x0, y0)
+    // lower-right corner (x1, y1)
+    lineX << x0, y0, 0.1, 
+             x0, y1, 0.1, 
+             x1, y1, 0.1, 
+             x1, y0, 0.1;
+    lineY << x0, y1, 0.1, 
+             x1, y1, 0.1, 
+             x1, y0, 0.1, 
+             x0, y0, 0.1;
+    viewer.data().add_edges(lineX, lineY, lineColor);
 }
 
 }  // namespace zebrafish
