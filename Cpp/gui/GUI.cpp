@@ -1,7 +1,9 @@
 #include <zebrafish/GUI.h>
 #include <zebrafish/TiffReader.h>
 #include <zebrafish/FileDialog.h>
+#include <zebrafish/Logger.hpp>
 
+#include <igl/unproject_onto_mesh.h>
 #include <string>
 #include <sstream>
 #include <algorithm>
@@ -67,7 +69,31 @@ void GUI::post_resize(int w, int h) {
 bool GUI::MouseDownCallback(igl::opengl::glfw::Viewer &viewer, int button, int modifier) {
 
     if (cropActive) {
-        std::cout << viewer.down_mouse_x << " " << viewer.down_mouse_y << std::endl;
+
+        static int fid;
+        static Eigen::Vector3f bc, loc;
+        static bool hit;
+        hit = igl::unproject_onto_mesh(
+            Eigen::Vector2f(viewer.down_mouse_x, viewer.down_mouse_y), 
+            viewer.core().view, 
+            viewer.core().proj,
+            viewer.core().viewport, 
+            V, 
+            F, 
+            fid, 
+            bc);
+
+        logger().debug("Mouse = [{} x {}]", viewer.down_mouse_x, viewer.down_mouse_y);
+        if (hit) {
+            loc(0) = (V(F(fid, 0), 0) * bc(0) + V(F(fid, 1), 0) * bc(1) + V(F(fid, 2), 0) * bc(2));
+            loc(1) = (V(F(fid, 0), 1) * bc(0) + V(F(fid, 1), 1) * bc(1) + V(F(fid, 2), 1) * bc(2));
+            loc(2) = (V(F(fid, 0), 2) * bc(0) + V(F(fid, 1), 2) * bc(1) + V(F(fid, 2), 2) * bc(2));
+            logger().debug("fid = {} | bc = {:.2f} x {:.2f} x {:.2f} | loc = {:.2f} x {:.2f} x {:.2f}", fid, bc(0), bc(1), bc(2), loc(0), loc(1), loc(2));
+        } else {
+            logger().debug("No hit on image");
+        }
+
+        
         // disable ligigl default mouse_down
         return true;
     }
@@ -372,7 +398,11 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     resolutionZ = 0;
     normalizeQuantile = 0.995;
 
-    // clip image
+    // texture image
+    V.resize(4, 3);
+    F.resize(2, 3);
+
+    // crop image
     cropActive = false;
     clickCount = 0;
     r0 = -1;

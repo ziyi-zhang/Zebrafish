@@ -53,6 +53,11 @@ private:
     double normalizeQuantile;
 
     //////////////////////////////////////////////////
+    // texture image
+    Eigen::MatrixXd V;
+    Eigen::MatrixXi F;
+
+    //////////////////////////////////////////////////
     // crop image
     bool cropActive;
     int clickCount;

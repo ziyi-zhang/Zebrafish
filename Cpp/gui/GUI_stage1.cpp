@@ -39,13 +39,9 @@ void GUI::DrawStage1() {
         texture.transposeInPlace();
         int xMax = img[slice].cols();
         int yMax = img[slice].rows();
-        Eigen::MatrixXd V(4, 3);
         V << 0, 0, 0, xMax, 0, 0, xMax, yMax, 0, 0, yMax, 0;
-        viewer.core().align_camera_center(V);
-
-        Eigen::MatrixXi F(2, 3);
         F << 0, 1, 2, 2, 3, 0;
-
+        viewer.core().align_camera_center(V);
         Eigen::MatrixXd UV(4, 2);
         UV << 0, 1, 1, 1, 1, 0, 0, 0;
         viewer.data().set_mesh(V, F);
@@ -60,7 +56,7 @@ void GUI::DrawStage1() {
         viewer.data().set_texture(texture, texture, texture);
 
         Eigen::MatrixXd points(1, 3);
-        points << 0, 1, 0;
+        points << 0, 1, 5;
         Eigen::MatrixXd pointColor(1, 3);
         pointColor << 1, 0, 0;
         viewer.data().add_points(points, pointColor);
