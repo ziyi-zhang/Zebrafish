@@ -9,6 +9,8 @@
 #include <tbb/parallel_for.h>
 #include <tbb/enumerable_thread_specific.h>
 
+#include <sstream>
+
 namespace zebrafish {
 
 namespace {
@@ -36,39 +38,53 @@ bool ValidGridSearchPoint(const image_t &image, const bspline &bsp, double x, do
     return true;
 }
 
+
+std::string Vec2Str(const Eigen::VectorXd &vec) {
+
+    std::stringstream sstr;
+    sstr << vec;
+    return sstr.str();
+}
+
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Stage 3: Grid Search & Optimization
+// Stage 3: Grid Search
 
 void GUI::DrawStage3() {
 
     ImGui::Separator(); ////////////////////////
 
-    ImGui::Text("Grid Search");
-    if (ImGui::Button("Grid Search")) {
-        
-        GridSearch();
+    if (ImGui::CollapsingHeader("Grid Search"), ImGuiTreeNodeFlags_DefaultOpen) {
+
+        if (ImGui::Button("Grid Search")) {
+            
+            logger().info("tett");
+            GridSearch();
+        }
     }
-
-    ImGui::Text("Histogram of energy distribution");
-    ImGui::Text("Not implemented yet");
-
-    ImGui::PushItemWidth(zebrafishWidth / 3.0);
-    ImGui::InputDouble("Grid Search Energy Threshold", &gridEnergyThres);
-    ImGui::PopItemWidth();
 
     ImGui::Separator(); ////////////////////////
 
-    ImGui::Text("Optimization");
-    if (ImGui::Button("Optimization")) {
-        
-        Optimization();
+    if (ImGui::CollapsingHeader("Grid Search Result"), ImGuiTreeNodeFlags_DefaultOpen) {
+
+        ImGui::Text("Histogram of energy");
+
+
+        ImGui::PushItemWidth(zebrafishWidth / 3.0);
+        ImGui::InputDouble("Grid Search Energy Threshold", &gridEnergyThres);
+        ImGui::PopItemWidth();
+
+        if (ImGui::Button("Register Promising Results")) {
+
+            // put into effect
+
+        }
     }
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    ImGui::Text("Stage 3: Grid Search & Optimization");
+    ImGui::Text("Stage 3: Grid Search");
 }
 
 
@@ -83,23 +99,26 @@ void GUI::GridSearch() {
     const int Nx = bsplineSolver.Get_Nx();
     const int Ny = bsplineSolver.Get_Ny();
     const int Nz = bsplineSolver.Get_Nz();
-    std::vector<double> rArray = {3, 4, 5, 6, 7};
-    const int Nr = rArray.size();
-    const double gapX = 1.0;
-    const double gapY = 1.0;
-    const double gapZ = 1.0;
+    const int Nr = std::round((rArrayMax_grid - rArrayMin_grid) / rArrayGap_grid);
+
+    Eigen::VectorXd rArray;
+    rArray.resize(Nr);
+    for (int i=0; i<Nr; i++)
+        rArray(i) = rArrayMin_grid + i * rArrayGap_grid;
+    if (rArray(Nr-1) > rArrayMax_grid) rArray(Nr-1) = rArrayMax_grid;
+    
     double xx, yy, zz, rr;
     int sampleCount = 0;
     gridSampleInput.resize(Nx*Ny*Nz*Nr, 4);
-    for (int ix=0; ix<floor(Nx/gapX); ix++)
-        for (int iy=0; iy<floor(Ny/gapY); iy++)
-            for (int iz=0; iz<floor(Nz/gapZ); iz++)
+    for (int ix=0; ix<floor(Nx/gapX_grid); ix++)
+        for (int iy=0; iy<floor(Ny/gapY_grid); iy++)
+            for (int iz=0; iz<floor(Nz/gapZ_grid); iz++)
                 for (int ir=0; ir<Nr; ir++) {
 
-                    xx = ix * gapX;
-                    yy = iy * gapY;
-                    zz = iz * gapZ;
-                    rr = rArray[ir];
+                    xx = ix * gapX_grid;
+                    yy = iy * gapY_grid;
+                    zz = iz * gapZ_grid;
+                    rr = rArray(ir);
                     if (!ValidGridSearchPoint(img, bsplineSolver, xx, yy, zz, rr)) continue;
 
                     gridSampleInput(sampleCount, 0) = xx;
@@ -110,6 +129,8 @@ void GUI::GridSearch() {
                 }
     gridSampleOutput.resize(sampleCount, 1);
     logger().info("Grid search samples prepared...");
+    logger().debug("gapX = {:.2f}  gapY = {:.2f}  gapZ = {:.2f}", gapX_grid, gapY_grid, gapZ_grid);
+    logger().debug("Calculated rArray = {}", Vec2Str(rArray));
 
     // Parallel Grid Search
     logger().info(">>>>>>>>>> Before grid search >>>>>>>>>>");
@@ -117,8 +138,9 @@ void GUI::GridSearch() {
     tbb::parallel_for( tbb::blocked_range<int>(0, sampleCount),
         [&gridSampleInput, &gridSampleOutput, this/*.bsplineSolver*/](const tbb::blocked_range<int> &r) {
 
+            const double cylinderHeight = 3.0;
             for (int ii = r.begin(); ii != r.end(); ++ii) {
-                cylinder::EvaluateCylinder(bsplineSolver, gridSampleInput(ii, 0), gridSampleInput(ii, 1), gridSampleInput(ii, 2), gridSampleInput(ii, 3), 3, gridSampleOutput(ii));
+                cylinder::EvaluateCylinder(bsplineSolver, gridSampleInput(ii, 0), gridSampleInput(ii, 1), gridSampleInput(ii, 2), gridSampleInput(ii, 3), cylinderHeight, gridSampleOutput(ii));
             }
         });
     logger().info("<<<<<<<<<< After grid search <<<<<<<<<<");
@@ -127,55 +149,5 @@ void GUI::GridSearch() {
     UpdateSampleNewton(gridSampleInput, gridSampleOutput);
 }
 
-
-////////////////////////////////////////////////////////////////////////////////////////
-// Optimization
-
-
-void GUI::Optimization() {
-
-    logger().info("Not implemented");
-}
-
-
-void GUI::UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen::MatrixXd &gridSampleOutput) {
-
-    assert(gridSampleInput.rows() == gridSampleOutput.rows());
-    const int N = gridSampleOutput.rows();
-    int M = 0;
-    int i, count = 0;
-
-    for (i=0; i<N; i++)
-        if (gridSampleOutput(i) < gridEnergyThres) M++;  // count to reserve space
-
-    pointRecord.num = M;
-    pointRecord.alive.resize(M, Eigen::NoChange);
-    pointRecord.grid_search.resize(M, Eigen::NoChange);
-    pointRecord.optimization.resize(M, Eigen::NoChange);
-
-    for (i=0; i<N; i++) {
-        if (gridSampleOutput(i) > gridEnergyThres) continue;
-
-        // alive
-        pointRecord.alive(count) = true;
-
-        // grid search
-        pointRecord.grid_search(count, 0) = gridSampleInput(i, 0);
-        pointRecord.grid_search(count, 1) = gridSampleInput(i, 1);
-        pointRecord.grid_search(count, 2) = gridSampleInput(i, 2);
-        pointRecord.grid_search(count, 3) = gridSampleInput(i, 3);
-        pointRecord.grid_search(count, 4) = gridSampleOutput(i);
-
-        // optimization
-        pointRecord.optimization(count, 0) = 0;
-        pointRecord.optimization(count, 1) = 0;
-        pointRecord.optimization(count, 2) = 0;
-        pointRecord.optimization(count, 3) = 0;
-        pointRecord.optimization(count, 4) = 0;
-        pointRecord.optimization(count, 5) = 0;
-
-        count++;
-    }
-}
 
 }  // namespace zebrafish

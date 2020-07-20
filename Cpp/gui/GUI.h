@@ -59,6 +59,11 @@ private:
     Eigen::MatrixXf imgHist;
 
     //////////////////////////////////////////////////
+    // Grid Search
+    double gapX_grid, gapY_grid, gapZ_grid;
+    double rArrayMin_grid, rArrayMax_grid, rArrayGap_grid;
+
+    //////////////////////////////////////////////////
     // 3D image viewer
     Eigen::MatrixXd V;
     Eigen::MatrixXi F;
@@ -93,6 +98,10 @@ private:
     bool show_3DImage_viewer;
     bool show_property_editor;
     bool show_graphics;
+
+    //////////////////////////////////////////////////
+    // bool flag indicating moving from a stage to another
+    bool stage1to2Flag;
 
 public:
     std::ostringstream oss;

@@ -116,6 +116,7 @@ void GUI::DrawStage1() {
 
     if (ImGui::Button("Save")) {
         if (imagePath.empty()) {
+            logger().error("Error: ImagePath is empty");
             return;  // invalid operation
                      // only entry is through "File" - "Open"
             // imagePath = FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});
@@ -126,7 +127,6 @@ void GUI::DrawStage1() {
             imgCols = img[0].cols();
 
             ComputeCompressedImg();  // re-compute compressed image texture
-            ComputeImgHist(img);  // prepare for stage 2
             showCropArea = false;  // turn this into false
 
             logger().info("Image reloaded");

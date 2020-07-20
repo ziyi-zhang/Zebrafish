@@ -215,6 +215,8 @@ void GUI::DrawZebrafishPanel() {
     if (ImGui::Button("Next Stage", ImVec2(zebrafishWidth / 2.0, 0))) {
         stage++;
         stage = std::min(stage, stageMax);
+
+        if (stage == 2) stage1to2Flag = true;
     }
     ImGui::Text("Stage %d", stage);
 
@@ -482,6 +484,14 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     imgHist = Eigen::MatrixXf::Zero(histBars, 1);
     normalizeQuantile = 0.995;
 
+    // grid search
+    gapX_grid = 1.0;
+    gapY_grid = 1.0;
+    gapZ_grid = 1.0;
+    rArrayMin_grid = 3.0;
+    rArrayMax_grid = 7.0;
+    rArrayGap_grid = 1.0;
+
     // 3D image viewer
     V.resize(4, 3);
     F.resize(2, 3);
@@ -515,21 +525,28 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     show_3DImage_viewer = false;
     show_property_editor = false;
     show_graphics = false;
+
+    // bool flag indicating moving from a stage to another
+    stage1to2Flag = false;
 }
 
 
-void GUI::init(std::string imagePath) {
+void GUI::init(std::string imagePath_) {
 
     // Debug purpose
-    if (!imagePath.empty()) {
+    if (!imagePath_.empty()) {
         // only true in debug mode
-        GetDescription(imagePath, layerPerImg, channelPerSlice);
-        ReadTifFirstImg(imagePath, layerPerImg, channelPerSlice, img);
+        imagePath = imagePath_;
+        GetDescription(imagePath_, layerPerImg, channelPerSlice);
+        ReadTifFirstImg(imagePath_, layerPerImg, channelPerSlice, img);
         imgRows = img[0].rows();
         imgCols = img[0].cols();
         // In case the tiff image is very small
         layerPerImg = img.size();
         layerEnd = layerPerImg - 1;
+
+        // debug helper
+        show_log = true;
     }
 
     // callback

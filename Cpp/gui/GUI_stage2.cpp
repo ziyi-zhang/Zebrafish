@@ -34,16 +34,17 @@ void GUI::DrawStage2() {
         ImGui::Text("Histogram of pixel brightness");
         ImGui::PlotHistogram("", imgHist.data(), imgHist.size(), 0, NULL, 0, imgHist.maxCoeff(), ImVec2(0, 80));
         ImGui::PushItemWidth(zebrafishWidth / 3.0);
-        if (ImGui::InputDouble("Quantile Thres", &normalizeQuantile)) {
+        if (ImGui::InputDouble("Quantile Thres", &normalizeQuantile) || stage1to2Flag) {
             
+            stage1to2Flag = false;
+
             if (normalizeQuantile>1.0) normalizeQuantile = 1.0;
             if (normalizeQuantile<0.95) normalizeQuantile = 0.95;
             double thres = QuantileImage(img, normalizeQuantile);
             image_t img_ = img;
             NormalizeImage(img_, thres);  // Do not modify "img" now
-            logger().info("Image normalized with normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, thres);
+            logger().info("Trial: normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, thres);
 
-            // Note: This has been calculated once in stage 1: "Reload image" button
             ComputeImgHist(img_);
         }
         ImGui::PopItemWidth();
@@ -60,8 +61,15 @@ void GUI::DrawStage2() {
             ImGui::Separator();
         }
 
-        if (ImGui::Button("Compute Bspline")) {
+        if (ImGui::Button("Compute B-spline")) {
 
+            // put into effect
+            double thres = QuantileImage(img, normalizeQuantile);
+            NormalizeImage(img, thres);
+            ComputeImgHist(img);
+            logger().info("[Finalized] Image normalized with normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, thres);
+
+            // Compute B-spline
             logger().info("Computing Bspine for the first frame");
             const int bsplineDegree = 2;
             bsplineSolver.SetResolution(resolutionX, resolutionY, resolutionZ);
@@ -81,8 +89,8 @@ void GUI::DrawStage2() {
 
 void GUI::ComputeImgHist(image_t &img_) {
 
-    float minValue = std::numeric_limits<float>::max();
-    float maxValue = std::numeric_limits<float>::min();
+    double minValue = std::numeric_limits<double>::max();
+    double maxValue = std::numeric_limits<double>::min();
     imgHist = Eigen::MatrixXf::Zero(histBars, 1);
 
     for (int i=layerBegin; i<=layerEnd; i++) {
@@ -90,7 +98,10 @@ void GUI::ComputeImgHist(image_t &img_) {
         if (img_[i].maxCoeff() > maxValue) maxValue = img_[i].maxCoeff();
         if (img_[i].minCoeff() < minValue) minValue = img_[i].minCoeff();
     }
-    const float gap = (maxValue - minValue) / float(histBars);
+    const double epsilon = 0.0001;  // to make sure every number lies inside
+    maxValue += epsilon;
+    minValue -= epsilon;
+    const double gap = (maxValue - minValue) / double(histBars);
 
     for (int i=layerBegin; i<=layerEnd; i++) {
         const Eigen::MatrixXd &mat = img_[i];
