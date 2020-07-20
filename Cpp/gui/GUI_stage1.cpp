@@ -51,57 +51,70 @@ void GUI::DrawStage1() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    ImGui::Text("Tiff Image Info");
-    ImGui::PushItemWidth(zebrafishWidth / 3.0);
-    ImGui::InputInt("Layers Per Image", &layerPerImg);
-    ImGui::InputInt("Channels Per Slice", &channelPerSlice);
-    ImGui::PopItemWidth();
+    if (ImGui::CollapsingHeader("Tiff Image Info", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-    ImGui::Separator(); /////////////////////////////////////////
-
-    ImGui::Text("Depth Cropping");
-    ImGui::SliderInt("Slice index start", &layerBegin, 0, layerEnd);
-    ImGui::SliderInt("Slice index end", &layerEnd, layerBegin, layerPerImg-1);
-
-    ImGui::Separator(); /////////////////////////////////////////
-
-    ImGui::Text("Area Cropping");
-    if (ImGui::Checkbox("Activate Mouse Crop", &cropActive)) {
-        if (!cropActive) 
-            logger().info("Mouse crop: de-activated.");
-        else
-            logger().info("Mouse crop: activated.");
-    }
-    ImGui::Checkbox("Show cropped area", &showCropArea);
-    if (ImGui::Button("Reset crop area")) {
-        r0 = -1;
-        c0 = -1;
-        r1 = -1;
-        c1 = -1;
+        ImGui::PushItemWidth(zebrafishWidth / 3.0);
+        ImGui::InputInt("Layers Per Image", &layerPerImg);
+        ImGui::InputInt("Channels Per Slice", &channelPerSlice);
+        ImGui::PopItemWidth();
     }
 
-    ImGui::PushItemWidth(80);
-    ImGui::InputInt("R0", &r0);
-    ImGui::SameLine();
-    ImGui::InputInt("C0", &c0);
-    ImGui::InputInt("R1", &r1);
-    ImGui::SameLine();
-    ImGui::InputInt("C1", &c1);
-    ImGui::PopItemWidth();
+    ImGui::Separator(); /////////////////////////////////////////
+
+    if (ImGui::CollapsingHeader("Depth Cropping", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+        ImGui::SliderInt("Slice index start", &layerBegin, 0, layerEnd);
+        ImGui::SliderInt("Slice index end", &layerEnd, layerBegin, layerPerImg-1);
+    }
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    ImGui::Text("Microscope");
-    ImGui::PushItemWidth(zebrafishWidth / 3.0);
-    ImGui::InputDouble("Resolution X (um)", &resolutionX);
-    ImGui::InputDouble("Resolution Y (um)", &resolutionY);
-    ImGui::InputDouble("Resolution Z (um)", &resolutionZ);
-    ImGui::PopItemWidth();
+    if (ImGui::CollapsingHeader("Area Cropping", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+        if (ImGui::Checkbox("Enable Mouse Crop", &cropActive)) {
+            if (!cropActive) 
+                logger().info("Mouse crop: de-activated.");
+            else
+                logger().info("Mouse crop: activated.");
+        }
+        ImGui::Checkbox("Show cropped area", &showCropArea);
+        if (ImGui::Button("Reset crop area")) {
+            r0 = -1;
+            c0 = -1;
+            r1 = -1;
+            c1 = -1;
+        }
+
+        if (ImGui::TreeNode("Detailed")) {
+
+            ImGui::PushItemWidth(80);
+            ImGui::InputInt("R0", &r0);
+            ImGui::SameLine();
+            ImGui::InputInt("C0", &c0);
+            ImGui::InputInt("R1", &r1);
+            ImGui::SameLine();
+            ImGui::InputInt("C1", &c1);
+            ImGui::PopItemWidth();
+
+            ImGui::TreePop();
+            ImGui::Separator();
+        }
+    }
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    ImGui::Text("Finalize");
-    if (ImGui::Button("Preview Result")) {
+    if (ImGui::CollapsingHeader("Microscope", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+        ImGui::PushItemWidth(zebrafishWidth / 3.0);
+        ImGui::InputDouble("Resolution X (um)", &resolutionX);
+        ImGui::InputDouble("Resolution Y (um)", &resolutionY);
+        ImGui::InputDouble("Resolution Z (um)", &resolutionZ);
+        ImGui::PopItemWidth();
+    }
+
+    ImGui::Separator(); /////////////////////////////////////////
+
+    if (ImGui::Button("Save")) {
         if (imagePath.empty()) {
             return;  // invalid operation
                      // only entry is through "File" - "Open"

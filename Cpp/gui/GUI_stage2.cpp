@@ -29,33 +29,44 @@ void GUI::DrawStage2() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    ImGui::Text("Preprocess");
-    ImGui::Text("Histogram of pixel brightness");
-    ImGui::PlotHistogram("", imgHist.data(), imgHist.size(), 0, NULL, 0, imgHist.maxCoeff(), ImVec2(0, 80));
-    ImGui::PushItemWidth(zebrafishWidth / 3.0);
-    if (ImGui::InputDouble("Quantile Thres", &normalizeQuantile)) {
-        
-        if (normalizeQuantile>1.0) normalizeQuantile = 1.0;
-        if (normalizeQuantile<0.95) normalizeQuantile = 0.95;
-        double thres = QuantileImage(img, normalizeQuantile);
-        image_t img_ = img;
-        NormalizeImage(img_, thres);  // Do not modify "img" now
-        logger().info("Image normalized with normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, thres);
+    if (ImGui::CollapsingHeader("Preprocess", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        // Note: This has been calculated once in stage 1: "Reload image" button
-        ComputeImgHist(img_);
+        ImGui::Text("Histogram of pixel brightness");
+        ImGui::PlotHistogram("", imgHist.data(), imgHist.size(), 0, NULL, 0, imgHist.maxCoeff(), ImVec2(0, 80));
+        ImGui::PushItemWidth(zebrafishWidth / 3.0);
+        if (ImGui::InputDouble("Quantile Thres", &normalizeQuantile)) {
+            
+            if (normalizeQuantile>1.0) normalizeQuantile = 1.0;
+            if (normalizeQuantile<0.95) normalizeQuantile = 0.95;
+            double thres = QuantileImage(img, normalizeQuantile);
+            image_t img_ = img;
+            NormalizeImage(img_, thres);  // Do not modify "img" now
+            logger().info("Image normalized with normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, thres);
+
+            // Note: This has been calculated once in stage 1: "Reload image" button
+            ComputeImgHist(img_);
+        }
+        ImGui::PopItemWidth();
     }
-    ImGui::PopItemWidth();
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    ImGui::Text("B-spline Config");
-    if (ImGui::Button("Compute Bspline")) {
+    if (ImGui::CollapsingHeader("B-spline Config"), ImGuiTreeNodeFlags_DefaultOpen) {
 
-        logger().info("Computing Bspine for the first frame");
-        const int bsplineDegree = 2;
-        bsplineSolver.SetResolution(resolutionX, resolutionY, resolutionZ);
-        bsplineSolver.CalcControlPts(img, 0.7, 0.7, 0.7, bsplineDegree);
+        if (ImGui::TreeNode("Advanced")) {
+            ImGui::Text("TBD");
+            
+            ImGui::TreePop();
+            ImGui::Separator();
+        }
+
+        if (ImGui::Button("Compute Bspline")) {
+
+            logger().info("Computing Bspine for the first frame");
+            const int bsplineDegree = 2;
+            bsplineSolver.SetResolution(resolutionX, resolutionY, resolutionZ);
+            bsplineSolver.CalcControlPts(img, 0.7, 0.7, 0.7, bsplineDegree);
+        }
     }
 
     ImGui::Separator(); /////////////////////////////////////////
