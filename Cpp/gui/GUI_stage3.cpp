@@ -42,7 +42,7 @@ bool ValidGridSearchPoint(const image_t &image, const bspline &bsp, double x, do
 std::string Vec2Str(const Eigen::VectorXd &vec) {
 
     std::stringstream sstr;
-    sstr << vec;
+    sstr << vec.transpose();
     return sstr.str();
 }
 
@@ -56,6 +56,23 @@ void GUI::DrawStage3() {
     ImGui::Separator(); ////////////////////////
 
     if (ImGui::CollapsingHeader("Grid Search", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+        if (ImGui::TreeNode("Advanced search range")) {
+            
+            const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+            ImGui::PushItemWidth(inputWidth);
+            ImGui::InputDouble("Gap X", &gapX_grid);
+            ImGui::InputDouble("Gap Y", &gapY_grid);
+            ImGui::InputDouble("Gap Z", &gapZ_grid);
+
+            ImGui::InputDouble("rArray min", &rArrayMin_grid);
+            ImGui::InputDouble("rArray max", &rArrayMax_grid);
+            ImGui::InputDouble("rArray gap", &rArrayGap_grid);
+            ImGui::PopItemWidth();
+            
+            ImGui::TreePop();
+            ImGui::Separator();
+        }
 
         if (ImGui::Button("Run Grid Search")) {
             
@@ -98,7 +115,7 @@ void GUI::GridSearch() {
     const int Nx = bsplineSolver.Get_Nx();
     const int Ny = bsplineSolver.Get_Ny();
     const int Nz = bsplineSolver.Get_Nz();
-    const int Nr = std::round((rArrayMax_grid - rArrayMin_grid) / rArrayGap_grid);
+    const int Nr = std::round((rArrayMax_grid - rArrayMin_grid) / rArrayGap_grid + 1);
 
     Eigen::VectorXd rArray;
     rArray.resize(Nr);
@@ -129,7 +146,7 @@ void GUI::GridSearch() {
     gridSampleOutput.resize(sampleCount, 1);
     logger().info("Grid search samples prepared...");
     logger().debug("gapX = {:.2f}  gapY = {:.2f}  gapZ = {:.2f}", gapX_grid, gapY_grid, gapZ_grid);
-    logger().debug("Calculated rArray = {}", Vec2Str(rArray));
+    logger().debug("Calculated rArray = [ {} ]", Vec2Str(rArray));
 
     // Parallel Grid Search
     logger().info(">>>>>>>>>> Before grid search >>>>>>>>>>");

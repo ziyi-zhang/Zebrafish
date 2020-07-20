@@ -55,7 +55,7 @@ void GUI::DrawStage2() {
     if (ImGui::CollapsingHeader("B-spline Config"), ImGuiTreeNodeFlags_DefaultOpen) {
 
         if (ImGui::TreeNode("Advanced")) {
-            ImGui::Text("TBD");
+            ImGui::Text("Not implemented yet...");
             
             ImGui::TreePop();
             ImGui::Separator();
