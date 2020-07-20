@@ -13,6 +13,8 @@ namespace {
 
 void GUI::DrawStage4() {
 
+    ImGui::Separator(); /////////////////////////////////////////
+
     ImGui::Text("Stage 4");
 }
 

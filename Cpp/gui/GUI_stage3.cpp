@@ -66,6 +66,8 @@ void GUI::DrawStage3() {
         Optimization();
     }
 
+    ImGui::Separator(); /////////////////////////////////////////
+
     ImGui::Text("Stage 3: Grid Search & Optimization");
 }
 

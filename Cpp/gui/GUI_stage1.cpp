@@ -113,7 +113,7 @@ void GUI::DrawStage1() {
             imgCols = img[0].cols();
 
             ComputeCompressedImg();  // re-compute compressed image texture
-            ComputeImgHist();  // prepare for stage 2
+            ComputeImgHist(img);  // prepare for stage 2
             showCropArea = false;  // turn this into false
 
             logger().info("Image reloaded");
@@ -122,6 +122,8 @@ void GUI::DrawStage1() {
             std::cerr << "Error open tiff image (reload)" << std::endl;
         }
     }
+
+    ImGui::Separator(); /////////////////////////////////////////
 
     ImGui::Text("Stage 1: image read");
 }
