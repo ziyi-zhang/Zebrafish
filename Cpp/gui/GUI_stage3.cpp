@@ -128,12 +128,33 @@ void GUI::DrawStage3() {
         ImGui::SliderInt("Point Size", &gridSearchPointSize, 1, 30);
         ImGui::PopItemWidth();
 
+        // Histogram
         ImGui::Text("Histogram of energy");
-        ImGui::PlotHistogram("", gridEnergyHist.data(), gridEnergyHist.size(), 0, NULL, 0, gridEnergyHist.maxCoeff(), ImVec2(0, 80));
 
-        const float inputWidth = ImGui::GetWindowWidth() / 3.0;
-        ImGui::PushItemWidth(inputWidth);
-        if (ImGui::InputDouble("Grid Search Energy Threshold", &gridEnergyThres)) {
+        const float width = ImGui::GetWindowWidth() * 0.75f - 2;
+        ImGui::PushItemWidth(width + 2);
+
+        ImVec2 before = ImGui::GetCursorScreenPos();
+        ImGui::PlotHistogram("", gridEnergyHist.hist.data(), gridEnergyHist.hist.size(), 0, NULL, 0, gridEnergyHist.hist.maxCoeff(), ImVec2(0, 80));
+        ImVec2 after = ImGui::GetCursorScreenPos();
+        after.y -= ImGui::GetStyle().ItemSpacing.y;
+
+        float ratio = ((gridEnergyThres-gridEnergyHist.minValue)/(gridEnergyHist.maxValue-gridEnergyHist.minValue));
+        ratio = std::min(1.0f, std::max(0.0f, ratio));
+        ImDrawList *drawList = ImGui::GetWindowDrawList();
+        drawList->PushClipRectFullScreen();
+        drawList->AddLine(
+            ImVec2(before.x + width * ratio, before.y), 
+            ImVec2(before.x + width * ratio, after.y), 
+            IM_COL32(50, 205, 50, 255), 
+            2.0f
+        );
+        drawList->PopClipRect();
+        ImGui::PopItemWidth();
+
+        ImGui::PushItemWidth(zebrafishWidth * 0.75);
+        ImGui::Text("Grid Search Energy Threshold");
+        if (ImGui::SliderFloat("", &gridEnergyThres, gridEnergyHist.minValue, gridEnergyHist.maxValue, "%.3f")) {
 
             UpdateSampleNewton(gridSampleInput, gridSampleOutput);
         }
@@ -272,15 +293,17 @@ void GUI::UpdateGridEnergyHist() {
     const int N = gridSampleOutput.rows();
     assert(N > 0);
 
-    gridEnergyHist = Eigen::MatrixXf::Zero(histBars, 1);
-
     const double epsilon = 0.0001;  // to make sure every number lies inside
     maxValue += epsilon;
     minValue -= epsilon;
     const double gap = (maxValue - minValue) / double(histBars);
 
+    gridEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
+    gridEnergyHist.minValue = minValue;
+    gridEnergyHist.maxValue = maxValue;
+
     for (int i=0; i<N; i++) {
-        gridEnergyHist( std::floor((gridSampleOutput(i) - minValue)/gap) )++;
+        gridEnergyHist.hist( std::floor((gridSampleOutput(i) - minValue)/gap) )++;
     }
 }
 

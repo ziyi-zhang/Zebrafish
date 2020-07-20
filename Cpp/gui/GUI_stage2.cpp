@@ -31,21 +31,45 @@ void GUI::DrawStage2() {
 
     if (ImGui::CollapsingHeader("Preprocess", ImGuiTreeNodeFlags_DefaultOpen)) {
 
+        // Histogram
         ImGui::Text("Histogram of pixel brightness");
-        ImGui::PlotHistogram("", imgHist.data(), imgHist.size(), 0, NULL, 0, imgHist.maxCoeff(), ImVec2(0, 80));
-        ImGui::PushItemWidth(zebrafishWidth / 3.0);
-        if (ImGui::InputDouble("Quantile Thres", &normalizeQuantile) || stage1to2Flag) {
-            
+
+        const float width = ImGui::GetWindowWidth() * 0.75f - 2;
+        ImGui::PushItemWidth(width + 2);
+
+        ImVec2 before = ImGui::GetCursorScreenPos();
+        ImGui::PlotHistogram("", imgHist.hist.data(), imgHist.hist.size(), 0, NULL, 0, imgHist.hist.maxCoeff(), ImVec2(0, 80));
+        ImVec2 after = ImGui::GetCursorScreenPos();
+        after.y -= ImGui::GetStyle().ItemSpacing.y;
+
+            // logger().debug("normalizeQuantile = {}   normalizeQuantileRes = {}", normalizeQuantile, normalizeQuantileRes);
+        float ratio = ((normalizeQuantileRes-imgHist.minValue)/(imgHist.maxValue-imgHist.minValue));
+        ratio = std::min(1.0f, std::max(0.0f, ratio));
+        ImDrawList *drawList = ImGui::GetWindowDrawList();
+        drawList->PushClipRectFullScreen();
+        drawList->AddLine(
+            ImVec2(before.x + width * ratio, before.y), 
+            ImVec2(before.x + width * ratio, after.y), 
+            IM_COL32(50, 205, 50, 255), 
+            2.0f
+        );
+        drawList->PopClipRect();
+        ImGui::PopItemWidth();
+
+        ImGui::PushItemWidth(zebrafishWidth * 0.75);
+        ImGui::Text("Quantile Thres");
+        if (ImGui::SliderFloat("", &normalizeQuantile, 0.95, 0.999, "%.3f") || stage1to2Flag) {
+
+            if (stage1to2Flag) ComputeImgHist(img);
             stage1to2Flag = false;
 
             if (normalizeQuantile>0.999) normalizeQuantile = 0.999;
             if (normalizeQuantile<0.95) normalizeQuantile = 0.95;
-            double thres = QuantileImage(img, normalizeQuantile);
+            normalizeQuantileRes = QuantileImage(img, normalizeQuantile);
             image_t img_ = img;
-            NormalizeImage(img_, thres);  // Do not modify "img" now
-            logger().info("Trial: normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, thres);
+            NormalizeImage(img_, normalizeQuantileRes);  // Do not modify "img" now
+            logger().info("Trial: normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, normalizeQuantileRes);
 
-            ComputeImgHist(img_);
             ComputeCompressedImg(img_);
         }
         ImGui::PopItemWidth();
@@ -65,11 +89,10 @@ void GUI::DrawStage2() {
         if (ImGui::Button("Compute B-spline")) {
 
             // put into effect
-            double thres = QuantileImage(img, normalizeQuantile);
-            NormalizeImage(img, thres);
-            ComputeImgHist(img);
+            normalizeQuantileRes = QuantileImage(img, normalizeQuantile);
+            NormalizeImage(img, normalizeQuantileRes);
             ComputeCompressedImg(img);
-            logger().info("[Finalized] Image normalized with normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, thres);
+            logger().info("[Finalized] Image normalized with normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, normalizeQuantileRes);
 
             // Compute B-spline
             logger().info("Computing Bspine for the first frame");
@@ -89,11 +112,10 @@ void GUI::DrawStage2() {
 // Hist
 
 
-void GUI::ComputeImgHist(image_t &img_) {
+void GUI::ComputeImgHist(const image_t &img_) {
 
     double minValue = std::numeric_limits<double>::max();
     double maxValue = std::numeric_limits<double>::min();
-    imgHist = Eigen::MatrixXf::Zero(histBars, 1);
 
     for (int i=layerBegin; i<=layerEnd; i++) {
 
@@ -104,11 +126,15 @@ void GUI::ComputeImgHist(image_t &img_) {
     maxValue += epsilon;
     minValue -= epsilon;
     const double gap = (maxValue - minValue) / double(histBars);
+    imgHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
+    imgHist.minValue = minValue;
+    imgHist.maxValue = maxValue;
+    assert(gap > 0);
 
     for (int i=layerBegin; i<=layerEnd; i++) {
         const Eigen::MatrixXd &mat = img_[i];
         for (int j=0; j<mat.size(); j++) {
-            imgHist( std::floor((mat(j) - minValue)/gap) )++;
+            imgHist.hist( std::floor((mat(j) - minValue)/gap) )++;
         }
     }
 }

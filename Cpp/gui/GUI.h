@@ -26,6 +26,16 @@ typedef struct pointRecord_t {
     pointRecord_t() : num(0) {}
 } pointRecord_t;
 
+
+typedef struct hist_t {
+
+    Eigen::MatrixXf hist;
+    double minValue, maxValue;
+    // Note: not the min/max of "hist"
+    //       this is the min/max of the data used to calculate the hist
+    //       In other words, the x-axis min and max
+} hist_t;
+
 ////////////////////////////////////////////////////////
 // GUI
 
@@ -34,7 +44,7 @@ class GUI : public igl::opengl::glfw::imgui::ImGuiMenu {
 private:
     igl::opengl::glfw::Viewer viewer;
     int stage;  // stage in zebrafish_panel
-
+    int histBars;  // number of bars in histogram
 
     //////////////////////////////////////////////////
     // core
@@ -54,21 +64,20 @@ private:
     int layerBegin, layerEnd;  // only slices in this interval in each 3D image will be computed
     double resolutionX, resolutionY, resolutionZ;
     int slice;  // which slice in the 3D image to show
-    double normalizeQuantile;
+    float normalizeQuantile, normalizeQuantileRes;
     // Hist
-    int histBars;
-    Eigen::MatrixXf imgHist;
+    hist_t imgHist;
 
     //////////////////////////////////////////////////
     // Grid Search
     Eigen::MatrixXd gridSampleInput, gridSampleOutput;
     double gapX_grid, gapY_grid, gapZ_grid;
     double rArrayMin_grid, rArrayMax_grid, rArrayGap_grid;
-    double gridEnergyThres;  // energy threshold to decide whether a starting point is worth optimizing
+    float gridEnergyThres;  // energy threshold to decide whether a starting point is worth optimizing
     bool showPromisingPoints;
     Eigen::MatrixXd promisingPointLoc;
     // Hist
-    Eigen::MatrixXf gridEnergyHist;
+    hist_t gridEnergyHist;
 
     //////////////////////////////////////////////////
     // 3D image viewer
@@ -150,7 +159,7 @@ private:
 
     //////////////////////////////////////////////////
     // Stage 2
-    void ComputeImgHist(image_t &img_);
+    void ComputeImgHist(const image_t &img_);
 
     //////////////////////////////////////////////////
     // Stage 3

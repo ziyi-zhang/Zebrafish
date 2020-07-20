@@ -470,6 +470,7 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
 
     stage = 1;
     slice = 0;
+    histBars = 50;
 
     // core
     gridEnergyThres = -0.05;
@@ -482,8 +483,7 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     resolutionX = 0;
     resolutionY = 0;
     resolutionZ = 0;
-    histBars = 50;
-    imgHist = Eigen::MatrixXf::Zero(histBars, 1);
+    imgHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
     normalizeQuantile = 0.995;
 
     // grid search
@@ -494,7 +494,7 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     rArrayMax_grid = 7.0;
     rArrayGap_grid = 1.0;
     showPromisingPoints = true;
-    gridEnergyHist = Eigen::MatrixXf::Zero(histBars, 1);
+    gridEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
 
     // 3D image viewer
     V.resize(4, 3);
@@ -551,6 +551,12 @@ void GUI::init(std::string imagePath_) {
 
         // debug helper
         show_log = true;
+        layerBegin = 14;
+        layerEnd = 28;
+        r0 = 345;
+        c0 = 349;
+        r1 = 400;
+        c1 = 400;
     }
 
     // callback
