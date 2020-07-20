@@ -55,18 +55,17 @@ void GUI::DrawStage3() {
 
     ImGui::Separator(); ////////////////////////
 
-    if (ImGui::CollapsingHeader("Grid Search"), ImGuiTreeNodeFlags_DefaultOpen) {
+    if (ImGui::CollapsingHeader("Grid Search", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        if (ImGui::Button("Grid Search")) {
+        if (ImGui::Button("Run Grid Search")) {
             
-            logger().info("tett");
             GridSearch();
         }
     }
 
     ImGui::Separator(); ////////////////////////
 
-    if (ImGui::CollapsingHeader("Grid Search Result"), ImGuiTreeNodeFlags_DefaultOpen) {
+    if (ImGui::CollapsingHeader("Grid Search Result", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         ImGui::Text("Histogram of energy");
 
