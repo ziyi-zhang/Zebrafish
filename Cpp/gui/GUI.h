@@ -15,6 +15,8 @@
 namespace zebrafish {
 
 typedef struct pointRecord_t {
+///       |   Grid Search  |   Optimization
+/// alive | x y z r energy | x y z r energy iter
 
     int num;
     Eigen::Matrix<bool,   Eigen::Dynamic, 1> alive;
@@ -60,8 +62,10 @@ private:
 
     //////////////////////////////////////////////////
     // Grid Search
+    Eigen::MatrixXd gridSampleInput, gridSampleOutput;
     double gapX_grid, gapY_grid, gapZ_grid;
     double rArrayMin_grid, rArrayMax_grid, rArrayGap_grid;
+    bool showPromisingPoints;
 
     //////////////////////////////////////////////////
     // 3D image viewer
@@ -148,13 +152,13 @@ private:
     //////////////////////////////////////////////////
     // Stage 3
     void GridSearch();
-    void Optimization();
     void UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen::MatrixXd &gridSampleOutput);
     /// This function will clear "pointRecord" and intialize it 
     /// with grid search results
 
     //////////////////////////////////////////////////
     // Stage 4
+    void Optimization();
 };
 
 }  // namespace zebrafish

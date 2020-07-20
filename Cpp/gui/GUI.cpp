@@ -30,7 +30,7 @@ struct PropertyEditorItem {
         ImGui::NextColumn();
 
         if (nodeOpen) {
-            static const std::vector<std::string> itemName{"Energy", "x", "y", "z", "h"};
+            static const std::vector<std::string> itemName{"Energy", "x", "y", "z", "r"};
             for (int i=0; i<5; i++) {
                 ImGui::PushID(i);
                 ImGui::AlignTextToFramePadding();
@@ -471,7 +471,6 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     // core
     gridEnergyThres = -0.05;
 
-
     // image (imageData)
     layerPerImg = 40;  // a random guess to preview the image file
     channelPerSlice = 2;  // a random guess to preview the image file
@@ -491,6 +490,7 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     rArrayMin_grid = 3.0;
     rArrayMax_grid = 7.0;
     rArrayGap_grid = 1.0;
+    showPromisingPoints = true;
 
     // 3D image viewer
     V.resize(4, 3);

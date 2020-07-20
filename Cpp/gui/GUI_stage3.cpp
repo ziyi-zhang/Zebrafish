@@ -53,6 +53,25 @@ std::string Vec2Str(const Eigen::VectorXd &vec) {
 
 void GUI::DrawStage3() {
 
+    // Visualize promising starting points
+    if (showPromisingPoints) {
+
+        viewer.data().point_size = 8.0f;
+        Eigen::MatrixXd pointColor(1, 3);
+        pointColor << 0.87, 0.33, 0.33;
+
+        static Eigen::MatrixXd locations;
+        locations.resize(pointRecord.num, 3);
+        locations.col(0) = pointRecord.grid_search.col(1);
+        locations.col(1) = imgRows - pointRecord.grid_search.col(0).array();
+        locations.col(2) = pointRecord.grid_search.col(2);
+
+        viewer.data().add_points(
+            locations,
+            pointColor
+        );
+    }
+
     ImGui::Separator(); ////////////////////////
 
     if (ImGui::CollapsingHeader("Grid Search", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -84,10 +103,13 @@ void GUI::DrawStage3() {
 
     if (ImGui::CollapsingHeader("Grid Search Result", ImGuiTreeNodeFlags_DefaultOpen)) {
 
+        ImGui::Checkbox("Show promising locations", &showPromisingPoints);
+
         ImGui::Text("Histogram of energy");
 
 
-        ImGui::PushItemWidth(zebrafishWidth / 3.0);
+        const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+        ImGui::PushItemWidth(inputWidth);
         ImGui::InputDouble("Grid Search Energy Threshold", &gridEnergyThres);
         ImGui::PopItemWidth();
 
@@ -111,7 +133,6 @@ void GUI::DrawStage3() {
 void GUI::GridSearch() {
 
     // prepare gridSampleInput & gridSampleOutput for grid search
-    Eigen::MatrixXd gridSampleInput, gridSampleOutput;
     const int Nx = bsplineSolver.Get_Nx();
     const int Ny = bsplineSolver.Get_Ny();
     const int Nz = bsplineSolver.Get_Nz();
@@ -122,7 +143,7 @@ void GUI::GridSearch() {
     for (int i=0; i<Nr; i++)
         rArray(i) = rArrayMin_grid + i * rArrayGap_grid;
     if (rArray(Nr-1) > rArrayMax_grid) rArray(Nr-1) = rArrayMax_grid;
-    
+
     double xx, yy, zz, rr;
     int sampleCount = 0;
     gridSampleInput.resize(Nx*Ny*Nz*Nr, 4);
@@ -152,7 +173,7 @@ void GUI::GridSearch() {
     logger().info(">>>>>>>>>> Before grid search >>>>>>>>>>");
     logger().info("Grid search #points = {}", sampleCount);
     tbb::parallel_for( tbb::blocked_range<int>(0, sampleCount),
-        [&gridSampleInput, &gridSampleOutput, this/*.bsplineSolver*/](const tbb::blocked_range<int> &r) {
+        [this/*.bsplineSolver, .gridSampleInput, .gridSampleOutput*/](const tbb::blocked_range<int> &r) {
 
             const double cylinderHeight = 3.0;
             for (int ii = r.begin(); ii != r.end(); ++ii) {
@@ -165,5 +186,46 @@ void GUI::GridSearch() {
     UpdateSampleNewton(gridSampleInput, gridSampleOutput);
 }
 
+
+void GUI::UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen::MatrixXd &gridSampleOutput) {
+/// This function will clear "pointRecord" and intialize it with grid search results
+
+    assert(gridSampleInput.rows() == gridSampleOutput.rows());
+    const int N = gridSampleOutput.rows();
+    int M = 0;
+    int i, count = 0;
+
+    for (i=0; i<N; i++)
+        if (gridSampleOutput(i) < gridEnergyThres) M++;  // count to reserve space
+
+    pointRecord.num = M;
+    pointRecord.alive.resize(M, Eigen::NoChange);
+    pointRecord.grid_search.resize(M, Eigen::NoChange);
+    pointRecord.optimization.resize(M, Eigen::NoChange);
+
+    for (i=0; i<N; i++) {
+        if (gridSampleOutput(i) > gridEnergyThres) continue;
+
+        // alive
+        pointRecord.alive(count) = true;
+
+        // grid search
+        pointRecord.grid_search(count, 0) = gridSampleInput(i, 0);
+        pointRecord.grid_search(count, 1) = gridSampleInput(i, 1);
+        pointRecord.grid_search(count, 2) = gridSampleInput(i, 2);
+        pointRecord.grid_search(count, 3) = gridSampleInput(i, 3);
+        pointRecord.grid_search(count, 4) = gridSampleOutput(i);
+
+        // optimization
+        pointRecord.optimization(count, 0) = 0;
+        pointRecord.optimization(count, 1) = 0;
+        pointRecord.optimization(count, 2) = 0;
+        pointRecord.optimization(count, 3) = 0;
+        pointRecord.optimization(count, 4) = 0;
+        pointRecord.optimization(count, 5) = 0;
+
+        count++;
+    }
+}
 
 }  // namespace zebrafish
