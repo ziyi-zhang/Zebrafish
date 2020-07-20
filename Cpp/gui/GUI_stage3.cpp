@@ -56,20 +56,30 @@ void GUI::DrawStage3() {
     // Visualize promising starting points
     if (showPromisingPoints) {
 
-        viewer.data().point_size = 8.0f;
+        viewer.data().point_size = 7.0f;
         Eigen::MatrixXd pointColor(1, 3);
         pointColor << 0.87, 0.33, 0.33;
 
         static Eigen::MatrixXd locations;
         locations.resize(pointRecord.num, 3);
-        locations.col(0) = pointRecord.grid_search.col(1);
-        locations.col(1) = imgRows - pointRecord.grid_search.col(0).array();
+        locations.col(0) = pointRecord.grid_search.col(1).array() + 0.5;
+        locations.col(1) = (imgRows-0.5) - pointRecord.grid_search.col(0).array();
         locations.col(2) = pointRecord.grid_search.col(2);
 
         viewer.data().add_points(
             locations,
             pointColor
         );
+        // logger().debug("pointRecord num = {}", pointRecord.num);
+
+        Eigen::MatrixXd tempLoc;
+        tempLoc.resize(3, 3);
+        tempLoc << 0, 0, 1, 
+                   imgCols, imgRows, 1, 
+                   imgCols-1, imgRows-1, 1;
+        Eigen::MatrixXd pointColor_t(1, 3);
+        pointColor << 0.33, 0.83, 0.33;
+        viewer.data().add_points(tempLoc, pointColor_t);
     }
 
     ImGui::Separator(); ////////////////////////

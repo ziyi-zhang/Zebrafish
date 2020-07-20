@@ -129,7 +129,7 @@ private:
     const int stageMax = 4;  // 4 stages
 
     void Draw3DImage();
-    void ComputeCompressedImg();
+    void ComputeCompressedImg(const image_t &img_);
     void DrawMainMenuBar();
     void DrawZebrafishPanel();
     void DrawMenuFile();

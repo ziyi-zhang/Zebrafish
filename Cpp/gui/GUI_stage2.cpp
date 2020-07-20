@@ -38,7 +38,7 @@ void GUI::DrawStage2() {
             
             stage1to2Flag = false;
 
-            if (normalizeQuantile>1.0) normalizeQuantile = 1.0;
+            if (normalizeQuantile>0.999) normalizeQuantile = 0.999;
             if (normalizeQuantile<0.95) normalizeQuantile = 0.95;
             double thres = QuantileImage(img, normalizeQuantile);
             image_t img_ = img;
@@ -46,6 +46,7 @@ void GUI::DrawStage2() {
             logger().info("Trial: normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, thres);
 
             ComputeImgHist(img_);
+            ComputeCompressedImg(img_);
         }
         ImGui::PopItemWidth();
     }
@@ -67,6 +68,7 @@ void GUI::DrawStage2() {
             double thres = QuantileImage(img, normalizeQuantile);
             NormalizeImage(img, thres);
             ComputeImgHist(img);
+            ComputeCompressedImg(img);
             logger().info("[Finalized] Image normalized with normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, thres);
 
             // Compute B-spline

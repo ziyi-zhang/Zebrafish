@@ -126,7 +126,7 @@ void GUI::DrawStage1() {
             imgRows = img[0].rows();
             imgCols = img[0].cols();
 
-            ComputeCompressedImg();  // re-compute compressed image texture
+            ComputeCompressedImg(img);  // re-compute compressed image texture
             showCropArea = false;  // turn this into false
 
             logger().info("Image reloaded");
