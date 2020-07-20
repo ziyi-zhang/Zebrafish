@@ -54,24 +54,30 @@ std::string Vec2Str(const Eigen::VectorXd &vec) {
 void GUI::DrawStage3() {
 
     // Visualize promising starting points
+    static int gridSearchPointSize = 7;
     if (showPromisingPoints) {
 
-        viewer.data().point_size = 7.0f;
+        static double gridEnergyThres_cache = -1;
+        if (gridEnergyThres != gridEnergyThres_cache) {
+            // Update the points to visualize when "gridEnergyThres" has changed or 
+            // "Grid Search" has been re-computed
+            UpdatePromisingPointLoc();
+            gridEnergyThres_cache = gridEnergyThres;
+        }
+
+        viewer.data().point_size = gridSearchPointSize;
         Eigen::MatrixXd pointColor(1, 3);
         pointColor << 0.87, 0.33, 0.33;
 
-        static Eigen::MatrixXd locations;
-        locations.resize(pointRecord.num, 3);
-        locations.col(0) = pointRecord.grid_search.col(1).array() + 0.5;
-        locations.col(1) = (imgRows-0.5) - pointRecord.grid_search.col(0).array();
-        locations.col(2) = pointRecord.grid_search.col(2);
+        if (promisingPointLoc.rows() > 0) {
+            // show promising points
+            viewer.data().add_points(
+                promisingPointLoc,
+                pointColor
+            );
+        }
 
-        viewer.data().add_points(
-            locations,
-            pointColor
-        );
-        // logger().debug("pointRecord num = {}", pointRecord.num);
-
+        ////// DEBUG ONLY //////
         Eigen::MatrixXd tempLoc;
         tempLoc.resize(3, 3);
         tempLoc << 0, 0, 1, 
@@ -80,6 +86,7 @@ void GUI::DrawStage3() {
         Eigen::MatrixXd pointColor_t(1, 3);
         pointColor << 0.33, 0.83, 0.33;
         viewer.data().add_points(tempLoc, pointColor_t);
+        ////// DEBUG ONLY //////
     }
 
     ImGui::Separator(); ////////////////////////
@@ -104,8 +111,10 @@ void GUI::DrawStage3() {
         }
 
         if (ImGui::Button("Run Grid Search")) {
-            
+
             GridSearch();
+            UpdateGridEnergyHist();
+            UpdatePromisingPointLoc();
         }
     }
 
@@ -115,19 +124,21 @@ void GUI::DrawStage3() {
 
         ImGui::Checkbox("Show promising locations", &showPromisingPoints);
 
-        ImGui::Text("Histogram of energy");
+        ImGui::PushItemWidth(zebrafishWidth / 3.0);
+        ImGui::SliderInt("Point Size", &gridSearchPointSize, 1, 30);
+        ImGui::PopItemWidth();
 
+        ImGui::Text("Histogram of energy");
+        ImGui::PlotHistogram("", gridEnergyHist.data(), gridEnergyHist.size(), 0, NULL, 0, gridEnergyHist.maxCoeff(), ImVec2(0, 80));
 
         const float inputWidth = ImGui::GetWindowWidth() / 3.0;
         ImGui::PushItemWidth(inputWidth);
-        ImGui::InputDouble("Grid Search Energy Threshold", &gridEnergyThres);
+        if (ImGui::InputDouble("Grid Search Energy Threshold", &gridEnergyThres)) {
+
+            UpdateSampleNewton(gridSampleInput, gridSampleOutput);
+        }
         ImGui::PopItemWidth();
 
-        if (ImGui::Button("Register Promising Results")) {
-
-            // put into effect
-
-        }
     }
 
     ImGui::Separator(); /////////////////////////////////////////
@@ -200,7 +211,7 @@ void GUI::GridSearch() {
 void GUI::UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen::MatrixXd &gridSampleOutput) {
 /// This function will clear "pointRecord" and intialize it with grid search results
 
-    assert(gridSampleInput.rows() == gridSampleOutput.rows());
+    // Note: gridSampleInput has a much larger reserved space, but the remaining should be empty
     const int N = gridSampleOutput.rows();
     int M = 0;
     int i, count = 0;
@@ -235,6 +246,41 @@ void GUI::UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen
         pointRecord.optimization(count, 5) = 0;
 
         count++;
+    }
+}
+
+
+void GUI::UpdatePromisingPointLoc() {
+
+    const int N = pointRecord.num;
+
+    promisingPointLoc.resize(N, 3);
+    if (N == 0) return;
+
+    promisingPointLoc.col(0) = pointRecord.grid_search.col(1).array() + 0.5;
+    promisingPointLoc.col(1) = (imgRows-0.5) - pointRecord.grid_search.col(0).array();
+    promisingPointLoc.col(2) = pointRecord.grid_search.col(2);
+
+    logger().info("Grid search promising points updated: total number = {}", N);
+}
+
+
+void GUI::UpdateGridEnergyHist() {
+
+    double minValue = gridSampleOutput.minCoeff();
+    double maxValue = gridSampleOutput.maxCoeff();
+    const int N = gridSampleOutput.rows();
+    assert(N > 0);
+
+    gridEnergyHist = Eigen::MatrixXf::Zero(histBars, 1);
+
+    const double epsilon = 0.0001;  // to make sure every number lies inside
+    maxValue += epsilon;
+    minValue -= epsilon;
+    const double gap = (maxValue - minValue) / double(histBars);
+
+    for (int i=0; i<N; i++) {
+        gridEnergyHist( std::floor((gridSampleOutput(i) - minValue)/gap) )++;
     }
 }
 

@@ -40,7 +40,6 @@ private:
     // core
     bspline bsplineSolver;
 
-    double gridEnergyThres;
     pointRecord_t pointRecord;
     ///       |   Grid Search  |   Optimization
     /// alive | x y z r energy | x y z r energy iter
@@ -65,7 +64,11 @@ private:
     Eigen::MatrixXd gridSampleInput, gridSampleOutput;
     double gapX_grid, gapY_grid, gapZ_grid;
     double rArrayMin_grid, rArrayMax_grid, rArrayGap_grid;
+    double gridEnergyThres;  // energy threshold to decide whether a starting point is worth optimizing
     bool showPromisingPoints;
+    Eigen::MatrixXd promisingPointLoc;
+    // Hist
+    Eigen::MatrixXf gridEnergyHist;
 
     //////////////////////////////////////////////////
     // 3D image viewer
@@ -155,6 +158,8 @@ private:
     void UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen::MatrixXd &gridSampleOutput);
     /// This function will clear "pointRecord" and intialize it 
     /// with grid search results
+    void UpdatePromisingPointLoc();
+    void UpdateGridEnergyHist();
 
     //////////////////////////////////////////////////
     // Stage 4

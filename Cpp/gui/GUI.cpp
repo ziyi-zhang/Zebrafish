@@ -494,6 +494,7 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     rArrayMax_grid = 7.0;
     rArrayGap_grid = 1.0;
     showPromisingPoints = true;
+    gridEnergyHist = Eigen::MatrixXf::Zero(histBars, 1);
 
     // 3D image viewer
     V.resize(4, 3);
