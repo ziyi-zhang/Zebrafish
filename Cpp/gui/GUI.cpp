@@ -183,7 +183,7 @@ void GUI::ComputeCompressedImg() {
 
     Eigen::MatrixXd compressed;
     compressed = Eigen::MatrixXd::Zero(imgRows, imgCols);
-    for (int i=layerBegin; i<layerEnd; i++) {
+    for (int i=layerBegin; i<=layerEnd; i++) {
         compressed += img[i];
     }
     
@@ -229,6 +229,9 @@ void GUI::DrawZebrafishPanel() {
             break;
         case 3:
             DrawStage3();
+            break;
+        case 4:
+            DrawStage4();
             break;
         default:
             assert(false);
@@ -475,6 +478,8 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     resolutionX = 0;
     resolutionY = 0;
     resolutionZ = 0;
+    histBars = 50;
+    imgHist = Eigen::MatrixXf::Zero(histBars, 1);
     normalizeQuantile = 0.995;
 
     // 3D image viewer
@@ -485,7 +490,7 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     // crop image
     cropActive = false;
     downClicked = false;
-    showCropArea = false;
+    showCropArea = true;
     baseLoc << 0.0f, 0.0f, 0.0f;
     currentLoc << 0.0f, 0.0f, 0.0f;
     r0 = -1;

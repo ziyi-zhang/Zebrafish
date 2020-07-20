@@ -33,6 +33,7 @@ private:
     igl::opengl::glfw::Viewer viewer;
     int stage;  // stage in zebrafish_panel
 
+
     //////////////////////////////////////////////////
     // core
     bspline bsplineSolver;
@@ -53,6 +54,9 @@ private:
     double resolutionX, resolutionY, resolutionZ;
     int slice;  // which slice in the 3D image to show
     double normalizeQuantile;
+    // Hist
+    int histBars;
+    Eigen::MatrixXf imgHist;
 
     //////////////////////////////////////////////////
     // 3D image viewer
@@ -106,9 +110,10 @@ protected:
     void DrawStage1();
     void DrawStage2();
     void DrawStage3();
+    void DrawStage4();
 
 private:
-    const int stageMax = 3;  // 3 stages
+    const int stageMax = 4;  // 4 stages
 
     void Draw3DImage();
     void ComputeCompressedImg();
@@ -129,11 +134,18 @@ private:
 
     //////////////////////////////////////////////////
     // Stage 2
+    void ComputeImgHist();
+
+    //////////////////////////////////////////////////
+    // Stage 3
     void GridSearch();
     void Optimization();
     void UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen::MatrixXd &gridSampleOutput);
     /// This function will clear "pointRecord" and intialize it 
     /// with grid search results
+
+    //////////////////////////////////////////////////
+    // Stage 4
 };
 
 }  // namespace zebrafish

@@ -6,22 +6,11 @@
 
 #include <igl/unproject_onto_mesh.h>
 #include <algorithm>
+#include <limits>
 
 namespace zebrafish {
 
 namespace {
-
-void NormalizeImage(image_t &image) {
-
-    // normalize all layers
-    double quantile = zebrafish::QuantileImage(image, 0.995);
-    logger().info("Quantile of image with q=0.995 is {}", quantile);
-    for (auto it=image.begin(); it!=image.end(); it++) {
-        Eigen::MatrixXd &img = *it;
-        img.array() /= quantile;
-    }
-    logger().info("Image normalized: most pixels will have value between 0 and 1");
-}
 
 }  // anonymous namespace
 
@@ -111,20 +100,6 @@ void GUI::DrawStage1() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    ImGui::Text("Preprocess");
-    ImGui::Text("Histogram of pixel brightness");
-    ImGui::Text("Not yet implemented");
-    ImGui::PushItemWidth(zebrafishWidth / 3.0);
-    ImGui::InputDouble("Quantile Threshold", &normalizeQuantile);
-    ImGui::PopItemWidth();
-
-    ImGui::Separator();
-
-    ImGui::Text("B-spline Config");
-    ImGui::Text("Not yet implemented");
-
-    ImGui::Separator(); /////////////////////////////////////////
-
     ImGui::Text("Finalize");
     if (ImGui::Button("Preview Result")) {
         if (imagePath.empty()) {
@@ -136,9 +111,11 @@ void GUI::DrawStage1() {
         if (ReadTifFirstImg(imagePath, layerPerImg, channelPerSlice, img, r0, c0, r1, c1)) {
             imgRows = img[0].rows();
             imgCols = img[0].cols();
-            NormalizeImage(img);
+
             ComputeCompressedImg();  // re-compute compressed image texture
+            ComputeImgHist();  // prepare for stage 2
             showCropArea = false;  // turn this into false
+
             logger().info("Image reloaded");
         } else {
             logger().error("Error open tiff image (reload)");
@@ -146,8 +123,7 @@ void GUI::DrawStage1() {
         }
     }
 
-    ImGui::Text("Stage 1");
-    // viewer.core().set_rotation_type(igl::opengl::ViewerCore::RotationType::ROTATION_TYPE_TRACKBALL);
+    ImGui::Text("Stage 1: image read");
 }
 
 
