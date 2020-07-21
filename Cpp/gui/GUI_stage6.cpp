@@ -18,21 +18,15 @@ void GUI::DrawStage6() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    if (ImGui::CollapsingHeader("Cylinder Filter", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("Iterative Closest Point", ImGuiTreeNodeFlags_DefaultOpen)) {
 
+        
         ImGui::Text("TBD");
     }
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    if (ImGui::CollapsingHeader("Cluster Filter", ImGuiTreeNodeFlags_DefaultOpen)) {
-
-        ImGui::Text("TBD");
-    }
-
-    ImGui::Separator(); /////////////////////////////////////////
-
-    ImGui::Text("Stage 6: ");
+    ImGui::Text("Stage 6: ICP");
 }
 
 

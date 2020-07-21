@@ -29,8 +29,10 @@ void GUI::DrawStage4() {
         if (optimEnergyThres != optimEnergyThres_cache) {
             // Update the points to visualize when "optimEnergyThres" has changed or 
             // "Optimization" has been re-computed
-            UpdateOptimPointLoc();
+
             UpdateOptimEnergyHist();
+            // NOTE: This has been deprecated
+            //       Do not use this cache
             optimEnergyThres_cache = optimEnergyThres;
         }
 
@@ -198,15 +200,15 @@ void GUI::Optimization() {
 void GUI::UpdateOptimPointLoc() {
 
     const int N = pointRecord.num;
+    if (N == 0) return;
 
     optimPointLoc.resize(N, 3);
-    if (N == 0) return;
 
     optimPointLoc.col(0) = pointRecord.optimization.col(1).array() + 0.5;
     optimPointLoc.col(1) = (imgRows-0.5) - pointRecord.optimization.col(0).array();
     optimPointLoc.col(2) = pointRecord.optimization.col(2);
 
-    logger().info("Optimization resultant points updated: total number = {}", N);
+    logger().info("[Visualization] Optimization resultant points updated: total number = {}", N);
 }
 
 

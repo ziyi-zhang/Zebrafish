@@ -272,15 +272,15 @@ void GUI::UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen
 void GUI::UpdatePromisingPointLoc() {
 
     const int N = pointRecord.num;
+    if (N == 0) return;
 
     promisingPointLoc.resize(N, 3);
-    if (N == 0) return;
 
     promisingPointLoc.col(0) = pointRecord.grid_search.col(1).array() + 0.5;
     promisingPointLoc.col(1) = (imgRows-0.5) - pointRecord.grid_search.col(0).array();
     promisingPointLoc.col(2) = pointRecord.grid_search.col(2);
 
-    logger().info("Grid search promising points updated: total number = {}", N);
+    logger().info("[Visualization] Grid search promising points updated: total number = {}", N);
 }
 
 

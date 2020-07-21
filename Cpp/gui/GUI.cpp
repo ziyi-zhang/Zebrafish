@@ -520,18 +520,21 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     showPromisingPoints = true;
     gridEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
     gridEnergyThres = -0.05;
+    promisingPointLoc.resize(1, 3);
 
     // optimization
     showOptimizedPoints = true;
     optimEnergyThres = -0.1;
     optimEpsilon = 1e-4;
     optimMaxIt = 50;
+    optimPointLoc.resize(1, 3);
 
     // cylinder filter
     cylinderEnergyThres = -0.1;
     cylinderRadiusThres = 6.0;
     cylinderIterThres = optimMaxIt;
     showCylFilterPoints = true;
+    cylPointLoc.resize(1, 3);
 
     // 3D image viewer
     V.resize(4, 3);

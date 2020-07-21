@@ -23,7 +23,9 @@ int main(int argc, char **argv) {
 
     // parse input
     std::string image_path = "";
-    unsigned int num_threads = std::min(32u, std::max(1u, std::thread::hardware_concurrency()));
+    unsigned int num_threads = std::min(32u, std::max(1u, std::thread::hardware_concurrency() - 1));
+        // At least 1 thread, at most 32 threads
+        // prefer (#TTL - 1)
     int lsMethod = 2;
     CLI::App command_line{"ZebraFish"};
     command_line.add_option("-i,--img", image_path, "Input TIFF image to process")->check(CLI::ExistingFile);

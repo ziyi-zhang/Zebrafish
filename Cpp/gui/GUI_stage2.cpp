@@ -77,7 +77,7 @@ void GUI::DrawStage2() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    if (ImGui::CollapsingHeader("B-spline Config"), ImGuiTreeNodeFlags_DefaultOpen) {
+    if (ImGui::CollapsingHeader("B-spline Config", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         if (ImGui::TreeNode("Advanced")) {
             ImGui::Text("Not implemented yet...");

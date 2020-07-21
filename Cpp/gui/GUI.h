@@ -198,12 +198,16 @@ private:
     void UpdateOptimEnergyHist();
 
     //////////////////////////////////////////////////
-    // Stage 5
+    // Stage 5.1 Cylinder Filter
     void CylinderFilter();
     void UpdateCylPointLoc();
     void UpdateCylEnergyHist();
     void UpdateCylRadiusHist();
     void UpdateCylIterHist();
+
+    //////////////////////////////////////////////////
+    // Stage 5.2 Cluster Filter
+    void Cluster();
 
     //////////////////////////////////////////////////
     // Stage 6

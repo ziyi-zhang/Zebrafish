@@ -167,7 +167,8 @@ void GUI::DrawStage5() {
     if (ImGui::CollapsingHeader("Cluster Filter", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         if (ImGui::Button("Cluster")) {
-            // Cluster
+            
+            Cluster();
         }
         ImGui::Text("TBD");
     }
@@ -203,10 +204,10 @@ void GUI::UpdateCylPointLoc() {
 
     for (i=0; i<N; i++)
         if (pointRecord.alive(i)) M++;
+    if (M == 0) return;
 
     cylPointLoc.resize(M, 3);
     tempLoc.resize(M, 3);
-    if (M == 0) return;
 
     count = 0;
     for (i=0; i<N; i++)
@@ -223,7 +224,7 @@ void GUI::UpdateCylPointLoc() {
     cylPointLoc.col(1) = (imgRows-0.5) - tempLoc.col(0).array();
     cylPointLoc.col(2) = tempLoc.col(2);
 
-    logger().info("Filtered points updated: total number = {}", M);
+    logger().info("[Visualization] Filtered points updated: total number = {}", M);
 }
 
 
@@ -298,6 +299,13 @@ void GUI::UpdateCylIterHist() {
     for (int i=0; i<N; i++) {
         cylIterHist.hist( std::floor((iterCol(i) - minValue)/gap) )++;
     }
+}
+
+// ---------------------------------------------------------------
+
+void GUI::Cluster() {
+
+
 }
 
 }  // namespace zebrafish
