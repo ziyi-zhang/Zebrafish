@@ -209,7 +209,7 @@ void GUI::ComputeCompressedImg(const image_t &img_) {
     for (int i=layerBegin; i<=layerEnd; i++) {
         compressed += img_[i];
     }
-    
+
     compressedImgTexture = (compressed.array() * (255.0 / double(layerEnd-layerBegin+1))).cast<unsigned char>();
     compressedImgTexture.transposeInPlace();
 
@@ -240,6 +240,7 @@ void GUI::DrawZebrafishPanel() {
         stage = std::min(stage, stageMax);
 
         if (stage == 2) stage1to2Flag = true;
+        if (stage == 5) stage4to5Flag = true;
     }
     ImGui::Text("Stage %d", stage);
 
@@ -257,6 +258,12 @@ void GUI::DrawZebrafishPanel() {
             break;
         case 4:
             DrawStage4();
+            break;
+        case 5:
+            DrawStage5();
+            break;
+        case 6:
+            DrawStage6();
             break;
         default:
             assert(false);
@@ -518,7 +525,12 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     showOptimizedPoints = true;
     optimEnergyThres = -0.1;
     optimEpsilon = 1e-4;
-    optimMaxIt = 30;
+    optimMaxIt = 50;
+
+    // cylinder filter
+    cylinderEnergyThres = -0.1;
+    cylinderRadiusThres = 6.0;
+    cylinderIterThres = optimMaxIt;
 
     // 3D image viewer
     V.resize(4, 3);
@@ -556,6 +568,7 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
 
     // bool flag indicating moving from a stage to another
     stage1to2Flag = false;
+    stage4to5Flag = false;
 }
 
 

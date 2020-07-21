@@ -89,6 +89,13 @@ private:
     hist_t optimEnergyHist;
 
     //////////////////////////////////////////////////
+    // Cylinder Filter
+    float cylinderEnergyThres, cylinderRadiusThres;
+    int cylinderIterThres;
+    // Hist
+    hist_t cylEnergyHist, cylRadiusHist, cylIterHist;
+
+    //////////////////////////////////////////////////
     // 3D image viewer
     Eigen::MatrixXd V;
     Eigen::MatrixXi F;
@@ -127,6 +134,7 @@ private:
     //////////////////////////////////////////////////
     // bool flag indicating moving from a stage to another
     bool stage1to2Flag;
+    bool stage4to5Flag;
 
 public:
     std::ostringstream oss;
@@ -145,9 +153,11 @@ protected:
     void DrawStage2();
     void DrawStage3();
     void DrawStage4();
+    void DrawStage5();
+    void DrawStage6();
 
 private:
-    const int stageMax = 4;  // 4 stages
+    const int stageMax = 6;  // 6 stages
 
     void Draw3DImage();
     void ComputeCompressedImg(const image_t &img_);
@@ -174,8 +184,8 @@ private:
     // Stage 3
     void GridSearch();
     void UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen::MatrixXd &gridSampleOutput);
-    /// This function will clear "pointRecord" and intialize it 
-    /// with grid search results
+        /// This function will clear "pointRecord" and intialize it 
+        /// with grid search results
     void UpdatePromisingPointLoc();
     void UpdateGridEnergyHist();
 
@@ -184,6 +194,12 @@ private:
     void Optimization();
     void UpdateOptimPointLoc();
     void UpdateOptimEnergyHist();
+
+    //////////////////////////////////////////////////
+    // Stage 5
+    void UpdateCylEnergyHist();
+    void UpdateCylRadiusHist();
+    void UpdateCylIterHist();
 };
 
 }  // namespace zebrafish
