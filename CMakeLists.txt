@@ -35,7 +35,14 @@ option(LIBIGL_WITH_PREDICATES        "Use exact predicates"         OFF)
 ################################################################################
 
 
+option(POLYSOLVE_WITH_CHOLMOD          "Enable Cholmod library"            OFF)
+option(POLYSOLVE_WITH_UMFPACK          "Enable UmfPack library"            OFF)
+option(POLYSOLVE_WITH_SUPERLU          "Enable SuperLU library"            OFF)
 option(POLYSOLVE_WITH_MKL              "Enable MKL library"                OFF)
+option(POLYSOLVE_WITH_PARDISO          "Enable Pardiso library"            OFF)
+option(POLYSOLVE_WITH_HYPRE            "Enable hypre"                      ON)
+option(POLYSOLVE_WITH_AMGCL            "Use AMGCL"                         ON)
+option(POLYSOLVE_WITH_SPECTRA          "Enable computing spectrum"         OFF)
 
 
 
