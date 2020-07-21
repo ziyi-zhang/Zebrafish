@@ -92,6 +92,8 @@ private:
     // Cylinder Filter
     float cylinderEnergyThres, cylinderRadiusThres;
     int cylinderIterThres;
+    bool showCylFilterPoints;
+    Eigen::MatrixXd cylPointLoc;  // visualization purpose
     // Hist
     hist_t cylEnergyHist, cylRadiusHist, cylIterHist;
 
@@ -197,9 +199,15 @@ private:
 
     //////////////////////////////////////////////////
     // Stage 5
+    void CylinderFilter();
+    void UpdateCylPointLoc();
     void UpdateCylEnergyHist();
     void UpdateCylRadiusHist();
     void UpdateCylIterHist();
+
+    //////////////////////////////////////////////////
+    // Stage 6
+
 };
 
 }  // namespace zebrafish

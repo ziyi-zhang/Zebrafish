@@ -24,7 +24,61 @@ void GUI::DrawStage5() {
         stage4to5Flag = false;
     }
 
+    // Visualize filtered points
+    static int filterPointSize = 7;
+    if (showCylFilterPoints) {
+
+        static float cylinderEnergyThres_cache = -1;
+        static float cylinderRadiusThres_cache = -1;
+        static int   cylinderIterThres_cache = -1;
+        if (cylinderEnergyThres != cylinderEnergyThres_cache ||
+            cylinderRadiusThres != cylinderRadiusThres_cache ||
+            cylinderIterThres   != cylinderIterThres_cache) {
+            // Update the points to visualize when the three thresholds have changed
+
+            CylinderFilter();
+            UpdateCylPointLoc();
+
+            cylinderEnergyThres_cache = cylinderEnergyThres;
+            cylinderRadiusThres_cache = cylinderRadiusThres;
+            cylinderIterThres_cache   = cylinderIterThres;
+        }
+
+        viewer.data().point_size = filterPointSize;
+        Eigen::MatrixXd pointColor(1, 3);
+        pointColor << 0.87, 0.33, 0.33;
+
+        if (cylPointLoc.rows() > 0) {
+            // show optimized points
+            viewer.data().add_points(
+                cylPointLoc,
+                pointColor
+            );
+        }
+
+        ////// DEBUG ONLY //////
+        Eigen::MatrixXd tempLoc;
+        tempLoc.resize(3, 3);
+        tempLoc << 0, 0, 1, 
+                   imgCols, imgRows, 1, 
+                   imgCols-1, imgRows-1, 1;
+        Eigen::MatrixXd pointColor_t(1, 3);
+        pointColor << 0.33, 0.83, 0.33;
+        viewer.data().add_points(tempLoc, pointColor_t);
+        ////// DEBUG ONLY //////
+    }
+
     ImGui::Separator(); /////////////////////////////////////////
+
+    ImGui::Checkbox("Show filtered locations", &showCylFilterPoints);
+
+    ImGui::PushItemWidth(zebrafishWidth / 3.0);
+    ImGui::SliderInt("Point Size", &filterPointSize, 1, 30);
+    ImGui::PopItemWidth();
+
+    ImGui::Separator(); /////////////////////////////////////////
+    
+    // ----------------------------------------------------------
 
     if (ImGui::CollapsingHeader("Cylinder Filter", ImGuiTreeNodeFlags_DefaultOpen)) {
 
@@ -108,8 +162,13 @@ void GUI::DrawStage5() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
+    // ----------------------------------------------------------
+
     if (ImGui::CollapsingHeader("Cluster Filter", ImGuiTreeNodeFlags_DefaultOpen)) {
 
+        if (ImGui::Button("Cluster")) {
+            // Cluster
+        }
         ImGui::Text("TBD");
     }
 
@@ -120,7 +179,53 @@ void GUI::DrawStage5() {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// 
+// Cylidner Filter
+
+void GUI::CylinderFilter() {
+
+    const int N = pointRecord.num;
+
+    for (int i=0; i<N; i++) {
+
+        pointRecord.alive(i) = 
+            (pointRecord.optimization(i, 4) < cylinderEnergyThres) &&
+            (pointRecord.optimization(i, 3) < cylinderRadiusThres) &&
+            (pointRecord.optimization(i, 5) < cylinderIterThres);
+    }
+}
+
+
+void GUI::UpdateCylPointLoc() {
+
+    const int N = pointRecord.num;
+    int M = 0, i, count;
+    Eigen::MatrixXd tempLoc;
+
+    for (i=0; i<N; i++)
+        if (pointRecord.alive(i)) M++;
+
+    cylPointLoc.resize(M, 3);
+    tempLoc.resize(M, 3);
+    if (M == 0) return;
+
+    count = 0;
+    for (i=0; i<N; i++)
+        if (pointRecord.alive(i)) {
+            tempLoc(count, 0) = pointRecord.optimization(i, 0);
+            tempLoc(count, 1) = pointRecord.optimization(i, 1);
+            tempLoc(count, 2) = pointRecord.optimization(i, 2);
+            count++;
+        }
+
+    assert(count == M);
+
+    cylPointLoc.col(0) = tempLoc.col(1).array() + 0.5;
+    cylPointLoc.col(1) = (imgRows-0.5) - tempLoc.col(0).array();
+    cylPointLoc.col(2) = tempLoc.col(2);
+
+    logger().info("Filtered points updated: total number = {}", M);
+}
+
 
 void GUI::UpdateCylEnergyHist() {
 // Note: only count cylinders with energy smaller than 0
@@ -152,7 +257,7 @@ void GUI::UpdateCylEnergyHist() {
 void GUI::UpdateCylRadiusHist() {
 
     Eigen::MatrixXd radiusCol = pointRecord.optimization.col(3);
-    double minValue = radiusCol.minCoeff() - 0.001;
+    double minValue = 0.0;
     double maxValue = 12.0;
     const int N = pointRecord.num;
     assert(N > 0);
@@ -167,6 +272,7 @@ void GUI::UpdateCylRadiusHist() {
     for (int i=0; i<N; i++) {
         idx = std::floor((radiusCol(i) - minValue)/gap);
         if (idx >= histBars) idx = histBars - 1;
+        if (idx < 0) idx = 0;
         cylRadiusHist.hist(idx)++;
     }
 }

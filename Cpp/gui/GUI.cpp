@@ -531,6 +531,7 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     cylinderEnergyThres = -0.1;
     cylinderRadiusThres = 6.0;
     cylinderIterThres = optimMaxIt;
+    showCylFilterPoints = true;
 
     // 3D image viewer
     V.resize(4, 3);
