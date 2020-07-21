@@ -80,6 +80,12 @@ private:
     hist_t gridEnergyHist;
 
     //////////////////////////////////////////////////
+    // Optimization
+    float optimEnergyThres;  // only cylinders with energy smaller than this value would have the chance to go to "filter" stage
+    bool showOptimizedPoints;
+    Eigen::MatrixXd optimPointLoc;
+
+    //////////////////////////////////////////////////
     // 3D image viewer
     Eigen::MatrixXd V;
     Eigen::MatrixXi F;
@@ -173,6 +179,7 @@ private:
     //////////////////////////////////////////////////
     // Stage 4
     void Optimization();
+    void UpdateOptimPointLoc();
 };
 
 }  // namespace zebrafish

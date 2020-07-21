@@ -472,9 +472,6 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     slice = 0;
     histBars = 50;
 
-    // core
-    gridEnergyThres = -0.05;
-
     // image (imageData)
     layerPerImg = 40;  // a random guess to preview the image file
     channelPerSlice = 2;  // a random guess to preview the image file
@@ -495,6 +492,11 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     rArrayGap_grid = 1.0;
     showPromisingPoints = true;
     gridEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
+    gridEnergyThres = -0.05;
+
+    // optimization
+    showOptimizedPoints = true;
+    optimEnergyThres = -0.1;
 
     // 3D image viewer
     V.resize(4, 3);
