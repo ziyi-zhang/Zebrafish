@@ -113,6 +113,8 @@ void GUI::DrawStage3() {
         if (ImGui::Button("Run Grid Search")) {
 
             GridSearch();
+            // register results to "pointRecord"
+            UpdateSampleNewton(gridSampleInput, gridSampleOutput);
             UpdateGridEnergyHist();
             UpdatePromisingPointLoc();
         }
@@ -159,7 +161,6 @@ void GUI::DrawStage3() {
             UpdateSampleNewton(gridSampleInput, gridSampleOutput);
         }
         ImGui::PopItemWidth();
-
     }
 
     ImGui::Separator(); /////////////////////////////////////////
@@ -223,9 +224,6 @@ void GUI::GridSearch() {
             }
         });
     logger().info("<<<<<<<<<< After grid search <<<<<<<<<<");
-
-    // register results to "pointRecord"
-    UpdateSampleNewton(gridSampleInput, gridSampleOutput);
 }
 
 

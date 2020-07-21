@@ -75,7 +75,7 @@ private:
     double rArrayMin_grid, rArrayMax_grid, rArrayGap_grid;
     float gridEnergyThres;  // energy threshold to decide whether a starting point is worth optimizing
     bool showPromisingPoints;
-    Eigen::MatrixXd promisingPointLoc;
+    Eigen::MatrixXd promisingPointLoc;  // visualization purpose
     // Hist
     hist_t gridEnergyHist;
 
@@ -83,7 +83,10 @@ private:
     // Optimization
     float optimEnergyThres;  // only cylinders with energy smaller than this value would have the chance to go to "filter" stage
     bool showOptimizedPoints;
-    Eigen::MatrixXd optimPointLoc;
+    Eigen::MatrixXd optimPointLoc;  // visualization purpose
+    double optimEpsilon, optimMaxIt;
+    // Hist
+    hist_t optimEnergyHist;
 
     //////////////////////////////////////////////////
     // 3D image viewer
@@ -180,6 +183,7 @@ private:
     // Stage 4
     void Optimization();
     void UpdateOptimPointLoc();
+    void UpdateOptimEnergyHist();
 };
 
 }  // namespace zebrafish

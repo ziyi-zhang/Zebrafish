@@ -30,6 +30,7 @@ void GUI::DrawStage4() {
             // Update the points to visualize when "optimEnergyThres" has changed or 
             // "Optimization" has been re-computed
             UpdateOptimPointLoc();
+            UpdateOptimEnergyHist();
             optimEnergyThres_cache = optimEnergyThres;
         }
 
@@ -59,13 +60,63 @@ void GUI::DrawStage4() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    ImGui::Text("Optimization");
-    if (ImGui::Button("Start Optimization")) {
+    if (ImGui::CollapsingHeader("Optimization", ImGuiTreeNodeFlags_DefaultOpen)) {
+        
+        if (ImGui::TreeNode("Advanced optim config")) {
+            
+            const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+            ImGui::PushItemWidth(inputWidth);
+            ImGui::InputDouble("BFGS epsilon", &optimEpsilon);
+            ImGui::InputDouble("BFGS max iter", &optimMaxIt);
+            ImGui::PopItemWidth();
+            
+            ImGui::TreePop();
+            ImGui::Separator();
+        }
 
-        Optimization();
+        if (ImGui::Button("Start Optimization")) {
+
+            Optimization();
+            UpdateOptimPointLoc();
+            UpdateOptimEnergyHist();
+        }
+
+        ImGui::Checkbox("Show optimized locations", &showOptimizedPoints);
+
+        ImGui::PushItemWidth(zebrafishWidth / 3.0);
+        ImGui::SliderInt("Point Size", &optimPointSize, 1, 30);
+        ImGui::PopItemWidth();
+
+        // Histogram
+        ImGui::Text("Histogram of energy");
+
+        const float width = ImGui::GetWindowWidth() * 0.75f - 2;
+        ImGui::PushItemWidth(width + 2);
+
+        ImVec2 before = ImGui::GetCursorScreenPos();
+        ImGui::PlotHistogram("", optimEnergyHist.hist.data(), optimEnergyHist.hist.size(), 0, NULL, 0, optimEnergyHist.hist.maxCoeff(), ImVec2(0, 80));
+        ImVec2 after = ImGui::GetCursorScreenPos();
+        after.y -= ImGui::GetStyle().ItemSpacing.y;
+
+        float ratio = 0.0f;
+        ImDrawList *drawList = ImGui::GetWindowDrawList();
+        drawList->PushClipRectFullScreen();
+        drawList->AddLine(
+            ImVec2(before.x + width * ratio, before.y), 
+            ImVec2(before.x + width * ratio, after.y), 
+            IM_COL32(50, 205, 50, 255), 
+            2.0f
+        );
+        drawList->PopClipRect();
+        ImGui::PopItemWidth();
+
+        ImGui::PushItemWidth(zebrafishWidth * 0.75);
+        ImGui::PopItemWidth();
     }
 
-    ImGui::Text("Stage 4");
+    ImGui::Separator(); /////////////////////////////////////////
+
+    ImGui::Text("Stage 4: Optimization");
 }
 
 
@@ -78,8 +129,8 @@ void GUI::Optimization() {
     /////////////////////////////////////////////////
     // prepare LBFGS
     LBFGSpp::LBFGSParam<double> param;
-    param.epsilon = 1e-4;
-    param.max_iterations = 15;
+    param.epsilon = optimEpsilon;
+    param.max_iterations = optimMaxIt;
 
     // prepare sampleInput & sampleOutput for Newtons
     const int N = pointRecord.num;
@@ -156,6 +207,29 @@ void GUI::UpdateOptimPointLoc() {
     optimPointLoc.col(2) = pointRecord.optimization.col(2);
 
     logger().info("Optimization resultant points updated: total number = {}", N);
+}
+
+
+void GUI::UpdateOptimEnergyHist() {
+
+    Eigen::MatrixXd energyCol = pointRecord.optimization.col(4);
+    double minValue = energyCol.minCoeff();
+    double maxValue = energyCol.maxCoeff();
+    const int N = pointRecord.num;
+    assert(N > 0);
+
+    const double epsilon = 0.0001;  // to make sure every number lies inside
+    maxValue += epsilon;
+    minValue -= epsilon;
+    const double gap = (maxValue - minValue) / double(histBars);
+
+    optimEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
+    optimEnergyHist.minValue = minValue;
+    optimEnergyHist.maxValue = maxValue;
+
+    for (int i=0; i<N; i++) {
+        optimEnergyHist.hist( std::floor((energyCol(i) - minValue)/gap) )++;
+    }
 }
 
 }  // namespace zebrafish

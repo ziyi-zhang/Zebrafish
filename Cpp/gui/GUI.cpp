@@ -30,7 +30,7 @@ struct PropertyEditorItem {
         ImGui::NextColumn();
 
         if (nodeOpen) {
-            static const std::vector<std::string> itemName{"Energy", "x", "y", "z", "r"};
+            static const std::vector<std::string> itemName{"Energy", "x", "y", "z", "r", "Energy", "x", "y", "z", "r", "Iter"};
             for (int i=0; i<5; i++) {
                 ImGui::PushID(i);
                 ImGui::AlignTextToFramePadding();
@@ -39,11 +39,31 @@ struct PropertyEditorItem {
                 if (i == 0) {
                     ImGui::Text("%.4f", pointRecord.grid_search(uid, 4));
                 } else {
-                    ImGui::Text("%.2f", pointRecord.grid_search(uid, i-1));
+                    ImGui::Text("%.3f", pointRecord.grid_search(uid, i-1));
                 }
                 ImGui::NextColumn();
                 ImGui::PopID();
             }
+
+            ImGui::Separator(); ///////////////////////
+
+            for (int i=0; i<6; i++) {
+                ImGui::PushID(i);
+                ImGui::AlignTextToFramePadding();
+                ImGui::TreeNodeEx(itemName[i+5].c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet);
+                ImGui::NextColumn();
+                if (i == 0) {
+                    ImGui::Text("%.4f", pointRecord.optimization(uid, 4));
+                } else if (i == 5) {
+                    ImGui::Text("%.0f", pointRecord.optimization(uid, 5));
+                } else {
+                    ImGui::Text("%.3f", pointRecord.optimization(uid, i-1));
+                }
+                ImGui::NextColumn();
+                ImGui::PopID();
+            }
+
+            ImGui::Separator(); ///////////////////////
             ImGui::TreePop();
         }
 
@@ -497,6 +517,8 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     // optimization
     showOptimizedPoints = true;
     optimEnergyThres = -0.1;
+    optimEpsilon = 1e-4;
+    optimMaxIt = 30;
 
     // 3D image viewer
     V.resize(4, 3);
