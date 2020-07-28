@@ -13,6 +13,7 @@ namespace zebrafish {
 namespace {
 
 struct PropertyEditorItem {
+/// Used by "Property Editor"
 
     static void AppendPointRecordItem(const char* prefix, int uid, const pointRecord_t &pointRecord) {
 
@@ -21,7 +22,7 @@ struct PropertyEditorItem {
         bool nodeOpen = ImGui::TreeNode("Object", "%s %u", prefix, uid);
         ImGui::NextColumn();
         ImGui::AlignTextToFramePadding();
-        static bool enabled = true; //
+        static bool enabled = true;  // dummy
         if (pointRecord.optimization(0, 0) == 0)
             ImGui::Checkbox("to be optimized", &enabled);
         else
@@ -58,6 +59,59 @@ struct PropertyEditorItem {
                     ImGui::Text("%.0f", pointRecord.optimization(uid, 5));
                 } else {
                     ImGui::Text("%.3f", pointRecord.optimization(uid, i-1));
+                }
+                ImGui::NextColumn();
+                ImGui::PopID();
+            }
+
+            ImGui::Separator(); ///////////////////////
+            ImGui::TreePop();
+        }
+
+        ImGui::PopID();
+    }
+
+    // ----------------------------------------------------------------------------------------------
+
+    static void AppendClusterRecordItem(const char* prefix, int uid, const clusterRecord_t &clusterRecord) {
+
+        ImGui::PushID(uid);
+        ImGui::AlignTextToFramePadding();
+        bool nodeOpen = ImGui::TreeNode("Object", "%s %u", prefix, uid);
+        ImGui::NextColumn();
+        ImGui::AlignTextToFramePadding();
+        if (clusterRecord.alive(uid))
+            ImGui::Text("Valid");
+        else
+            ImGui::Text("Invalid");
+
+        ImGui::NextColumn();
+
+        if (nodeOpen) {
+            static const std::vector<std::string> itemName{"meanX", "meanY", "meanZ", "meanR", "energy", "size"};
+            for (int i=0; i<4; i++) {
+                ImGui::PushID(i);
+                ImGui::AlignTextToFramePadding();
+                ImGui::TreeNodeEx(itemName[i].c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet);
+                ImGui::NextColumn();
+                    
+                ImGui::Text("%.3f", clusterRecord.loc(uid, i));
+
+                ImGui::NextColumn();
+                ImGui::PopID();
+            }
+
+            ImGui::Separator(); ///////////////////////
+
+            for (int i=4; i<=5; i++) {
+                ImGui::PushID(i);
+                ImGui::AlignTextToFramePadding();
+                ImGui::TreeNodeEx(itemName[i].c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet);
+                ImGui::NextColumn();
+                if (i == 4) {
+                    ImGui::Text("%.4f", clusterRecord.energy(uid));
+                } else {
+                    ImGui::Text("%d", clusterRecord.size(uid));
                 }
                 ImGui::NextColumn();
                 ImGui::PopID();
@@ -427,7 +481,7 @@ void GUI::DrawWindowPropertyEditor() {
     }
 
     ImGui::PushItemWidth(RHSPanelWidth/2.0);
-    std::vector<std::string> typeName{"Grid Search & Opt", "Cylinders"};
+    std::vector<std::string> typeName{"Grid Search & Opt", "Clusters"};
     ImGui::Combo("Property List Type", &propertyListType, typeName);
     ImGui::PopItemWidth();
 
@@ -436,14 +490,14 @@ void GUI::DrawWindowPropertyEditor() {
 
     switch (propertyListType) {
     case 0:
-        // Grid Search
+        // Grid Search & Optimization
         if (pointRecord.num == 0) {
-            ImGui::Text("Optimization point list is empty");
+            ImGui::Text("Optimization cylinder list is empty");
         } else {
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
             ImGui::Columns(2);
 
-            const int maxNumItemDisplayed = 300;
+            const int maxNumItemDisplayed = 500;
             const int ttlItem = pointRecord.num;
             const int numItemToDisplay = std::min(maxNumItemDisplayed, ttlItem);
             for (int i=0; i<numItemToDisplay; i++) {
@@ -460,8 +514,27 @@ void GUI::DrawWindowPropertyEditor() {
         break;
 
     case 1:
-        // Optimized Cylinders
-        ImGui::Text("Candidate cylinder list is empty");
+        // Clustered Cylinders
+        if (clusterRecord.num == 0) {
+            ImGui::Text("Cluster cylinder list is empty");
+        } else {
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+            ImGui::Columns(2);
+
+            const int maxNumItemDisplayed = 500;
+            const int ttlItem = clusterRecord.num;
+            const int numItemToDisplay = std::min(maxNumItemDisplayed, ttlItem);
+            for (int i=0; i<numItemToDisplay; i++) {
+
+                PropertyEditorItem::AppendClusterRecordItem("Cluster", i, clusterRecord);
+            }
+
+            ImGui::Columns(1);
+            if (ttlItem >= maxNumItemDisplayed) {
+                ImGui::Text("Only the first %d items will be displayed", maxNumItemDisplayed);
+            }
+            ImGui::PopID();
+        }
         break;
 
     default:
@@ -493,7 +566,7 @@ void GUI::DrawWindowGraphics() {
 // maintenance methods
 
 
-GUI::GUI() : bsplineSolver(), pointRecord() {
+GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord() {
 
     stage = 1;
     slice = 0;
@@ -535,6 +608,12 @@ GUI::GUI() : bsplineSolver(), pointRecord() {
     cylinderIterThres = optimMaxIt;
     showCylFilterPoints = true;
     cylPointLoc.resize(1, 3);
+
+    // cluster filter
+    clusterDistThres = 0.01;
+    clusterSizeThres = 10;
+    showClusterFilterPoints = false;
+    clusterPointLoc.resize(1, 3);
 
     // 3D image viewer
     V.resize(4, 3);

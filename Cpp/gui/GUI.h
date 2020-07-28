@@ -27,6 +27,20 @@ typedef struct pointRecord_t {
 } pointRecord_t;
 
 
+typedef struct clusterRecord_t {
+///       |         Loc             |   energy    |  size
+/// alive | meanX meanY meanZ meanR | meaneEnergy | size(count)
+
+    int num;
+    Eigen::Matrix<bool,   Eigen::Dynamic, 1> alive;
+    Eigen::Matrix<double, Eigen::Dynamic, 4> loc;
+    Eigen::Matrix<double, Eigen::Dynamic, 1> energy;
+    Eigen::Matrix<int, Eigen::Dynamic, 1>    size;
+
+    clusterRecord_t() : num(0) {}
+} clusterRecord_t;
+
+
 typedef struct hist_t {
 
     Eigen::MatrixXf hist;
@@ -53,6 +67,10 @@ private:
     pointRecord_t pointRecord;
     ///       |   Grid Search  |   Optimization
     /// alive | x y z r energy | x y z r energy iter
+
+    clusterRecord_t clusterRecord;
+    ///       |         Loc             |   size
+    /// alive | meanX meanY meanZ meanR | size(count)
 
     //////////////////////////////////////////////////
     // image (imageData)
@@ -96,6 +114,13 @@ private:
     Eigen::MatrixXd cylPointLoc;  // visualization purpose
     // Hist
     hist_t cylEnergyHist, cylRadiusHist, cylIterHist;
+
+    //////////////////////////////////////////////////
+    // Cluster Filter
+    float clusterDistThres;
+    int clusterSizeThres;
+    bool showClusterFilterPoints;
+    Eigen::MatrixXd clusterPointLoc;  // visualization purpose
 
     //////////////////////////////////////////////////
     // 3D image viewer
@@ -208,6 +233,8 @@ private:
     //////////////////////////////////////////////////
     // Stage 5.2 Cluster Filter
     void Cluster();
+    void ClusterFilter();
+    void UpdateClusterPointLoc();
 
     //////////////////////////////////////////////////
     // Stage 6
