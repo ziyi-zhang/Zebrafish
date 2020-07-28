@@ -123,6 +123,57 @@ struct PropertyEditorItem {
 
         ImGui::PopID();
     }
+
+    // ----------------------------------------------------------------------------------------------
+
+    static void AppendMarkerRecordItem(const char* prefix, int uid, const markerRecord_t &markerRecord) {
+
+        ImGui::PushID(uid);
+        ImGui::AlignTextToFramePadding();
+        bool nodeOpen = ImGui::TreeNode("Object", "%s %u", prefix, uid);
+        ImGui::NextColumn();
+        ImGui::AlignTextToFramePadding();
+
+        // no text here
+
+        ImGui::NextColumn();
+
+        if (nodeOpen) {
+            static const std::vector<std::string> itemName{"X", "Y", "Z", "R", "energy", "size"};
+            for (int i=0; i<4; i++) {
+                ImGui::PushID(i);
+                ImGui::AlignTextToFramePadding();
+                ImGui::TreeNodeEx(itemName[i].c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet);
+                ImGui::NextColumn();
+                    
+                ImGui::Text("%.3f", markerRecord.loc(uid, i));
+
+                ImGui::NextColumn();
+                ImGui::PopID();
+            }
+
+            ImGui::Separator(); ///////////////////////
+
+            for (int i=4; i<=5; i++) {
+                ImGui::PushID(i);
+                ImGui::AlignTextToFramePadding();
+                ImGui::TreeNodeEx(itemName[i].c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet);
+                ImGui::NextColumn();
+                if (i == 4) {
+                    ImGui::Text("%.4f", markerRecord.energy(uid));
+                } else {
+                    ImGui::Text("%d", markerRecord.size(uid));
+                }
+                ImGui::NextColumn();
+                ImGui::PopID();
+            }
+
+            ImGui::Separator(); ///////////////////////
+            ImGui::TreePop();
+        }
+
+        ImGui::PopID();
+    }
 };
 
 }  // anonymous namespace
@@ -295,6 +346,7 @@ void GUI::DrawZebrafishPanel() {
 
         if (stage == 2) stage1to2Flag = true;
         if (stage == 5) stage4to5Flag = true;
+        if (stage == 6) stage5to6Flag = true;
     }
     ImGui::Text("Stage %d", stage);
 
@@ -481,7 +533,7 @@ void GUI::DrawWindowPropertyEditor() {
     }
 
     ImGui::PushItemWidth(RHSPanelWidth/2.0);
-    std::vector<std::string> typeName{"Grid Search & Opt", "Clusters"};
+    std::vector<std::string> typeName{"Grid Search & Opt", "Clusters", "Markers"};
     ImGui::Combo("Property List Type", &propertyListType, typeName);
     ImGui::PopItemWidth();
 
@@ -537,6 +589,30 @@ void GUI::DrawWindowPropertyEditor() {
         }
         break;
 
+    case 2:
+        // markers (finalized clusters)
+        if (markerRecord.num == 0) {
+            ImGui::Text("Marker cluster list is empty");
+        } else {
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+            ImGui::Columns(2);
+
+            const int maxNumItemDisplayed = 500;
+            const int ttlItem = markerRecord.num;
+            const int numItemToDisplay = std::min(maxNumItemDisplayed, ttlItem);
+            for (int i=0; i<numItemToDisplay; i++) {
+
+                PropertyEditorItem::AppendMarkerRecordItem("Marker", i, markerRecord);
+            }
+
+            ImGui::Columns(1);
+            if (ttlItem >= maxNumItemDisplayed) {
+                ImGui::Text("Only the first %d items will be displayed", maxNumItemDisplayed);
+            }
+            ImGui::PopID();
+        }
+        break;
+
     default:
         assert(false);
         break;
@@ -566,7 +642,7 @@ void GUI::DrawWindowGraphics() {
 // maintenance methods
 
 
-GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord() {
+GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord(), markerRecord() {
 
     stage = 1;
     slice = 0;
@@ -580,8 +656,8 @@ GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord() {
     resolutionX = 0;
     resolutionY = 0;
     resolutionZ = 0;
-    imgHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
     normalizeQuantile = 0.995;
+    imgHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
 
     // grid search
     gapX_grid = 1.0;
@@ -591,9 +667,9 @@ GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord() {
     rArrayMax_grid = 7.0;
     rArrayGap_grid = 1.0;
     showPromisingPoints = true;
-    gridEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
     gridEnergyThres = -0.05;
     promisingPointLoc.resize(1, 3);
+    gridEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
 
     // optimization
     showOptimizedPoints = true;
@@ -608,12 +684,17 @@ GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord() {
     cylinderIterThres = optimMaxIt;
     showCylFilterPoints = true;
     cylPointLoc.resize(1, 3);
+    cylEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
+    cylRadiusHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
+    cylIterHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
 
     // cluster filter
     clusterDistThres = 0.01;
+    finalizeClusterDistThres = 2.0;
     clusterSizeThres = 10;
     showClusterFilterPoints = false;
     clusterPointLoc.resize(1, 3);
+    clusterSizeHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
 
     // 3D image viewer
     V.resize(4, 3);
@@ -652,6 +733,7 @@ GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord() {
     // bool flag indicating moving from a stage to another
     stage1to2Flag = false;
     stage4to5Flag = false;
+    stage5to6Flag = false;
 }
 
 

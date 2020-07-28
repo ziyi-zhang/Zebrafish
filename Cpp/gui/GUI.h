@@ -28,8 +28,8 @@ typedef struct pointRecord_t {
 
 
 typedef struct clusterRecord_t {
-///       |         Loc             |   energy    |  size
-/// alive | meanX meanY meanZ meanR | meaneEnergy | size(count)
+///       |         Loc             |   energy   |  size
+/// alive | meanX meanY meanZ meanR | meanEnergy | size(count)
 
     int num;
     Eigen::Matrix<bool,   Eigen::Dynamic, 1> alive;
@@ -39,6 +39,19 @@ typedef struct clusterRecord_t {
 
     clusterRecord_t() : num(0) {}
 } clusterRecord_t;
+
+
+typedef struct markerRecord_t {
+///   Loc   | energy |   size
+/// X Y Z R | energy | size(count)
+
+    int num;
+    Eigen::Matrix<double, Eigen::Dynamic, 4> loc;
+    Eigen::Matrix<double, Eigen::Dynamic, 1> energy;
+    Eigen::Matrix<int, Eigen::Dynamic, 1>    size;
+
+    markerRecord_t() : num(0) {}
+} markerRecord_t;
 
 
 typedef struct hist_t {
@@ -71,6 +84,10 @@ private:
     clusterRecord_t clusterRecord;
     ///       |         Loc             |   size
     /// alive | meanX meanY meanZ meanR | size(count)
+
+    markerRecord_t markerRecord;
+    ///   Loc   | energy |   size
+    /// X Y Z R | energy | size(count)
 
     //////////////////////////////////////////////////
     // image (imageData)
@@ -117,10 +134,12 @@ private:
 
     //////////////////////////////////////////////////
     // Cluster Filter
-    float clusterDistThres;
+    float clusterDistThres, finalizeClusterDistThres;
     int clusterSizeThres;
     bool showClusterFilterPoints;
     Eigen::MatrixXd clusterPointLoc;  // visualization purpose
+    // Hist
+    hist_t clusterSizeHist;
 
     //////////////////////////////////////////////////
     // 3D image viewer
@@ -162,6 +181,7 @@ private:
     // bool flag indicating moving from a stage to another
     bool stage1to2Flag;
     bool stage4to5Flag;
+    bool stage5to6Flag;
 
 public:
     std::ostringstream oss;
@@ -235,10 +255,12 @@ private:
     void Cluster();
     void ClusterFilter();
     void UpdateClusterPointLoc();
+    void UpdateClusterSizeHist();
+    void FinalizeClusterLoc();
 
     //////////////////////////////////////////////////
-    // Stage 6
-
+    // Stage 6 Iterative Closest Point
+    
 };
 
 }  // namespace zebrafish

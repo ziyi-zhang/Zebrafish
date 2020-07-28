@@ -237,17 +237,60 @@ void GUI::DrawStage5() {
         if (ImGui::TreeNode("Advanced cluster config")) {
 
             ImGui::InputFloat("Cluster dist thres", &clusterDistThres);
+
+            ImGui::TreePop();
+            ImGui::Separator();
         }
 
         if (ImGui::Button("Cluster")) {
             
             Cluster();
+            UpdateClusterSizeHist();
         }
         
-        ImGui::SliderInt("Minimal Cluster Size", &clusterSizeThres, 1, 100);
+        ImGui::Separator(); /////////////////////////////////////////
+
+        // Histogram of cluster size
+        ImVec2 before, after;
+        ImDrawList *drawList = ImGui::GetWindowDrawList();
+        ImGui::Text("Histogram of cluster size");
+
+        const float width = ImGui::GetWindowWidth() * 0.75f - 2;
+        ImGui::PushItemWidth(width + 2);
+
+        before = ImGui::GetCursorScreenPos();
+        ImGui::PlotHistogram("", clusterSizeHist.hist.data(), clusterSizeHist.hist.size(), 0, NULL, 0, clusterSizeHist.hist.maxCoeff(), ImVec2(0, 80));
+        after = ImGui::GetCursorScreenPos();
+        after.y -= ImGui::GetStyle().ItemSpacing.y;
+
+        float ratio = ((float)(clusterSizeThres-clusterSizeHist.minValue)/(float)(clusterSizeHist.maxValue-clusterSizeHist.minValue));
+        ratio = std::min(1.0f, std::max(0.0f, ratio));
+        drawList->PushClipRectFullScreen();
+        drawList->AddLine(
+            ImVec2(before.x + width * ratio, before.y), 
+            ImVec2(before.x + width * ratio, after.y), 
+            IM_COL32(50, 205, 50, 255), 
+            2.0f
+        );
+        drawList->PopClipRect();
+        ImGui::PopItemWidth();
+        ImGui::SliderInt("Minimal cluster size", &clusterSizeThres, clusterSizeHist.minValue, clusterSizeHist.maxValue);
+        
+        ImGui::Separator(); /////////////////////////////////////////
     }
 
     ImGui::Separator(); /////////////////////////////////////////
+
+    if (ImGui::TreeNode("Advanced")) {
+    
+        ImGui::InputFloat("Finalize cluster dist thres", &finalizeClusterDistThres);
+        if (ImGui::Button("Finalize cluster locations")) {
+            FinalizeClusterLoc();
+        }
+
+        ImGui::TreePop();
+        ImGui::Separator();
+    }
 
     ImGui::Text("Stage 5: Filter & Cluster");
 }
@@ -298,7 +341,7 @@ void GUI::UpdateCylPointLoc() {
     cylPointLoc.col(1) = (imgRows-0.5) - tempLoc.col(0).array();
     cylPointLoc.col(2) = tempLoc.col(2);
 
-    logger().info("[Visualization] Filtered points updated: total number = {}", M);
+    logger().info("   [Visualization] Filtered points updated: total number = {}", M);
 }
 
 
@@ -526,7 +569,140 @@ void GUI::UpdateClusterPointLoc() {
     clusterPointLoc.col(1) = (imgRows-0.5) - tempLoc.col(0).array();
     clusterPointLoc.col(2) = tempLoc.col(2);
 
-    logger().info("[Visualization] Filtered clusters updated: total number = {}", M);
+    logger().info("   [Visualization] Filtered clusters updated: total number = {}", M);
+}
+
+
+void GUI::UpdateClusterSizeHist() {
+
+    Eigen::Matrix<int, Eigen::Dynamic, 1> sizeCol = clusterRecord.size;
+    int minValue = 0;
+    int maxValue = sizeCol.maxCoeff();
+    const int N = clusterRecord.num;
+    assert(N > 0);
+
+    const double gap = (double)(maxValue - minValue) / double(histBars);
+
+    clusterSizeHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
+    clusterSizeHist.minValue = minValue;
+    clusterSizeHist.maxValue = maxValue;
+
+    int idx;
+    for (int i=0; i<N; i++) {
+        idx = std::floor((double)(sizeCol(i) - minValue)/gap);
+        if (idx >= histBars) idx = histBars - 1;
+        if (idx < 0) idx = 0;
+        clusterSizeHist.hist(idx)++;
+    }
+}
+
+
+void GUI::FinalizeClusterLoc() {
+// Do another round of cluster to get "markerRecord" from "clusterRecord"
+/// FIXME: the code is very similar to "Cluster" but not identical
+/// FIXME: The variables in this function is NOT properly named (copied from "Cluster")
+
+    const int N = clusterRecord.num;  // total number of clusters
+    int M = 0;  // number of alive clusters
+    int i, j, count;
+    Eigen::MatrixXd opt_temp, x_temp, x_sorted, sortIdx, belongIdx;
+
+    // determine the number of alive clusters
+    for (i=0; i<N; i++)
+        if (clusterRecord.alive(i))
+            M++;
+    opt_temp.resize(M, 6);
+    x_temp.resize(M, 1);
+
+    // copy xyzr-energy-size sub-matrix
+    count = 0;
+    for (i=0; i<N; i++)
+        if (clusterRecord.alive(i)) {
+            x_temp(count) = clusterRecord.loc(i, 0);  // x
+            opt_temp(count, 0) = clusterRecord.loc(i, 0);  // x
+            opt_temp(count, 1) = clusterRecord.loc(i, 1);  // y
+            opt_temp(count, 2) = clusterRecord.loc(i, 2);  // z
+            opt_temp(count, 3) = clusterRecord.loc(i, 3);  // r
+            opt_temp(count, 4) = clusterRecord.energy(i);  // energy
+            opt_temp(count, 5) = clusterRecord.size(i);  // size
+            count++;
+        }
+
+    // sort x
+    igl::sort(x_temp, 1, true, x_sorted, sortIdx);
+
+    // prepare union-find set
+    /// FIXME: standardize this
+    std::vector<int> clusterSet, setRank;
+    clusterSet.reserve(M);
+    setRank.reserve(M);
+    for (i=0; i<M; i++) {
+        clusterSet[i] = i;
+        setRank[i] = 0;
+    }
+
+    // cluster
+    double dist_square;
+    for (i=0; i<M; i++)
+        for (j=i+1; j<M; j++) {
+
+            // early stop
+            if (x_sorted(i) - x_sorted(j) > finalizeClusterDistThres) continue;
+            // dont care about depth layer
+
+            // dist_square = x^2 + y^2
+            dist_square = (opt_temp(sortIdx(i), 0) - opt_temp(sortIdx(j), 0))*(opt_temp(sortIdx(i), 0) - opt_temp(sortIdx(j), 0)) +
+                          (opt_temp(sortIdx(i), 1) - opt_temp(sortIdx(j), 1))*(opt_temp(sortIdx(i), 1) - opt_temp(sortIdx(j), 1));
+
+            if (dist_square < finalizeClusterDistThres*finalizeClusterDistThres)
+                join(clusterSet, setRank, sortIdx(i), sortIdx(j));
+        }
+
+    // calculate belongIdx
+    int numClusters;
+    std::set<int> clusters;
+    belongIdx.resize(M, 1);
+    for (i=0; i<M; i++) {
+        belongIdx(i) = query(clusterSet, i);
+        clusters.insert(belongIdx(i));
+    }
+    numClusters = clusters.size();
+
+    // prepare markerRecord
+    markerRecord.num = numClusters;
+    markerRecord.loc = Eigen::MatrixXd::Zero(numClusters, 4);
+    markerRecord.energy = Eigen::MatrixXd::Zero(numClusters, 1);
+    markerRecord.size = Eigen::MatrixXi::Zero(numClusters, 1);
+
+    // fill in data
+    count = 0;
+    for (int clusterAlias : clusters) {
+
+        for (i=0; i<M; i++) {
+
+            if (belongIdx(i) != clusterAlias) continue;
+            int clusterSize = opt_temp(i, 5);
+            markerRecord.loc(count, 0) += opt_temp(i, 0) * clusterSize;  // x
+            markerRecord.loc(count, 1) += opt_temp(i, 1) * clusterSize;  // y
+            markerRecord.loc(count, 2) += opt_temp(i, 2) * clusterSize;  // z
+            markerRecord.loc(count, 3) += opt_temp(i, 3) * clusterSize;  // r
+            markerRecord.size(count)   += clusterSize;  // size
+        }
+        // next cluster
+        count++;
+    }
+    for (i=0; i<numClusters; i++) {
+
+        markerRecord.loc(i, 0) /= markerRecord.size(i);  // x
+        markerRecord.loc(i, 1) /= markerRecord.size(i);  // y
+        markerRecord.loc(i, 2) /= markerRecord.size(i);  // z
+        markerRecord.loc(i, 3) /= markerRecord.size(i);  // r
+
+        // calculate energy (directly)
+        cylinder::EvaluateCylinder(bsplineSolver, markerRecord.loc(i, 0), markerRecord.loc(i, 1), markerRecord.loc(i, 2), markerRecord.loc(i, 3), 3.0, markerRecord.energy(i));
+    }
+
+    logger().info("[Finalize Cluster] #(Alive clusters) = {} | #Markers = {}", M, numClusters);
 }
 
 }  // namespace zebrafish

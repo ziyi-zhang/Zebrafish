@@ -12,9 +12,15 @@ namespace {
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Stage 6: 
+// Stage 6: Iterative Closest Point
 
 void GUI::DrawStage6() {
+
+    if (stage5to6Flag) {
+
+        FinalizeClusterLoc();
+        stage5to6Flag = false;
+    }
 
     ImGui::Separator(); /////////////////////////////////////////
 
@@ -32,7 +38,5 @@ void GUI::DrawStage6() {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // 
-
-
 
 }  // namespace zebrafish
