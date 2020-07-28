@@ -280,7 +280,7 @@ void GUI::UpdatePromisingPointLoc() {
     promisingPointLoc.col(1) = (imgRows-0.5) - pointRecord.grid_search.col(0).array();
     promisingPointLoc.col(2) = pointRecord.grid_search.col(2);
 
-    logger().info("[Visualization] Grid search promising points updated: total number = {}", N);
+    logger().info("   [Visualization] Grid search promising points updated: total number = {}", N);
 }
 
 

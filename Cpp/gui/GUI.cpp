@@ -25,8 +25,10 @@ struct PropertyEditorItem {
         static bool enabled = true;  // dummy
         if (pointRecord.optimization(0, 0) == 0)
             ImGui::Checkbox("to be optimized", &enabled);
-        else
-            ImGui::Text("has been optimized");
+        else if (pointRecord.alive(uid))
+            ImGui::Text("valid");
+        else 
+            ImGui::Text("invalid");
 
         ImGui::NextColumn();
 
@@ -81,9 +83,9 @@ struct PropertyEditorItem {
         ImGui::NextColumn();
         ImGui::AlignTextToFramePadding();
         if (clusterRecord.alive(uid))
-            ImGui::Text("Valid");
+            ImGui::Text("valid");
         else
-            ImGui::Text("Invalid");
+            ImGui::Text("invalid");
 
         ImGui::NextColumn();
 
@@ -695,6 +697,11 @@ GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord(), markerRecord() {
     showClusterFilterPoints = false;
     clusterPointLoc.resize(1, 3);
     clusterSizeHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
+
+    // ICP
+    showMarkerPoints = true;
+    showReferencePoints = true;
+    markerPointLoc.resize(1, 3);
 
     // 3D image viewer
     V.resize(4, 3);

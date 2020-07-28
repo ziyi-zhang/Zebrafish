@@ -142,6 +142,11 @@ private:
     hist_t clusterSizeHist;
 
     //////////////////////////////////////////////////
+    // ICP
+    bool showMarkerPoints, showReferencePoints;
+    Eigen::MatrixXd markerPointLoc;  // visualization purpose
+
+    //////////////////////////////////////////////////
     // 3D image viewer
     Eigen::MatrixXd V;
     Eigen::MatrixXi F;
@@ -260,7 +265,7 @@ private:
 
     //////////////////////////////////////////////////
     // Stage 6 Iterative Closest Point
-    
+    void UpdateMarkerPointLoc();
 };
 
 }  // namespace zebrafish
