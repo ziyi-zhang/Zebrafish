@@ -144,7 +144,9 @@ private:
     //////////////////////////////////////////////////
     // ICP
     bool showMarkerPoints, showReferencePoints;
+    std::string patternFilename;
     Eigen::MatrixXd markerPointLoc;  // visualization purpose
+    Eigen::MatrixXd refV;  // #refV * 3 reference point locations
 
     //////////////////////////////////////////////////
     // 3D image viewer
@@ -265,6 +267,8 @@ private:
 
     //////////////////////////////////////////////////
     // Stage 6 Iterative Closest Point
+    void SearchICP();
+    void PreprocessPatternLoc();
     void UpdateMarkerPointLoc();
 };
 

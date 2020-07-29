@@ -246,6 +246,10 @@ void GUI::DrawStage5() {
             
             Cluster();
             UpdateClusterSizeHist();
+
+            // update visualized points
+            showCylFilterPoints = false;
+            showClusterFilterPoints = true;
         }
         
         ImGui::Separator(); /////////////////////////////////////////

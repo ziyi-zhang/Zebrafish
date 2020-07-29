@@ -3,6 +3,10 @@
 #include <zebrafish/Bspline.h>
 #include <zebrafish/GUI.h>
 #include <zebrafish/Logger.hpp>
+#include <zebrafish/FileDialog.h>
+#include <zebrafish/ICP.h>
+
+#include <string>
 
 
 namespace zebrafish {
@@ -55,8 +59,26 @@ void GUI::DrawStage6() {
 
     if (ImGui::CollapsingHeader("Iterative Closest Point", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        
-        ImGui::Text("TBD");
+        if (ImGui::Button("Load pattern OFF")) {
+            std::string filename = FileDialog::openFileName("./.*", {"*.off"});
+            if (!filename.empty()) {
+                patternFilename = filename;
+                Eigen::MatrixXd tempF;
+                if (igl::readOFF(patternFilename, refV, tempF)) {
+                    // dummy
+
+                } else {
+                    logger().error("Error open OFF file {}", patternFilename);
+                    std::cerr << "Error open OFF file" << std::endl;
+                }
+            } 
+        }
+        ImGui::SameLine();
+        ImGui::Text("%s", patternFilename.c_str());
+
+        if (ImGui::Button("Run ICP")) {
+            SearchICP();
+        }
     }
 
     ImGui::Separator(); /////////////////////////////////////////
@@ -66,7 +88,29 @@ void GUI::DrawStage6() {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// 
+// ICP
+
+void GUI::SearchICP() {
+
+    double RMSerror;
+    RMat_t R;
+    TMat_t T;
+    Eigen::MatrixXd markerLoc;
+    markerLoc = markerRecord.loc.block(0, 0, markerRecord.num, 3);
+
+    RMSerror = ICP::RunICP(markerLoc.transpose(), refV.transpose(), R, T);
+    logger().info("RunICP error {}", RMSerror);
+}
+
+
+void GUI::PreprocessPatternLoc() {
+
+    refV.col(0).array() -= refV.col(0).minCoeff();  // x
+    refV.col(1).array() -= refV.col(1).minCoeff();  // y
+
+    // FIXME: should we scale here?
+}
+
 
 void GUI::UpdateMarkerPointLoc() {
 

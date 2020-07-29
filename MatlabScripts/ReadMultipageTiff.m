@@ -11,6 +11,7 @@ function [image_] = ReadMultipageTiff(filename)
     t = Tiff(filename, 'r');
     image(:,:,1) = t.read(); % Read the first image to get the array dimensions correct.
     if t.lastDirectory()
+         image_ = image;
          return; % If the file only contains one page, we do not need to continue.
     end
     % Read all remaining pages (directories) in the file

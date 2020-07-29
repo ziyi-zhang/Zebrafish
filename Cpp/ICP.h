@@ -18,13 +18,11 @@ typedef Eigen::Matrix<double, 3, 3> RMat_t;  // rotation matrix
 class ICP {
 
 private:
-    int maxIt;  // max iteration
-
-    void MatchPoints(const Eigen::MatrixXd &pt, const Eigen::MatrixXd &q, Eigen::VectorXi &matchIdx, Eigen::VectorXd &distSqVec);
-    void CalcTransMat(Eigen::MatrixXd pt, Eigen::MatrixXd qt, RMat_t &R, TMat_t &T);
+    static void MatchPoints(const Eigen::MatrixXd &pt, const Eigen::MatrixXd &q, Eigen::VectorXi &matchIdx, Eigen::VectorXd &distSqVec);
+    static void CalcTransMat(Eigen::MatrixXd pt, Eigen::MatrixXd qt, RMat_t &R, TMat_t &T);
 
 public:
-    double RunICP(const Eigen::MatrixXd &p, const Eigen::MatrixXd &q, RMat_t &R, TMat_t &T);
+    static double RunICP(const Eigen::MatrixXd &p, const Eigen::MatrixXd &q, RMat_t &R, TMat_t &T);
     /// Run iterative closest point from point set p to q.
     /// Minimize the L2 error of sum(R*p + T - q).
     ///
