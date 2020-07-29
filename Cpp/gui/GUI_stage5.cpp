@@ -4,6 +4,7 @@
 #include <zebrafish/GUI.h>
 #include <zebrafish/Logger.hpp>
 
+#include <igl/unproject_onto_mesh.h>
 #include <vector>
 #include <set>
 
@@ -90,9 +91,9 @@ void GUI::DrawStage5() {
         tempLoc << 0, 0, 1, 
                    imgCols, imgRows, 1, 
                    imgCols-1, imgRows-1, 1;
-        Eigen::MatrixXd pointColor_t(1, 3);
-        pointColor << 0.33, 0.83, 0.33;
-        viewer.data().add_points(tempLoc, pointColor_t);
+        Eigen::MatrixXd debugPointColor(1, 3);
+        debugPointColor << 0.33, 0.83, 0.33;
+        viewer.data().add_points(tempLoc, debugPointColor);
         ////// DEBUG ONLY //////
     }
 
@@ -127,10 +128,25 @@ void GUI::DrawStage5() {
         tempLoc << 0, 0, 1, 
                    imgCols, imgRows, 1, 
                    imgCols-1, imgRows-1, 1;
-        Eigen::MatrixXd pointColor_t(1, 3);
-        pointColor << 0.33, 0.83, 0.33;
-        viewer.data().add_points(tempLoc, pointColor_t);
+        Eigen::MatrixXd debugPointColor(1, 3);
+        debugPointColor << 0.33, 0.83, 0.33;
+        viewer.data().add_points(tempLoc, debugPointColor);
         ////// DEBUG ONLY //////
+    }
+
+    // Visualize mouse picked cluster
+    if (rejectActive && rejectHit) {
+
+        Eigen::MatrixXd rejectLoc;
+        static const double deltaZ = 0.3;
+        rejectLoc.resize(1, 3);
+        rejectLoc(0) = clusterRecord.loc(rejectHitIndex, 1) + 0.5;
+        rejectLoc(1) = (imgRows-0.5) - clusterRecord.loc(rejectHitIndex, 0);
+        rejectLoc(2) = clusterRecord.loc(rejectHitIndex, 2) + deltaZ;
+
+        Eigen::MatrixXd pointColor(1, 3);
+        pointColor << 0.0, 1.0, 1.0;
+        viewer.data().add_points(rejectLoc, pointColor);
     }
 
     ImGui::Separator(); /////////////////////////////////////////
@@ -282,6 +298,8 @@ void GUI::DrawStage5() {
         
         ImGui::Separator(); /////////////////////////////////////////
     }
+
+    ImGui::Checkbox("Manually reject", &rejectActive);
 
     ImGui::Separator(); /////////////////////////////////////////
 
@@ -707,6 +725,63 @@ void GUI::FinalizeClusterLoc() {
     }
 
     logger().info("[Finalize Cluster] #(Alive clusters) = {} | #Markers = {}", M, numClusters);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// mouse reject
+
+void GUI::SelectCluster(const Eigen::Vector2f &mouse) {
+
+    static int fid;
+    static Eigen::Vector3f bc;
+    static double x, y;
+    static bool hit;
+
+    hit = igl::unproject_onto_mesh(
+        mouse, 
+        viewer.core().view, 
+        viewer.core().proj,
+        viewer.core().viewport, 
+        V, 
+        F, 
+        fid, 
+        bc);
+
+    if (hit) {
+        // has hit
+
+        // FIXME: why minus 0.5?
+        y = (V(F(fid, 0), 0) * bc(0) + V(F(fid, 1), 0) * bc(1) + V(F(fid, 2), 0) * bc(2)) - 0.5;
+        x = (V(F(fid, 0), 1) * bc(0) + V(F(fid, 1), 1) * bc(1) + V(F(fid, 2), 1) * bc(2)) - 0.5;
+
+        // search for the nearest cluster
+        static const double mousePickDistSquareThres = 2.0 * 2.0;  // pixels
+        static double dist_square, minDistSquare;
+        minDistSquare = mousePickDistSquareThres;  // reset
+        for (int i=0; i<clusterRecord.num; i++) {
+
+            if (!clusterRecord.alive(i)) continue;
+            dist_square = (clusterRecord.loc(i, 0)-x)*(clusterRecord.loc(i, 0)-x) + (clusterRecord.loc(i, 1)-y)*(clusterRecord.loc(i, 1)-y);
+            if (dist_square >= mousePickDistSquareThres) continue;
+            if (dist_square < minDistSquare) {
+                // find a new nearest cluster
+
+                minDistSquare = dist_square;
+                rejectHitIndex = i;
+            }
+        }
+
+        // update rejectHit
+        rejectHit = minDistSquare < mousePickDistSquareThres;
+        if (rejectHit) {
+            logger().debug("reject hit: {} {} {}", clusterRecord.loc(rejectHitIndex, 0), clusterRecord.loc(rejectHitIndex, 1), clusterRecord.loc(rejectHitIndex, 2));
+            logger().debug("minDist = {}", minDistSquare);
+        }
+    } else {
+
+        // update rejectHit
+        rejectHit = false;
+    }
 }
 
 }  // namespace zebrafish

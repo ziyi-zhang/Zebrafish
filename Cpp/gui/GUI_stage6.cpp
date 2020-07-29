@@ -49,9 +49,36 @@ void GUI::DrawStage6() {
         tempLoc << 0, 0, 1, 
                    imgCols, imgRows, 1, 
                    imgCols-1, imgRows-1, 1;
-        Eigen::MatrixXd pointColor_t(1, 3);
-        pointColor << 0.33, 0.83, 0.33;
-        viewer.data().add_points(tempLoc, pointColor_t);
+        Eigen::MatrixXd debugPointColor(1, 3);
+        debugPointColor << 0.33, 0.83, 0.33;
+        viewer.data().add_points(tempLoc, debugPointColor);
+        ////// DEBUG ONLY //////
+    }
+
+    // Visualize reference points
+    if (showReferencePoints) {
+
+        viewer.data().point_size = pointSize;
+        Eigen::MatrixXd pointColor(1, 3);
+        pointColor << 0.41, 0.41, 0.99;
+
+        if (refPointLoc.rows() > 0) {
+            // show optimized cluster points
+            viewer.data().add_points(
+                refPointLoc,
+                pointColor
+            );
+        }
+
+        ////// DEBUG ONLY //////
+        Eigen::MatrixXd tempLoc;
+        tempLoc.resize(3, 3);
+        tempLoc << 0, 0, 1, 
+                   imgCols, imgRows, 1, 
+                   imgCols-1, imgRows-1, 1;
+        Eigen::MatrixXd debugPointColor(1, 3);
+        debugPointColor << 0.33, 0.83, 0.33;
+        viewer.data().add_points(tempLoc, debugPointColor);
         ////// DEBUG ONLY //////
     }
 
@@ -59,14 +86,21 @@ void GUI::DrawStage6() {
 
     if (ImGui::CollapsingHeader("Iterative Closest Point", ImGuiTreeNodeFlags_DefaultOpen)) {
 
+        ImGui::PushItemWidth(zebrafishWidth / 3.0);
+        ImGui::Checkbox("Show background image", &showBackgroundImage);
+        ImGui::Checkbox("Show detected centers", &showMarkerPoints);
+        ImGui::Checkbox("Show pattern centers", &showReferencePoints);
+        ImGui::SliderInt("Point Size", &pointSize, 1, 30);
+        ImGui::PopItemWidth();
+
         if (ImGui::Button("Load pattern OFF")) {
             std::string filename = FileDialog::openFileName("./.*", {"*.off"});
             if (!filename.empty()) {
                 patternFilename = filename;
                 Eigen::MatrixXd tempF;
                 if (igl::readOFF(patternFilename, refV, tempF)) {
-                    // dummy
 
+                    PreprocessPatternLoc();
                 } else {
                     logger().error("Error open OFF file {}", patternFilename);
                     std::cerr << "Error open OFF file" << std::endl;
@@ -77,7 +111,11 @@ void GUI::DrawStage6() {
         ImGui::Text("%s", patternFilename.c_str());
 
         if (ImGui::Button("Run ICP")) {
+            
             SearchICP();
+            UpdateRefPointLoc();
+            // clear the background image
+            showBackgroundImage = false;
         }
     }
 
@@ -93,12 +131,10 @@ void GUI::DrawStage6() {
 void GUI::SearchICP() {
 
     double RMSerror;
-    RMat_t R;
-    TMat_t T;
     Eigen::MatrixXd markerLoc;
     markerLoc = markerRecord.loc.block(0, 0, markerRecord.num, 3);
 
-    RMSerror = ICP::RunICP(markerLoc.transpose(), refV.transpose(), R, T);
+    RMSerror = ICP::RunICP(markerLoc.transpose(), refV.transpose(), Rmat, Tmat);
     logger().info("RunICP error {}", RMSerror);
 }
 
@@ -129,6 +165,19 @@ void GUI::UpdateMarkerPointLoc() {
     markerPointLoc.col(2) = tempLoc.col(2);
 
     logger().info("   [Visualization] Marker clusters location updated: total number = {}", N);
+}
+
+
+void GUI::UpdateRefPointLoc() {
+
+    refPointLoc = (Rmat.transpose() * (refV.transpose().colwise() - Tmat)).transpose();
+    // refPointLoc = refV;
+    // markerPointLoc = ((Rmat * markerPointLoc.transpose()).colwise() + Tmat).transpose();
+
+    std::cout << Rmat << std::endl;
+    std::cout << Tmat << std::endl;
+
+    // std::cout << refPointLoc << std::endl;
 }
 
 }  // namespace zebrafish

@@ -5,6 +5,7 @@
 #include <zebrafish/Bspline.h>
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/autodiff.h>
+#include <zebrafish/ICP.h>
 
 #include <string>
 #include <sstream>
@@ -69,9 +70,11 @@ typedef struct hist_t {
 class GUI : public igl::opengl::glfw::imgui::ImGuiMenu {
 
 private:
+    // shared
     igl::opengl::glfw::Viewer viewer;
     int stage;  // stage in zebrafish_panel
     int histBars;  // number of bars in histogram
+    bool showBackgroundImage;
 
     //////////////////////////////////////////////////
     // core
@@ -145,7 +148,10 @@ private:
     // ICP
     bool showMarkerPoints, showReferencePoints;
     std::string patternFilename;
+    RMat_t Rmat;  // rotation matrix
+    TMat_t Tmat;  // translation matrix
     Eigen::MatrixXd markerPointLoc;  // visualization purpose
+    Eigen::MatrixXd refPointLoc;  // visualization purpose
     Eigen::MatrixXd refV;  // #refV * 3 reference point locations
 
     //////////////////////////////////////////////////
@@ -155,12 +161,18 @@ private:
     int imageViewerType;
 
     //////////////////////////////////////////////////
-    // crop image
+    // [mouse pick] crop image
     bool cropActive;  // user use mouse to crop a rectangular area
     bool downClicked;  // helper variable used by "cropActive"
     bool showCropArea;  // visualize the current [r0, c0] x [r1, c1] area
     Eigen::Vector3f baseLoc, currentLoc;
     int r0, c0, r1, c1;  // upper-left [r0, c0]
+
+    //////////////////////////////////////////////////
+    // [mouse pick] manually reject clusters
+    bool rejectActive;
+    bool rejectHit;
+    int rejectHitIndex;
 
     //////////////////////////////////////////////////
     // property editor
@@ -264,12 +276,14 @@ private:
     void UpdateClusterPointLoc();
     void UpdateClusterSizeHist();
     void FinalizeClusterLoc();
+    void SelectCluster(const Eigen::Vector2f &mouse);
 
     //////////////////////////////////////////////////
     // Stage 6 Iterative Closest Point
     void SearchICP();
     void PreprocessPatternLoc();
     void UpdateMarkerPointLoc();
+    void UpdateRefPointLoc();
 };
 
 }  // namespace zebrafish

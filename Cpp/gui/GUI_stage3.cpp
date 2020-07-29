@@ -83,9 +83,9 @@ void GUI::DrawStage3() {
         tempLoc << 0, 0, 1, 
                    imgCols, imgRows, 1, 
                    imgCols-1, imgRows-1, 1;
-        Eigen::MatrixXd pointColor_t(1, 3);
-        pointColor << 0.33, 0.83, 0.33;
-        viewer.data().add_points(tempLoc, pointColor_t);
+        Eigen::MatrixXd debugPointColor(1, 3);
+        debugPointColor << 0.33, 0.83, 0.33;
+        viewer.data().add_points(tempLoc, debugPointColor);
         ////// DEBUG ONLY //////
     }
 

@@ -204,6 +204,7 @@ bool GUI::MouseDownCallback(igl::opengl::glfw::Viewer &viewer, int button, int m
         // disable ligigl default mouse_down
         return true;
     }
+
     return false;
 }
 
@@ -219,6 +220,11 @@ bool GUI::MouseUpCallback(igl::opengl::glfw::Viewer &viewer, int button, int mod
         // disable ligigl default mouse_up
         return true;
     }
+
+    if (rejectActive) {
+
+    }
+
     return false;
 }
 
@@ -234,6 +240,14 @@ bool GUI::MouseMoveCallback(igl::opengl::glfw::Viewer &viewer, int mouse_x, int 
         // disable ligigl default mouse_move
         return true;
     }
+
+    if (rejectActive) {
+
+        Eigen::Vector2f mouse;
+        mouse << mouse_x, mouse_y;
+        SelectCluster(mouse);
+    }
+
     return false;
 }
 
@@ -262,7 +276,9 @@ void GUI::Draw3DImage() {
 
     viewer.data().clear();
 
+    // do not draw if there is no image or this is not needed
     if (img.empty()) return;
+    if (!showBackgroundImage) return;
 
     static Eigen::Vector3d ambient = Eigen::Vector3d(146./255., 172./255., 178./255.);
     static Eigen::Vector3d diffuse = Eigen::Vector3d(146./255., 172./255., 178./255.);
@@ -646,9 +662,11 @@ void GUI::DrawWindowGraphics() {
 
 GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord(), markerRecord() {
 
+    // shared
     stage = 1;
     slice = 0;
     histBars = 50;
+    showBackgroundImage = true;
 
     // image (imageData)
     layerPerImg = 40;  // a random guess to preview the image file
@@ -666,7 +684,7 @@ GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord(), markerRecord() {
     gapY_grid = 1.0;
     gapZ_grid = 1.0;
     rArrayMin_grid = 3.0;
-    rArrayMax_grid = 7.0;
+    rArrayMax_grid = 6.0;
     rArrayGap_grid = 1.0;
     showPromisingPoints = true;
     gridEnergyThres = -0.05;
@@ -681,8 +699,8 @@ GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord(), markerRecord() {
     optimPointLoc.resize(1, 3);
 
     // cylinder filter
-    cylinderEnergyThres = -0.1;
-    cylinderRadiusThres = 6.0;
+    cylinderEnergyThres = -0.15;
+    cylinderRadiusThres = 5.0;
     cylinderIterThres = optimMaxIt;
     showCylFilterPoints = true;
     cylPointLoc.resize(1, 3);
@@ -702,6 +720,7 @@ GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord(), markerRecord() {
     showMarkerPoints = true;
     showReferencePoints = true;
     markerPointLoc.resize(1, 3);
+    refPointLoc.resize(1, 3);
 
     // 3D image viewer
     V.resize(4, 3);
@@ -718,6 +737,10 @@ GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord(), markerRecord() {
     c0 = -1; 
     r1 = -1;
     c1 = -1;
+
+    // manually reject clusters
+    rejectActive = false;
+
 
     // property editor
     propertyListType = 0;
@@ -760,12 +783,12 @@ void GUI::init(std::string imagePath_) {
 
         // debug helper
         show_log = true;
-        layerBegin = 14;
-        layerEnd = 28;
-        r0 = 345;
-        c0 = 349;
-        r1 = 400;
-        c1 = 400;
+        layerBegin = 15;
+        layerEnd = 60;
+        r0 = 419;
+        c0 = 516;
+        r1 = 499;
+        c1 = 589;
     }
 
     // callback
