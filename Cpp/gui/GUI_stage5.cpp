@@ -738,7 +738,7 @@ void GUI::SelectCluster(const Eigen::Vector2f &mouse) {
     static bool hit;
 
     hit = igl::unproject_onto_mesh(
-        mouse, 
+        Eigen::Vector2f(mouse(0), viewer.core().viewport(3)-mouse(1)), 
         viewer.core().view, 
         viewer.core().proj,
         viewer.core().viewport, 
@@ -751,8 +751,8 @@ void GUI::SelectCluster(const Eigen::Vector2f &mouse) {
         // has hit
 
         // FIXME: why minus 0.5?
-        y = (V(F(fid, 0), 0) * bc(0) + V(F(fid, 1), 0) * bc(1) + V(F(fid, 2), 0) * bc(2)) - 0.5;
-        x = (V(F(fid, 0), 1) * bc(0) + V(F(fid, 1), 1) * bc(1) + V(F(fid, 2), 1) * bc(2)) - 0.5;
+        y =                 (V(F(fid, 0), 0) * bc(0) + V(F(fid, 1), 0) * bc(1) + V(F(fid, 2), 0) * bc(2)) - 0.5;
+        x = imgRows - 0.5 - (V(F(fid, 0), 1) * bc(0) + V(F(fid, 1), 1) * bc(1) + V(F(fid, 2), 1) * bc(2));
 
         // search for the nearest cluster
         static const double mousePickDistSquareThres = 2.0 * 2.0;  // pixels

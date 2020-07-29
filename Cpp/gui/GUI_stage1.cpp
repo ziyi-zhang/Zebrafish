@@ -29,8 +29,8 @@ void GUI::DrawStage1() {
         // lower-right corner (x1, y1)
         float x0 = baseLoc(0);
         float x1 = std::max(x0, currentLoc(0));
-        float y0 = imgRows - baseLoc(1);
-        float y1 = std::min(y0, imgRows - currentLoc(1));
+        float y0 = baseLoc(1);
+        float y1 = std::min(y0, currentLoc(1));
         DrawRect(x0, y0, x1, y1, lineColor);
     }
 
@@ -153,7 +153,7 @@ void GUI::CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype) {
     static bool hit;
 
     hit = igl::unproject_onto_mesh(
-        mouse, 
+        Eigen::Vector2f(mouse(0), viewer.core().viewport(3)-mouse(1)), 
         viewer.core().view, 
         viewer.core().proj,
         viewer.core().viewport, 
@@ -168,7 +168,7 @@ void GUI::CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype) {
         loc(0) = (V(F(fid, 0), 0) * bc(0) + V(F(fid, 1), 0) * bc(1) + V(F(fid, 2), 0) * bc(2));
         loc(1) = (V(F(fid, 0), 1) * bc(0) + V(F(fid, 1), 1) * bc(1) + V(F(fid, 2), 1) * bc(2));
         loc(2) = (V(F(fid, 0), 2) * bc(0) + V(F(fid, 1), 2) * bc(1) + V(F(fid, 2), 2) * bc(2));
-    
+
         if (mousetype == MOUSEDOWN) {
 
             logger().debug("Mouse down: fid = {} | bc = {:.2f} x {:.2f} x {:.2f} | loc = {:.2f} x {:.2f} x {:.2f}", fid, bc(0), bc(1), bc(2), loc(0), loc(1), loc(2));
@@ -183,8 +183,8 @@ void GUI::CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype) {
 
             c0 = std::round(baseLoc(0));
             c1 = std::round(currentLoc(0));
-            r0 = std::round(baseLoc(1));
-            r1 = std::round(currentLoc(1));
+            r0 = imgRows - std::round(baseLoc(1));
+            r1 = imgRows - std::round(currentLoc(1));
         } else if (mousetype == MOUSEMOVE) {
             currentLoc = loc;
         }
