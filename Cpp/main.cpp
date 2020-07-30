@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
     // read image
     image_t image;
     cout << "====================================================" << endl;
-    ReadTifFirstImg(image_path, layerPerImg, 2, image);
+    ReadTifFirstFrame(image_path, layerPerImg, 2, image);
     cout << "Total number of frames picked = " << image.size() << endl;
 
     // clip image

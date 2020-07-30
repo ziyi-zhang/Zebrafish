@@ -42,7 +42,7 @@ namespace {
 
 ////////////////////////////////////////////////////////////
 
-bool GetDescription(const std::string &path, int &layerPerImg, int &numChannel) {
+bool GetDescription(const std::string &path, int &layerPerImg, int &numChannel, int &ttlFrames) {
 
     TinyTIFFReaderFile *tiffr = NULL;
     tiffr = TinyTIFFReader_open(path.c_str());
@@ -51,7 +51,7 @@ bool GetDescription(const std::string &path, int &layerPerImg, int &numChannel) 
     if (tiffr) {
         // get a random description
         std::string str = TinyTIFFReader_getImageDescription(tiffr);
-        // search for "slices=" & "channels="
+        // search for "slices=" & "channels=" & "frames="
         std::smatch m;
         std::regex e1("(slices=)[0-9]+");
         std::regex_search(str, m, e1);
@@ -70,36 +70,51 @@ bool GetDescription(const std::string &path, int &layerPerImg, int &numChannel) 
         std::regex e2("(channels=)[0-9]+");
         std::regex_search(str, m, e2);
         if (m.size() == 0) {
-            // did not find "slices="
+            // did not find "channels="
             return false;  
         } else {
             std::string temp = m[0].str();
             int num = std::stoi(temp.substr(9));
-            if (num > 0 && num < 1000)
+            if (num > 0 && num < 10)
                 numChannel = num;
             else
                 return false;
         }
 
-        logger().info("Image description successfully phased: layerPerImg={} numChannel={}", layerPerImg, numChannel);
+        std::regex e3("(frames=)[0-9]+");
+        std::regex_search(str, m, e3);
+        if (m.size() == 0) {
+            // did not find "frames="
+            return false;  
+        } else {
+            std::string temp = m[0].str();
+            int num = std::stoi(temp.substr(7));
+            if (num > 0 && num < 1000)
+                ttlFrames = num;
+            else
+                return false;
+        }
+
+        logger().info("Image description successfully phased: layerPerImg={} numChannel={} frames={}", layerPerImg, numChannel, ttlFrames);
         return true;
     }
 
     return false;
 }
 
-bool ReadTifFirstImg(const std::string &path, const int layerPerImg, const int numChannel, image_t &img, int r0, int c0, int r1, int c1) {
-/// This function only read channel 1 from the first 3D image
+bool ReadTifFirstFrame(const std::string &path, const int layerPerImg, const int numChannel, image_t &img, int r0, int c0, int r1, int c1, int channelToLoad) {
+/// This function only read one channel from the first frame 3D image
 
     std::vector<bool> channelVec(numChannel, false);
-    channelVec[0] = true;
+    assert(channelToLoad < numChannel);
+    channelVec[channelToLoad] = true;
 
-    imageData_t imgData;
+    imageData_t imgData_;
     bool ok;
 
-    ok = ReadTif(path, layerPerImg, channelVec, 1, imgData, r0, c0, r1, c1);
+    ok = ReadTif(path, layerPerImg, channelVec, 1, imgData_, r0, c0, r1, c1);
     
-    if (ok) img = imgData[0];
+    if (ok) img = imgData_[0];
     return ok;
 }
 

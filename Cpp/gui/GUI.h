@@ -8,6 +8,7 @@
 #include <zebrafish/ICP.h>
 
 #include <string>
+#include <vector>
 #include <sstream>
 #include <igl/opengl/glfw/Viewer.h>
 #include <igl/opengl/glfw/imgui/ImGuiMenu.h>
@@ -64,14 +65,17 @@ typedef struct hist_t {
     //       In other words, the x-axis min and max
 } hist_t;
 
+
 ////////////////////////////////////////////////////////
 // GUI
+
 
 class GUI : public igl::opengl::glfw::imgui::ImGuiMenu {
 
 private:
     // shared
     igl::opengl::glfw::Viewer viewer;
+    imageData_t imgData;
     int stage;  // stage in zebrafish_panel
     int histBars;  // number of bars in histogram
     bool showBackgroundImage;
@@ -93,15 +97,14 @@ private:
     /// X Y Z R | energy | size(count)
 
     //////////////////////////////////////////////////
-    // image (imageData)
+    // image (image metadata)
     std::string imagePath;
-    imageData_t imgData;
-    image_t img;
+    int ttlFrames;
     int imgRows, imgCols;
     int layerPerImg, channelPerSlice;
-    int layerBegin, layerEnd;  // only slices in this interval in each 3D image will be computed
+    int channelToLoad;
+    int layerBegin, layerEnd;  // only slices in this interval in each 3D image will be computed and visualized
     double resolutionX, resolutionY, resolutionZ;
-    int slice;  // which slice in the 3D image to show
     float normalizeQuantile, normalizeQuantileRes;
     // Hist
     hist_t imgHist;
@@ -155,6 +158,10 @@ private:
     Eigen::MatrixXd refV;  // #refV * 3 reference point locations
 
     //////////////////////////////////////////////////
+    // Optical Flow
+    int desiredFrames;  // only load the first "desiredFrames" frames
+
+    //////////////////////////////////////////////////
     // 3D image viewer
     Eigen::MatrixXd V;
     Eigen::MatrixXi F;
@@ -182,7 +189,11 @@ private:
 
     //////////////////////////////////////////////////
     // visualization
-    Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> texture, compressedImgTexture;
+    texture_t texture;
+    textureArray_t compressedImgTextureArray;
+    int sliceToShow;  // which slice in the 3D image to show
+    int frameToShow;  // which frame to show
+    int currentLoadedFrames;
     int windowWidth;
     int windowHeight;
     int zebrafishWidth;
@@ -223,12 +234,13 @@ protected:
     void DrawStage4();
     void DrawStage5();
     void DrawStage6();
+    void DrawStage7();
 
 private:
-    const int stageMax = 6;  // 6 stages
+    const int stageMax = 7;  // 7 stages (1..7)
 
     void Draw3DImage();
-    void ComputeCompressedImg(const image_t &img_);
+    void ComputeCompressedImg(const image_t &img_, int index);
     void DrawMainMenuBar();
     void DrawZebrafishPanel();
     void DrawMenuFile();
@@ -240,16 +252,16 @@ private:
     void DrawWindowGraphics();
 
     //////////////////////////////////////////////////
-    // Stage 1
+    // Stage 1 Image Read
     void CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype);
     void DrawRect(double x0, double y0, double x1, double y1, const Eigen::MatrixXd &lineColor);
 
     //////////////////////////////////////////////////
-    // Stage 2
+    // Stage 2 Pre-process & B-spline
     void ComputeImgHist(const image_t &img_);
 
     //////////////////////////////////////////////////
-    // Stage 3
+    // Stage 3 Grid Search
     void GridSearch();
     void UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen::MatrixXd &gridSampleOutput);
         /// This function will clear "pointRecord" and intialize it 
@@ -258,7 +270,7 @@ private:
     void UpdateGridEnergyHist();
 
     //////////////////////////////////////////////////
-    // Stage 4
+    // Stage 4 Optimization
     void Optimization();
     void UpdateOptimPointLoc();
     void UpdateOptimEnergyHist();
@@ -287,6 +299,10 @@ private:
     void PreprocessPatternLoc();
     void UpdateMarkerPointLoc();
     void UpdateRefPointLoc();
+
+    //////////////////////////////////////////////////
+    // Stage 7 Optical Flow
+    void LoadSubsequentFrames();
 };
 
 }  // namespace zebrafish

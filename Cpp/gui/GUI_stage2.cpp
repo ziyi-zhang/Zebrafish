@@ -10,10 +10,10 @@ void NormalizeImage(image_t &image, double thres) {
 
     // normalize & trim all layers
     for (auto it=image.begin(); it!=image.end(); it++) {
-        Eigen::MatrixXd &img = *it;
-        for (int r=0; r<img.rows(); r++)
-            for (int c=0; c<img.cols(); c++) {
-                img(r, c) = (img(r, c)>=thres) ? 1.0f : img(r, c)/thres;
+        Eigen::MatrixXd &slice = *it;
+        for (int r=0; r<slice.rows(); r++)
+            for (int c=0; c<slice.cols(); c++) {
+                slice(r, c) = (slice(r, c)>=thres) ? 1.0f : slice(r, c)/thres;
             }
     }
 }
@@ -60,17 +60,17 @@ void GUI::DrawStage2() {
         ImGui::Text("Quantile Thres");
         if (ImGui::SliderFloat("", &normalizeQuantile, 0.95, 0.999, "%.3f") || stage1to2Flag) {
 
-            if (stage1to2Flag) ComputeImgHist(img);
+            if (stage1to2Flag) ComputeImgHist(imgData[0]);
             stage1to2Flag = false;
 
             if (normalizeQuantile>0.999) normalizeQuantile = 0.999;
             if (normalizeQuantile<0.95) normalizeQuantile = 0.95;
-            normalizeQuantileRes = QuantileImage(img, normalizeQuantile);
-            image_t img_ = img;
-            NormalizeImage(img_, normalizeQuantileRes);  // Do not modify "img" now
+            normalizeQuantileRes = QuantileImage(imgData[0], normalizeQuantile);
+            image_t img_ = imgData[0];
+            NormalizeImage(img_, normalizeQuantileRes);  // Do not modify "imgData[0]" now
             logger().info("Trial: normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, normalizeQuantileRes);
 
-            ComputeCompressedImg(img_);
+            ComputeCompressedImg(img_, 0);
         }
         ImGui::PopItemWidth();
     }
@@ -79,7 +79,7 @@ void GUI::DrawStage2() {
 
     if (ImGui::CollapsingHeader("B-spline Config", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        if (ImGui::TreeNode("Advanced")) {
+        if (ImGui::TreeNode("Advanced B-spline")) {
             ImGui::Text("Not implemented yet...");
             
             ImGui::TreePop();
@@ -88,17 +88,18 @@ void GUI::DrawStage2() {
 
         if (ImGui::Button("Compute B-spline")) {
 
+            // IMPORTANT: The effect of quantile does not affect the raw data until now
             // put into effect
-            normalizeQuantileRes = QuantileImage(img, normalizeQuantile);
-            NormalizeImage(img, normalizeQuantileRes);
-            ComputeCompressedImg(img);
+            normalizeQuantileRes = QuantileImage(imgData[0], normalizeQuantile);
+            NormalizeImage(imgData[0], normalizeQuantileRes);
+            ComputeCompressedImg(imgData[0], 0);
             logger().info("[Finalized] Image normalized with normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, normalizeQuantileRes);
 
             // Compute B-spline
             logger().info("Computing Bspine for the first frame");
             const int bsplineDegree = 2;
             bsplineSolver.SetResolution(resolutionX, resolutionY, resolutionZ);
-            bsplineSolver.CalcControlPts(img, 0.7, 0.7, 0.7, bsplineDegree);
+            bsplineSolver.CalcControlPts(imgData[0], 0.7, 0.7, 0.7, bsplineDegree);
         }
     }
 

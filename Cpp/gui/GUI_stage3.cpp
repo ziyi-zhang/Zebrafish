@@ -199,7 +199,7 @@ void GUI::GridSearch() {
                     yy = iy * gapY_grid;
                     zz = iz * gapZ_grid;
                     rr = rArray(ir);
-                    if (!ValidGridSearchPoint(img, bsplineSolver, xx, yy, zz, rr)) continue;
+                    if (!ValidGridSearchPoint(imgData[0], bsplineSolver, xx, yy, zz, rr)) continue;
 
                     gridSampleInput(sampleCount, 0) = xx;
                     gridSampleInput(sampleCount, 1) = yy;

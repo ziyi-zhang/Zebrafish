@@ -56,6 +56,13 @@ void GUI::DrawStage1() {
         ImGui::PushItemWidth(zebrafishWidth / 3.0);
         ImGui::InputInt("Layers Per Image", &layerPerImg);
         ImGui::InputInt("Channels Per Slice", &channelPerSlice);
+        ImGui::InputInt("Frames", &ttlFrames);
+        if (ImGui::TreeNode("Advanced channel config")) {
+
+            ImGui::SliderInt("Which channel to load?", &channelToLoad, 0, channelPerSlice-1, "channel %d");
+            ImGui::TreePop();
+            ImGui::Separator();
+        }
         ImGui::PopItemWidth();
     }
 
@@ -119,14 +126,15 @@ void GUI::DrawStage1() {
             logger().error("Error: ImagePath is empty");
             return;  // invalid operation
                      // only entry is through "File" - "Open"
-            // imagePath = FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});
         }
         logger().info("Re-load image {}", imagePath);
-        if (ReadTifFirstImg(imagePath, layerPerImg, channelPerSlice, img, r0, c0, r1, c1)) {
-            imgRows = img[0].rows();
-            imgCols = img[0].cols();
+        if (ReadTifFirstFrame(imagePath, layerPerImg, channelPerSlice, imgData[0], r0, c0, r1, c1, channelToLoad)) {
+            imgRows = imgData[0][0].rows();
+            imgCols = imgData[0][0].cols();
+            currentLoadedFrames = 1;
+            desiredFrames = ttlFrames;
 
-            ComputeCompressedImg(img);  // re-compute compressed image texture
+            ComputeCompressedImg(imgData[0], 0);  // re-compute compressed image texture
             showCropArea = false;  // turn this into false
 
             logger().info("Image reloaded");

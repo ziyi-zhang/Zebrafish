@@ -28,7 +28,7 @@ void GUI::DrawStage6() {
     }
 
     // Visualize marker cluster points
-    static int pointSize = 7;
+    static int pointSize = 10;
     if (showMarkerPoints) {
 
         viewer.data().point_size = pointSize;

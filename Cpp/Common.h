@@ -26,7 +26,9 @@ enum REJECT_MODE {
 // types //
 ///////////
 typedef std::vector<Eigen::MatrixXd> image_t;  // a 3D double matrix
-typedef std::vector<image_t> imageData_t;  // a sequence of 3D image
+typedef std::vector<image_t> imageData_t;  // an array of 3D image (different frames)
+typedef Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> texture_t;
+typedef std::vector<texture_t> textureArray_t;
 typedef Eigen::Vector3d gradient_t;  // gradient
 typedef DScalar1<double, gradient_t> DScalar;
 

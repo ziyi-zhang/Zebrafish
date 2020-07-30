@@ -118,6 +118,7 @@ if(ZEBRA_TOPLEVEL_PROJECT)
     Cpp/gui/GUI_stage4.cpp
     Cpp/gui/GUI_stage5.cpp
     Cpp/gui/GUI_stage6.cpp
+    Cpp/gui/GUI_stage7.cpp
     Cpp/gui/FileDialog.cpp
   )
   zebra_copy_headers(Cpp/gui/GUI.h Cpp/gui/FileDialog.h)

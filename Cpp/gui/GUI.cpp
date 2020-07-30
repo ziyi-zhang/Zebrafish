@@ -22,9 +22,9 @@ struct PropertyEditorItem {
         bool nodeOpen = ImGui::TreeNode("Object", "%s %u", prefix, uid);
         ImGui::NextColumn();
         ImGui::AlignTextToFramePadding();
-        static bool enabled = true;  // dummy
+
         if (pointRecord.optimization(0, 0) == 0)
-            ImGui::Checkbox("to be optimized", &enabled);
+            ;
         else if (pointRecord.alive(uid))
             ImGui::Text("valid");
         else 
@@ -291,12 +291,12 @@ void GUI::Draw3DImage() {
     viewer.data().clear();
 
     // do not draw if there is no image or this is not needed
-    if (img.empty()) return;
+    if (currentLoadedFrames == 0) return;
     if (!showBackgroundImage) return;
 
-    static Eigen::Vector3d ambient = Eigen::Vector3d(146./255., 172./255., 178./255.);
-    static Eigen::Vector3d diffuse = Eigen::Vector3d(146./255., 172./255., 178./255.);
-    static Eigen::Vector3d specular = Eigen::Vector3d(0., 0., 0.);
+    static const Eigen::Vector3d ambient = Eigen::Vector3d(146./255., 172./255., 178./255.);
+    static const Eigen::Vector3d diffuse = Eigen::Vector3d(146./255., 172./255., 178./255.);
+    static const Eigen::Vector3d specular = Eigen::Vector3d(0., 0., 0.);
     static Eigen::MatrixXd UV(4, 2);
     static int layerBegin_cache = -1, layerEnd_cache = -1;
     UV << 0, 1, 1, 1, 1, 0, 0, 0;
@@ -308,15 +308,16 @@ void GUI::Draw3DImage() {
 
         if (layerBegin_cache != layerBegin || layerEnd_cache != layerEnd) {
             // if depth crop has updated
-            ComputeCompressedImg(img);
+            ComputeCompressedImg(imgData[0], 0);  // only frame 0 could reach here
             layerBegin_cache = layerBegin;
             layerEnd_cache = layerEnd;
         }
-        texture = compressedImgTexture;
+        texture = compressedImgTextureArray[frameToShow];
     } else {
         // per slice view
 
-        texture = (img[slice].array() * 255).cast<unsigned char>();
+        image_t &imgChosen = imgData[frameToShow];
+        texture = (imgChosen[sliceToShow].array() * 255).cast<unsigned char>();
         texture.transposeInPlace();
     }
 
@@ -331,7 +332,8 @@ void GUI::Draw3DImage() {
 }
 
 
-void GUI::ComputeCompressedImg(const image_t &img_) {
+void GUI::ComputeCompressedImg(const image_t &img_, int index) {
+/// Compress "img_" and store the result to "compressedImgTextureArray [index] "
 
     const int num = img_.size();
     assert(num > 0);
@@ -347,10 +349,10 @@ void GUI::ComputeCompressedImg(const image_t &img_) {
         compressed += img_[i];
     }
 
-    compressedImgTexture = (compressed.array() * (255.0 / double(layerEnd-layerBegin+1))).cast<unsigned char>();
-    compressedImgTexture.transposeInPlace();
+    compressedImgTextureArray[index] = (compressed.array() * (255.0 / double(layerEnd-layerBegin+1))).cast<unsigned char>();
+    compressedImgTextureArray[index].transposeInPlace();
 
-    logger().info("Compressed image texture re-computed: slice index {} to {}", layerBegin, layerEnd);
+    logger().info("Compressed image texture (index = {}) re-computed: slice index {} to {}", index, layerBegin, layerEnd);
 }
 
 
@@ -403,6 +405,9 @@ void GUI::DrawZebrafishPanel() {
         case 6:
             DrawStage6();
             break;
+        case 7:
+            DrawStage7();
+            break;
         default:
             assert(false);
     }
@@ -445,14 +450,16 @@ void GUI::DrawMenuFile() {
         std::string filename = FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});
         if (!filename.empty()) {
             imagePath = filename;
-            GetDescription(imagePath, layerPerImg, channelPerSlice);
-            if (ReadTifFirstImg(filename, layerPerImg, channelPerSlice, img)) {
-                imgRows = img[0].rows();
-                imgCols = img[0].cols();
+            GetDescription(imagePath, layerPerImg, channelPerSlice, ttlFrames);
+            if (ReadTifFirstFrame(filename, layerPerImg, channelPerSlice, imgData[0])) {
+                imgRows = imgData[0][0].rows();
+                imgCols = imgData[0][0].cols();
+                currentLoadedFrames = 1;
                 // In case the tiff image is very small
-                layerPerImg = img.size();
+                layerPerImg = imgData[0].size();
                 layerEnd = layerPerImg - 1;
             } else {
+                logger().error("Error open tiff image");
                 std::cerr << "Error open tiff image" << std::endl;
             }
         } 
@@ -517,8 +524,8 @@ void GUI::DrawWindow3DImageViewer() {
         return;
     }
 
-    // Plot "img"
-    if (!img.empty()) {
+    // Plot "imgData"
+    if (currentLoadedFrames > 0) {
 
         ImGui::PushItemWidth(RHSPanelWidth/2.0);
         std::vector<std::string> typeName{"Compressed", "Per Slice"};
@@ -529,18 +536,20 @@ void GUI::DrawWindow3DImageViewer() {
 
         if (imageViewerType == 0) {
             // compressed viewer
-
+            ImGui::SliderInt("Frame", &frameToShow, 0, currentLoadedFrames-1);
         } else {
             // per slice view
-            ImGui::SliderInt("Slice", &slice, layerBegin, layerEnd);
+            ImGui::SliderInt("Frame", &frameToShow, 0, currentLoadedFrames-1);
+            ImGui::SliderInt("Slice", &sliceToShow, layerBegin, layerEnd);
         }
 
         ImGui::Separator(); ////////////////////////
 
-        ImGui::Text("%s", imagePath.c_str());
-        ImGui::Text("Using slices (top-down) %d to %d", layerBegin, layerEnd);
-        ImGui::Text("layer per image = %d", layerPerImg);
-        ImGui::Text("channel per slice = %d", channelPerSlice);
+        ImGui::Text("Image path = %s", imagePath.c_str());
+        ImGui::Text("Current loaded frames = %d", currentLoadedFrames);
+        ImGui::Text("Using slices (top-down index) %d to %d", layerBegin, layerEnd);
+        ImGui::Text("layers per image = %d", layerPerImg);
+        ImGui::Text("channels per slice = %d", channelPerSlice);
 
     } else {
 
@@ -679,14 +688,15 @@ void GUI::DrawWindowGraphics() {
 GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord(), markerRecord() {
 
     // shared
+    imgData.resize(1);
     stage = 1;
-    slice = 0;
     histBars = 50;
     showBackgroundImage = true;
 
     // image (imageData)
     layerPerImg = 40;  // a random guess to preview the image file
     channelPerSlice = 2;  // a random guess to preview the image file
+    channelToLoad = 0;
     layerBegin = 0;
     layerEnd = layerPerImg - 1;
     resolutionX = 0;
@@ -738,6 +748,9 @@ GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord(), markerRecord() {
     markerPointLoc.resize(1, 3);
     refPointLoc.resize(1, 3);
 
+    // Optical Flow
+    desiredFrames = 0;
+
     // 3D image viewer
     V.resize(4, 3);
     F.resize(2, 3);
@@ -766,6 +779,10 @@ GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord(), markerRecord() {
 
     //////////////////////////////////////////////////
     // visualization
+    compressedImgTextureArray.resize(1);
+    sliceToShow = 0;
+    frameToShow = 0;
+    currentLoadedFrames = 0;
     windowWidth = 1600;
     windowHeight = 900;
     zebrafishWidth = 300;
@@ -792,16 +809,19 @@ void GUI::init(std::string imagePath_) {
     if (!imagePath_.empty()) {
         // only true in debug mode
         imagePath = imagePath_;
-        GetDescription(imagePath_, layerPerImg, channelPerSlice);
-        ReadTifFirstImg(imagePath_, layerPerImg, channelPerSlice, img);
-        imgRows = img[0].rows();
-        imgCols = img[0].cols();
+        GetDescription(imagePath_, layerPerImg, channelPerSlice, ttlFrames);
+        ReadTifFirstFrame(imagePath_, layerPerImg, channelPerSlice, imgData[0]);
+        imgRows = imgData[0][0].rows();
+        imgCols = imgData[0][0].cols();
+        currentLoadedFrames = 1;
         // In case the tiff image is very small
-        layerPerImg = img.size();
+        layerPerImg = imgData[0].size();
         layerEnd = layerPerImg - 1;
 
         // debug helper
         show_log = true;
+        show_3DImage_viewer = true;
+        show_property_editor = true;
         layerBegin = 15;
         layerEnd = 60;
         r0 = 419;
