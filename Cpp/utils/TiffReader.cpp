@@ -134,6 +134,9 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
         logger().info(path);
         logger().info(TinyTIFFReader_getImageDescription(tiffr));
 
+        imgData.resize(targetNumImg);
+        int currentImgCount = 0;
+
         const uint32_t ttlSlices = TinyTIFFReader_countFrames(tiffr);
         const uint32_t channelNum = channelVec.size();
         const uint32_t slicePerImg = channelNum * layerPerImg;
@@ -194,7 +197,7 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
             // This needs to be executed even if this is not a desired channel
             // if "img" is a full 3D image, push to "imgData"
             if (countSlice % slicePerImg == 0) {
-                imgData.push_back(img);
+                imgData[currentImgCount++] = img;
                 img.clear();
             }
 
@@ -215,7 +218,7 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
             if (img.empty()) 
                 ok = false;
             else {
-                imgData.push_back(img);
+                imgData[currentImgCount++] = img;
                 img.clear();
             }
         }

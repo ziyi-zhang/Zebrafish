@@ -299,6 +299,7 @@ void GUI::Draw3DImage() {
     static const Eigen::Vector3d specular = Eigen::Vector3d(0., 0., 0.);
     static Eigen::MatrixXd UV(4, 2);
     static int layerBegin_cache = -1, layerEnd_cache = -1;
+    static int imgCols_cache = -1, imgRows_cache = -1;
     UV << 0, 1, 1, 1, 1, 0, 0, 0;
     V << 0, 0, 0, imgCols, 0, 0, imgCols, imgRows, 0, 0, imgRows, 0;
     F << 0, 1, 2, 2, 3, 0;
@@ -602,7 +603,7 @@ void GUI::DrawWindowPropertyEditor() {
             if (ttlItem >= maxNumItemDisplayed) {
                 ImGui::Text("Only the first %d items will be displayed", maxNumItemDisplayed);
             }
-            ImGui::PopID();
+            ImGui::PopStyleVar();
         }
         break;
 
@@ -628,7 +629,7 @@ void GUI::DrawWindowPropertyEditor() {
             if (ttlItem >= maxNumItemDisplayed) {
                 ImGui::Text("Only the first %d items will be displayed", maxNumItemDisplayed);
             }
-            ImGui::PopID();
+            ImGui::PopStyleVar();
         }
         break;
 
@@ -652,7 +653,7 @@ void GUI::DrawWindowPropertyEditor() {
             if (ttlItem >= maxNumItemDisplayed) {
                 ImGui::Text("Only the first %d items will be displayed", maxNumItemDisplayed);
             }
-            ImGui::PopID();
+            ImGui::PopStyleVar();
         }
         break;
 
