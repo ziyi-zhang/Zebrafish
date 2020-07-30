@@ -240,7 +240,6 @@ private:
     const int stageMax = 7;  // 7 stages (1..7)
 
     void Draw3DImage();
-    void ComputeCompressedImg(const image_t &img_, int index);
     void DrawMainMenuBar();
     void DrawZebrafishPanel();
     void DrawMenuFile();
@@ -250,6 +249,10 @@ private:
     void DrawWindow3DImageViewer();
     void DrawWindowPropertyEditor();
     void DrawWindowGraphics();
+
+    // shared
+    void ComputeCompressedTexture(const image_t &img_, int index);
+    void NormalizeImage(image_t &image, double thres);
 
     //////////////////////////////////////////////////
     // Stage 1 Image Read

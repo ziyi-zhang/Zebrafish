@@ -6,18 +6,6 @@
 
 namespace zebrafish {
 
-void NormalizeImage(image_t &image, double thres) {
-
-    // normalize & trim all layers
-    for (auto it=image.begin(); it!=image.end(); it++) {
-        Eigen::MatrixXd &slice = *it;
-        for (int r=0; r<slice.rows(); r++)
-            for (int c=0; c<slice.cols(); c++) {
-                slice(r, c) = (slice(r, c)>=thres) ? 1.0f : slice(r, c)/thres;
-            }
-    }
-}
-
 namespace {
 
 }  // anonymous namespace
@@ -70,7 +58,7 @@ void GUI::DrawStage2() {
             NormalizeImage(img_, normalizeQuantileRes);  // Do not modify "imgData[0]" now
             logger().info("Trial: normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, normalizeQuantileRes);
 
-            ComputeCompressedImg(img_, 0);
+            ComputeCompressedTexture(img_, 0);
         }
         ImGui::PopItemWidth();
     }
@@ -92,7 +80,7 @@ void GUI::DrawStage2() {
             // put into effect
             normalizeQuantileRes = QuantileImage(imgData[0], normalizeQuantile);
             NormalizeImage(imgData[0], normalizeQuantileRes);
-            ComputeCompressedImg(imgData[0], 0);
+            ComputeCompressedTexture(imgData[0], 0);
             logger().info("[Finalized] Image normalized with normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, normalizeQuantileRes);
 
             // Compute B-spline

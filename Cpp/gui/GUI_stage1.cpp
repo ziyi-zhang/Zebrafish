@@ -134,7 +134,7 @@ void GUI::DrawStage1() {
             currentLoadedFrames = 1;
             desiredFrames = ttlFrames;
 
-            ComputeCompressedImg(imgData[0], 0);  // re-compute compressed image texture
+            ComputeCompressedTexture(imgData[0], 0);  // re-compute compressed image texture
             showCropArea = false;  // turn this into false
 
             logger().info("Image reloaded");

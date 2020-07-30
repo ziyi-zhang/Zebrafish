@@ -4,6 +4,7 @@
 #include <zebrafish/GUI.h>
 #include <zebrafish/Logger.hpp>
 #include <zebrafish/TiffReader.h>
+#include <zebrafish/Quantile.h>
 
 #include <string>
 
@@ -79,6 +80,22 @@ void GUI::LoadSubsequentFrames() {
 
     ReadTif(imagePath, layerPerImg, channelVec, desiredFrames, imgData, r0, c0, r1, c1);
     currentLoadedFrames = desiredFrames;
+
+    // quantile trim
+    for (int i=0; i<currentLoadedFrames; i++) {
+        double normalizeQuantileRes = QuantileImage(imgData[i], normalizeQuantile);
+        NormalizeImage(imgData[i], normalizeQuantileRes);
+        ComputeCompressedTexture(imgData[i], i);
+        logger().info("[Quantile Trim] 3D Image (index = {}) normalized with normalizeQuantile =  {:.4f}  thres =  {:.4f}", i, normalizeQuantile, normalizeQuantileRes);
+    }
+
+    /*
+    // Compute B-spline
+    logger().info("Computing Bspine for the first frame");
+    const int bsplineDegree = 2;
+    bsplineSolver.SetResolution(resolutionX, resolutionY, resolutionZ);
+    bsplineSolver.CalcControlPts(imgData[0], 0.7, 0.7, 0.7, bsplineDegree);
+    */
 }
 
 }  // namespace zebrafish

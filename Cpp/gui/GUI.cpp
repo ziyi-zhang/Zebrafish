@@ -309,7 +309,7 @@ void GUI::Draw3DImage() {
 
         if (layerBegin_cache != layerBegin || layerEnd_cache != layerEnd) {
             // if depth crop has updated
-            ComputeCompressedImg(imgData[0], 0);  // only frame 0 could reach here
+            ComputeCompressedTexture(imgData[0], 0);  // only frame 0 could reach here
             layerBegin_cache = layerBegin;
             layerEnd_cache = layerEnd;
         }
@@ -330,30 +330,6 @@ void GUI::Draw3DImage() {
     viewer.data().show_lines = false;
     viewer.data().show_texture = true;
     viewer.data().set_texture(texture, texture, texture);
-}
-
-
-void GUI::ComputeCompressedImg(const image_t &img_, int index) {
-/// Compress "img_" and store the result to "compressedImgTextureArray [index] "
-
-    const int num = img_.size();
-    assert(num > 0);
-    assert(layerBegin >= 0 && layerBegin < num);
-    assert(layerEnd >=0 && layerEnd < num);
-    assert(layerBegin <= layerEnd);
-    const int imgRows_ = img_[0].rows();
-    const int imgCols_ = img_[0].cols();
-
-    Eigen::MatrixXd compressed;
-    compressed = Eigen::MatrixXd::Zero(imgRows_, imgCols_);
-    for (int i=layerBegin; i<=layerEnd; i++) {
-        compressed += img_[i];
-    }
-
-    compressedImgTextureArray[index] = (compressed.array() * (255.0 / double(layerEnd-layerBegin+1))).cast<unsigned char>();
-    compressedImgTextureArray[index].transposeInPlace();
-
-    logger().info("Compressed image texture (index = {}) re-computed: slice index {} to {}", index, layerBegin, layerEnd);
 }
 
 
@@ -679,6 +655,48 @@ void GUI::DrawWindowGraphics() {
     }
     igl::opengl::glfw::imgui::ImGuiMenu::draw_viewer_menu();
     ImGui::End();
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// shared
+
+
+void GUI::ComputeCompressedTexture(const image_t &img_, int index) {
+/// Compress "img_" and store the result to "compressedImgTextureArray [index] "
+
+    const int num = img_.size();
+    assert(num > 0);
+    assert(layerBegin >= 0 && layerBegin < num);
+    assert(layerEnd >=0 && layerEnd < num);
+    assert(layerBegin <= layerEnd);
+    const int imgRows_ = img_[0].rows();
+    const int imgCols_ = img_[0].cols();
+
+    Eigen::MatrixXd compressed;
+    compressed = Eigen::MatrixXd::Zero(imgRows_, imgCols_);
+    for (int i=layerBegin; i<=layerEnd; i++) {
+        compressed += img_[i];
+    }
+
+    compressedImgTextureArray[index] = (compressed.array() * (255.0 / double(layerEnd-layerBegin+1))).cast<unsigned char>();
+    compressedImgTextureArray[index].transposeInPlace();
+
+    logger().info("Compressed image texture (index = {}) re-computed: slice index {} to {}", index, layerBegin, layerEnd);
+}
+
+
+void GUI::NormalizeImage(image_t &image, double thres) {
+/// This function modifies "image"
+
+    // normalize & trim all layers
+    for (auto it=image.begin(); it!=image.end(); it++) {
+        Eigen::MatrixXd &slice = *it;
+        for (int r=0; r<slice.rows(); r++)
+            for (int c=0; c<slice.cols(); c++) {
+                slice(r, c) = (slice(r, c)>=thres) ? 1.0f : slice(r, c)/thres;
+            }
+    }
 }
 
 
