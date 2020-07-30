@@ -139,10 +139,13 @@ void GUI::DrawStage5() {
 
         Eigen::MatrixXd rejectLoc;
         static const double deltaZ = 0.3;
-        rejectLoc.resize(1, 3);
-        rejectLoc(0) = clusterRecord.loc(rejectHitIndex, 1) + 0.5;
-        rejectLoc(1) = (imgRows-0.5) - clusterRecord.loc(rejectHitIndex, 0);
-        rejectLoc(2) = clusterRecord.loc(rejectHitIndex, 2) + deltaZ;
+        int rejectHitNum = rejectHitIndex.rows();
+        rejectLoc.resize(rejectHitNum, 3);
+        for (int i=0; i<rejectHitNum; i++) {
+            rejectLoc(i, 0) = clusterRecord.loc(rejectHitIndex(i), 1) + 0.5;
+            rejectLoc(i, 1) = (imgRows-0.5) - clusterRecord.loc(rejectHitIndex(i), 0);
+            rejectLoc(i, 2) = clusterRecord.loc(rejectHitIndex(i), 2) + deltaZ;
+        }
 
         Eigen::MatrixXd pointColor(1, 3);
         pointColor << 0.0, 1.0, 1.0;
@@ -261,6 +264,7 @@ void GUI::DrawStage5() {
         if (ImGui::Button("Cluster")) {
             
             Cluster();
+            UpdateClusterPointLoc();
             UpdateClusterSizeHist();
 
             // update visualized points
@@ -296,14 +300,30 @@ void GUI::DrawStage5() {
         ImGui::PopItemWidth();
         ImGui::SliderInt("Minimal cluster size", &clusterSizeThres, clusterSizeHist.minValue, clusterSizeHist.maxValue);
         
-        ImGui::Separator(); /////////////////////////////////////////
+        ImGui::Separator();
     }
-
-    ImGui::Checkbox("Manually reject", &rejectActive);
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    if (ImGui::TreeNode("Advanced")) {
+    if (ImGui::CollapsingHeader("Mouse Reject", ImGuiTreeNodeFlags_DefaultOpen)) {
+    
+        std::vector<std::string> typeName{"Single cluster", "Area clusters"};
+        ImGui::Combo("Reject mode", &rejectMode, typeName);
+        ImGui::Checkbox("Mouse reject", &rejectActive);
+
+        if (ImGui::TreeNode("Advanced mouse pick")) {
+
+            ImGui::InputDouble("Mouse pick radius square", &mousePickDistSquareThres);
+            ImGui::TreePop();
+            ImGui::Separator();
+        }
+
+        ImGui::Separator();
+    }
+
+    ImGui::Separator(); /////////////////////////////////////////
+
+    if (ImGui::TreeNode("Advanced finalize")) {
     
         ImGui::InputFloat("Finalize cluster dist thres", &finalizeClusterDistThres);
         if (ImGui::Button("Finalize cluster locations")) {
@@ -730,7 +750,8 @@ void GUI::FinalizeClusterLoc() {
 ////////////////////////////////////////////////////////////////////////////////////////
 // mouse reject
 
-void GUI::SelectCluster(const Eigen::Vector2f &mouse) {
+void GUI::MouseSelectCluster(const Eigen::Vector2f &mouse) {
+/// called by "MouseMoveCallback"
 
     static int fid;
     static Eigen::Vector3f bc;
@@ -754,34 +775,71 @@ void GUI::SelectCluster(const Eigen::Vector2f &mouse) {
         y =                 (V(F(fid, 0), 0) * bc(0) + V(F(fid, 1), 0) * bc(1) + V(F(fid, 2), 0) * bc(2)) - 0.5;
         x = imgRows - 0.5 - (V(F(fid, 0), 1) * bc(0) + V(F(fid, 1), 1) * bc(1) + V(F(fid, 2), 1) * bc(2));
 
-        // search for the nearest cluster
-        static const double mousePickDistSquareThres = 2.0 * 2.0;  // pixels
-        static double dist_square, minDistSquare;
-        minDistSquare = mousePickDistSquareThres;  // reset
-        for (int i=0; i<clusterRecord.num; i++) {
+        if (rejectMode == REJECT_SINGLE) {
+            // search for the nearest cluster
+            double dist_square, minDistSquare;
+            minDistSquare = mousePickDistSquareThres;  // reset
+            for (int i=0; i<clusterRecord.num; i++) {
 
-            if (!clusterRecord.alive(i)) continue;
-            dist_square = (clusterRecord.loc(i, 0)-x)*(clusterRecord.loc(i, 0)-x) + (clusterRecord.loc(i, 1)-y)*(clusterRecord.loc(i, 1)-y);
-            if (dist_square >= mousePickDistSquareThres) continue;
-            if (dist_square < minDistSquare) {
-                // find a new nearest cluster
+                if (!clusterRecord.alive(i)) continue;
+                dist_square = (clusterRecord.loc(i, 0)-x)*(clusterRecord.loc(i, 0)-x) + (clusterRecord.loc(i, 1)-y)*(clusterRecord.loc(i, 1)-y);
+                if (dist_square >= mousePickDistSquareThres) continue;
+                if (dist_square < minDistSquare) {
+                    // find a new nearest cluster
 
-                minDistSquare = dist_square;
-                rejectHitIndex = i;
+                    minDistSquare = dist_square;
+                    rejectHitIndex.resize(1, 1);
+                    rejectHitIndex(0) = i;
+                }
             }
-        }
+            // update rejectHit
+            rejectHit = minDistSquare < mousePickDistSquareThres;
+        } else if (rejectMode == REJECT_AREA) {
+            // search for all near clusters
+            Eigen::VectorXi tempIndex(clusterRecord.num, 1);
+            double dist_square;
+            int hitCount = 0;
+            for (int i=0; i<clusterRecord.num; i++) {
 
-        // update rejectHit
-        rejectHit = minDistSquare < mousePickDistSquareThres;
-        if (rejectHit) {
-            logger().debug("reject hit: {} {} {}", clusterRecord.loc(rejectHitIndex, 0), clusterRecord.loc(rejectHitIndex, 1), clusterRecord.loc(rejectHitIndex, 2));
-            logger().debug("minDist = {}", minDistSquare);
+                if (!clusterRecord.alive(i)) continue;
+                dist_square = (clusterRecord.loc(i, 0)-x)*(clusterRecord.loc(i, 0)-x) + (clusterRecord.loc(i, 1)-y)*(clusterRecord.loc(i, 1)-y);
+                if (dist_square >= mousePickDistSquareThres) continue;
+                // find a cluster that is close enough
+
+                tempIndex(hitCount) = i;
+                hitCount++;
+            }
+            rejectHitIndex = tempIndex.block(0, 0, hitCount, 1);
+            // update rejectHit
+            rejectHit = hitCount > 0;
         }
+        
+            // DEBUG PURPOSE
+            // if (rejectHit) {
+            //     logger().debug("reject hit: {} {} {}", clusterRecord.loc(rejectHitIndex(0), 0), clusterRecord.loc(rejectHitIndex(0), 1), clusterRecord.loc(rejectHitIndex(0), 2));
+            //     logger().debug("minDist = {}", minDistSquare);
+            // }
     } else {
 
         // update rejectHit
         rejectHit = false;
     }
+}
+
+
+void GUI::MouseRejectCluster() {
+/// called by "MouseDownCallback"
+
+    if (!rejectHit) return;
+
+    const int hitCount = rejectHitIndex.rows();
+    for (int i=0; i<hitCount; i++) {
+        clusterRecord.alive(rejectHitIndex(i)) = false;
+    }
+
+    rejectHit = false;
+    UpdateClusterPointLoc();
+    logger().info("Mouse pick rejected {} clusters", hitCount);
 }
 
 }  // namespace zebrafish

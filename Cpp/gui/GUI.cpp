@@ -75,17 +75,24 @@ struct PropertyEditorItem {
 
     // ----------------------------------------------------------------------------------------------
 
-    static void AppendClusterRecordItem(const char* prefix, int uid, const clusterRecord_t &clusterRecord) {
+    static bool AppendClusterRecordItem(const char* prefix, int uid, clusterRecord_t &clusterRecord) {
+
+        bool res = false;
 
         ImGui::PushID(uid);
         ImGui::AlignTextToFramePadding();
         bool nodeOpen = ImGui::TreeNode("Object", "%s %u", prefix, uid);
         ImGui::NextColumn();
         ImGui::AlignTextToFramePadding();
-        if (clusterRecord.alive(uid))
-            ImGui::Text("valid");
-        else
-            ImGui::Text("invalid");
+        if (clusterRecord.alive(uid)) {
+            if (ImGui::Checkbox(" valid", &clusterRecord.alive(uid))) {
+                res = true;
+            }
+        } else {
+            if (ImGui::Checkbox(" inalid", &clusterRecord.alive(uid))) {
+                res = true;
+            }
+        }
 
         ImGui::NextColumn();
 
@@ -124,6 +131,8 @@ struct PropertyEditorItem {
         }
 
         ImGui::PopID();
+
+        return res;
     }
 
     // ----------------------------------------------------------------------------------------------
@@ -205,6 +214,13 @@ bool GUI::MouseDownCallback(igl::opengl::glfw::Viewer &viewer, int button, int m
         return true;
     }
 
+    if (rejectActive) {
+
+        MouseRejectCluster();
+
+        // do not block default mouse_down
+    }
+
     return false;
 }
 
@@ -219,10 +235,6 @@ bool GUI::MouseUpCallback(igl::opengl::glfw::Viewer &viewer, int button, int mod
 
         // disable ligigl default mouse_up
         return true;
-    }
-
-    if (rejectActive) {
-
     }
 
     return false;
@@ -245,7 +257,9 @@ bool GUI::MouseMoveCallback(igl::opengl::glfw::Viewer &viewer, int mouse_x, int 
 
         Eigen::Vector2f mouse;
         mouse << mouse_x, mouse_y;
-        SelectCluster(mouse);
+        MouseSelectCluster(mouse);
+
+        // do not block default mouse_move
     }
 
     return false;
@@ -596,7 +610,9 @@ void GUI::DrawWindowPropertyEditor() {
             const int numItemToDisplay = std::min(maxNumItemDisplayed, ttlItem);
             for (int i=0; i<numItemToDisplay; i++) {
 
-                PropertyEditorItem::AppendClusterRecordItem("Cluster", i, clusterRecord);
+                if (PropertyEditorItem::AppendClusterRecordItem("Cluster", i, clusterRecord)) {
+                    UpdateClusterPointLoc();
+                }
             }
 
             ImGui::Columns(1);
@@ -687,7 +703,7 @@ GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord(), markerRecord() {
     rArrayMax_grid = 6.0;
     rArrayGap_grid = 1.0;
     showPromisingPoints = true;
-    gridEnergyThres = -0.05;
+    gridEnergyThres = -0.1;
     promisingPointLoc.resize(1, 3);
     gridEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
 
@@ -740,7 +756,10 @@ GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord(), markerRecord() {
 
     // manually reject clusters
     rejectActive = false;
-
+    rejectHit = false;
+    rejectMode = REJECT_AREA;
+    rejectHitIndex.resize(1, 1);
+    mousePickDistSquareThres = 2.0 * 2.0;  // 2 pixels by default
 
     // property editor
     propertyListType = 0;

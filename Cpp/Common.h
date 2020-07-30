@@ -17,6 +17,11 @@ enum MOUSE_TYPE {
     MOUSEMOVE = 3
 };
 
+enum REJECT_MODE {
+    REJECT_SINGLE = 0,
+    REJECT_AREA   = 1
+};
+
 ///////////
 // types //
 ///////////

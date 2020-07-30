@@ -171,8 +171,10 @@ private:
     //////////////////////////////////////////////////
     // [mouse pick] manually reject clusters
     bool rejectActive;
-    bool rejectHit;
-    int rejectHitIndex;
+    bool rejectHit;  // checked when "MOUSEMOVE", return true if there is a hit with clusters
+    int rejectMode;
+    double mousePickDistSquareThres;  // in pixels
+    Eigen::VectorXi rejectHitIndex;
 
     //////////////////////////////////////////////////
     // property editor
@@ -276,7 +278,8 @@ private:
     void UpdateClusterPointLoc();
     void UpdateClusterSizeHist();
     void FinalizeClusterLoc();
-    void SelectCluster(const Eigen::Vector2f &mouse);
+    void MouseSelectCluster(const Eigen::Vector2f &mouse);
+    void MouseRejectCluster();
 
     //////////////////////////////////////////////////
     // Stage 6 Iterative Closest Point
