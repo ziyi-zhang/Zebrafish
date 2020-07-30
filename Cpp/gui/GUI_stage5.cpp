@@ -741,7 +741,7 @@ void GUI::FinalizeClusterLoc() {
         markerRecord.loc(i, 3) /= markerRecord.size(i);  // r
 
         // calculate energy (directly)
-        cylinder::EvaluateCylinder(bsplineSolver, markerRecord.loc(i, 0), markerRecord.loc(i, 1), markerRecord.loc(i, 2), markerRecord.loc(i, 3), 3.0, markerRecord.energy(i));
+        cylinder::EvaluateCylinder(bsplineArray[0], markerRecord.loc(i, 0), markerRecord.loc(i, 1), markerRecord.loc(i, 2), markerRecord.loc(i, 3), 3.0, markerRecord.energy(i));
     }
 
     logger().info("[Finalize Cluster] #(Alive clusters) = {} | #Markers = {}", M, numClusters);

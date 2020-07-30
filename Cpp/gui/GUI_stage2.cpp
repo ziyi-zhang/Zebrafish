@@ -86,8 +86,8 @@ void GUI::DrawStage2() {
             // Compute B-spline
             logger().info("Computing Bspine for the first frame");
             const int bsplineDegree = 2;
-            bsplineSolver.SetResolution(resolutionX, resolutionY, resolutionZ);
-            bsplineSolver.CalcControlPts(imgData[0], 0.7, 0.7, 0.7, bsplineDegree);
+            bsplineArray[0].SetResolution(resolutionX, resolutionY, resolutionZ);
+            bsplineArray[0].CalcControlPts(imgData[0], 0.7, 0.7, 0.7, bsplineDegree);
         }
     }
 

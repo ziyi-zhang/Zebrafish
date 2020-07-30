@@ -176,9 +176,9 @@ void GUI::DrawStage3() {
 void GUI::GridSearch() {
 
     // prepare gridSampleInput & gridSampleOutput for grid search
-    const int Nx = bsplineSolver.Get_Nx();
-    const int Ny = bsplineSolver.Get_Ny();
-    const int Nz = bsplineSolver.Get_Nz();
+    const int Nx = bsplineArray[0].Get_Nx();
+    const int Ny = bsplineArray[0].Get_Ny();
+    const int Nz = bsplineArray[0].Get_Nz();
     const int Nr = std::round((rArrayMax_grid - rArrayMin_grid) / rArrayGap_grid + 1);
 
     Eigen::VectorXd rArray;
@@ -199,7 +199,7 @@ void GUI::GridSearch() {
                     yy = iy * gapY_grid;
                     zz = iz * gapZ_grid;
                     rr = rArray(ir);
-                    if (!ValidGridSearchPoint(imgData[0], bsplineSolver, xx, yy, zz, rr)) continue;
+                    if (!ValidGridSearchPoint(imgData[0], bsplineArray[0], xx, yy, zz, rr)) continue;
 
                     gridSampleInput(sampleCount, 0) = xx;
                     gridSampleInput(sampleCount, 1) = yy;
@@ -216,11 +216,11 @@ void GUI::GridSearch() {
     logger().info(">>>>>>>>>> Before grid search >>>>>>>>>>");
     logger().info("Grid search #points = {}", sampleCount);
     tbb::parallel_for( tbb::blocked_range<int>(0, sampleCount),
-        [this/*.bsplineSolver, .gridSampleInput, .gridSampleOutput*/](const tbb::blocked_range<int> &r) {
+        [this/*.bsplineArray[0], .gridSampleInput, .gridSampleOutput*/](const tbb::blocked_range<int> &r) {
 
             const double cylinderHeight = 3.0;
             for (int ii = r.begin(); ii != r.end(); ++ii) {
-                cylinder::EvaluateCylinder(bsplineSolver, gridSampleInput(ii, 0), gridSampleInput(ii, 1), gridSampleInput(ii, 2), gridSampleInput(ii, 3), cylinderHeight, gridSampleOutput(ii));
+                cylinder::EvaluateCylinder(bsplineArray[0], gridSampleInput(ii, 0), gridSampleInput(ii, 1), gridSampleInput(ii, 2), gridSampleInput(ii, 3), cylinderHeight, gridSampleOutput(ii));
             }
         });
     logger().info("<<<<<<<<<< After grid search <<<<<<<<<<");

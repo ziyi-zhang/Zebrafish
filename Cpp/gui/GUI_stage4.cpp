@@ -145,7 +145,7 @@ void GUI::Optimization() {
         //////////////////////////////////////
         // lambda function for parallel_for //
         //////////////////////////////////////
-        [this/*.grid_search, .optimization, &bsplineSolver*/, &param]
+        [this/*.grid_search, .optimization, &bsplineArray[0]*/, &param]
         (const tbb::blocked_range<int> &r) {
 
         // NOTE: LBFGSSolver is NOT thread safe. This must be instantiated for every thread
@@ -166,16 +166,16 @@ void GUI::Optimization() {
                 ///////////////////////////////////
                 // lambda function for optimizer //
                 ///////////////////////////////////
-                auto func = [this/*.sampleInput_Newton, .bsplineSolver*/, ii]
+                auto func = [this/*.sampleInput_Newton, .bsplineArray[0]*/, ii]
                 (const Eigen::VectorXd& x, Eigen::VectorXd& grad) {
 
                         DScalar ans;
 
-                        if (!cylinder::IsValid(bsplineSolver, x(0), x(1), pointRecord.grid_search(ii, 2), x(2), 3)) {
+                        if (!cylinder::IsValid(bsplineArray[0], x(0), x(1), pointRecord.grid_search(ii, 2), x(2), 3)) {
                             grad.setZero();
                             return 1.0;
                         }
-                        cylinder::EvaluateCylinder(bsplineSolver, DScalar(0, x(0)), DScalar(1, x(1)), pointRecord.grid_search(ii, 2), DScalar(2, x(2)), 3, ans);
+                        cylinder::EvaluateCylinder(bsplineArray[0], DScalar(0, x(0)), DScalar(1, x(1)), pointRecord.grid_search(ii, 2), DScalar(2, x(2)), 3, ans);
                         grad.resize(3, 1);
                         grad = ans.getGradient();
                         return ans.getValue();

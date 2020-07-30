@@ -82,7 +82,7 @@ private:
 
     //////////////////////////////////////////////////
     // core
-    bspline bsplineSolver;
+    std::vector<bspline> bsplineArray;
 
     pointRecord_t pointRecord;
     ///       |   Grid Search  |   Optimization
@@ -306,6 +306,7 @@ private:
     //////////////////////////////////////////////////
     // Stage 7 Optical Flow
     void LoadSubsequentFrames();
+    void ComputeBsplineForAllFrames();
 };
 
 }  // namespace zebrafish

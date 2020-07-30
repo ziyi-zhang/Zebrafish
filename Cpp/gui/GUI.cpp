@@ -704,9 +704,10 @@ void GUI::NormalizeImage(image_t &image, double thres) {
 // maintenance methods
 
 
-GUI::GUI() : bsplineSolver(), pointRecord(), clusterRecord(), markerRecord() {
+GUI::GUI() : pointRecord(), clusterRecord(), markerRecord() {
 
     // shared
+    bsplineArray.resize(1);
     imgData.resize(1);
     stage = 1;
     histBars = 50;
