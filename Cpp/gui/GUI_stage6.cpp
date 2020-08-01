@@ -24,6 +24,7 @@ void GUI::DrawStage6() {
 
         FinalizeClusterLoc();
         UpdateMarkerPointLoc();
+        propertyListType = 2;
         stage5to6Flag = false;
     }
 
@@ -132,7 +133,7 @@ void GUI::SearchICP() {
 
     double RMSerror;
     Eigen::MatrixXd markerLoc;
-    markerLoc = markerRecord.loc.block(0, 0, markerRecord.num, 3);
+    markerLoc = markerArray[0].loc.block(0, 0, markerArray[0].num, 3);
 
     RMSerror = ICP::RunICP(markerLoc.transpose(), refV.transpose(), Rmat, Tmat);
     logger().info("RunICP error {}", RMSerror);
@@ -150,6 +151,7 @@ void GUI::PreprocessPatternLoc() {
 
 void GUI::UpdateMarkerPointLoc() {
 
+    markerRecord_t &markerRecord = markerArray[frameToShow];
     const int N = markerRecord.num;
     Eigen::MatrixXd tempLoc;
 

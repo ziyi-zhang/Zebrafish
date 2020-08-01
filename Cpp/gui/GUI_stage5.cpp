@@ -267,6 +267,7 @@ void GUI::DrawStage5() {
             UpdateClusterPointLoc();
             UpdateClusterSizeHist();
 
+            propertyListType = 1;
             // update visualized points
             showCylFilterPoints = false;
             showClusterFilterPoints = true;
@@ -328,6 +329,7 @@ void GUI::DrawStage5() {
         ImGui::InputFloat("Finalize cluster dist thres", &finalizeClusterDistThres);
         if (ImGui::Button("Finalize cluster locations")) {
             FinalizeClusterLoc();
+            propertyListType = 2;
         }
 
         ImGui::TreePop();
@@ -711,10 +713,11 @@ void GUI::FinalizeClusterLoc() {
     numClusters = clusters.size();
 
     // prepare markerRecord
-    markerRecord.num = numClusters;
-    markerRecord.loc = Eigen::MatrixXd::Zero(numClusters, 4);
-    markerRecord.energy = Eigen::MatrixXd::Zero(numClusters, 1);
-    markerRecord.size = Eigen::MatrixXi::Zero(numClusters, 1);
+    markerRecord_t markerFirstFrame;
+    markerFirstFrame.num = numClusters;
+    markerFirstFrame.loc = Eigen::MatrixXd::Zero(numClusters, 4);
+    markerFirstFrame.energy = Eigen::MatrixXd::Zero(numClusters, 1);
+    markerFirstFrame.size = Eigen::MatrixXi::Zero(numClusters, 1);
 
     // fill in data
     count = 0;
@@ -724,25 +727,29 @@ void GUI::FinalizeClusterLoc() {
 
             if (belongIdx(i) != clusterAlias) continue;
             int clusterSize = opt_temp(i, 5);
-            markerRecord.loc(count, 0) += opt_temp(i, 0) * clusterSize;  // x
-            markerRecord.loc(count, 1) += opt_temp(i, 1) * clusterSize;  // y
-            markerRecord.loc(count, 2) += opt_temp(i, 2) * clusterSize;  // z
-            markerRecord.loc(count, 3) += opt_temp(i, 3) * clusterSize;  // r
-            markerRecord.size(count)   += clusterSize;  // size
+            markerFirstFrame.loc(count, 0) += opt_temp(i, 0) * clusterSize;  // x
+            markerFirstFrame.loc(count, 1) += opt_temp(i, 1) * clusterSize;  // y
+            markerFirstFrame.loc(count, 2) += opt_temp(i, 2) * clusterSize;  // z
+            markerFirstFrame.loc(count, 3) += opt_temp(i, 3) * clusterSize;  // r
+            markerFirstFrame.size(count)   += clusterSize;  // size
         }
         // next cluster
         count++;
     }
     for (i=0; i<numClusters; i++) {
 
-        markerRecord.loc(i, 0) /= markerRecord.size(i);  // x
-        markerRecord.loc(i, 1) /= markerRecord.size(i);  // y
-        markerRecord.loc(i, 2) /= markerRecord.size(i);  // z
-        markerRecord.loc(i, 3) /= markerRecord.size(i);  // r
+        markerFirstFrame.loc(i, 0) /= markerFirstFrame.size(i);  // x
+        markerFirstFrame.loc(i, 1) /= markerFirstFrame.size(i);  // y
+        markerFirstFrame.loc(i, 2) /= markerFirstFrame.size(i);  // z
+        markerFirstFrame.loc(i, 3) /= markerFirstFrame.size(i);  // r
 
         // calculate energy (directly)
-        cylinder::EvaluateCylinder(bsplineArray[0], markerRecord.loc(i, 0), markerRecord.loc(i, 1), markerRecord.loc(i, 2), markerRecord.loc(i, 3), 3.0, markerRecord.energy(i));
+        cylinder::EvaluateCylinder(bsplineArray[0], markerFirstFrame.loc(i, 0), markerFirstFrame.loc(i, 1), markerFirstFrame.loc(i, 2), markerFirstFrame.loc(i, 3), 3.0, markerFirstFrame.energy(i));
     }
+
+    // push to "markerArray"
+    markerArray.clear();
+    markerArray.push_back(markerFirstFrame);
 
     logger().info("[Finalize Cluster] #(Alive clusters) = {} | #Markers = {}", M, numClusters);
 }

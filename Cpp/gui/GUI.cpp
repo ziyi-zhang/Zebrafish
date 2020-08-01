@@ -385,6 +385,9 @@ void GUI::DrawZebrafishPanel() {
         case 7:
             DrawStage7();
             break;
+        case 8:
+            DrawStage8();
+            break;
         default:
             assert(false);
     }
@@ -611,18 +614,18 @@ void GUI::DrawWindowPropertyEditor() {
 
     case 2:
         // markers (finalized clusters)
-        if (markerRecord.num == 0) {
+        if (markerArray.empty()) {
             ImGui::Text("Marker cluster list is empty");
         } else {
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
             ImGui::Columns(2);
 
             const int maxNumItemDisplayed = 500;
-            const int ttlItem = markerRecord.num;
+            const int ttlItem = markerArray[frameToShow].num;
             const int numItemToDisplay = std::min(maxNumItemDisplayed, ttlItem);
             for (int i=0; i<numItemToDisplay; i++) {
 
-                PropertyEditorItem::AppendMarkerRecordItem("Marker", i, markerRecord);
+                PropertyEditorItem::AppendMarkerRecordItem("Marker", i, markerArray[frameToShow]);
             }
 
             ImGui::Columns(1);
@@ -704,7 +707,7 @@ void GUI::NormalizeImage(image_t &image, double thres) {
 // maintenance methods
 
 
-GUI::GUI() : pointRecord(), clusterRecord(), markerRecord() {
+GUI::GUI() : pointRecord(), clusterRecord() {
 
     // shared
     bsplineArray.resize(1);

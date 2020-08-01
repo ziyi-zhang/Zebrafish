@@ -54,7 +54,7 @@ void GUI::DrawStage7() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    if (ImGui::CollapsingHeader("Optical Flow", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("Load frames", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         ImGui::SliderInt("Desired frame number", &desiredFrames, 2, ttlFrames, "%d frames");
         if (ImGui::Button("Load subsequent frames")) {
@@ -62,6 +62,15 @@ void GUI::DrawStage7() {
         }
         if (ImGui::Button("Compute B-spline for all")) {
             ComputeBsplineForAllFrames();
+        }
+    }
+
+    ImGui::Separator(); /////////////////////////////////////////
+
+    if (ImGui::CollapsingHeader("Optical Flow", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+        if (ImGui::Button("Run Optical Flow")) {
+            RunOpticalFlow();
         }
     }
 
@@ -81,6 +90,8 @@ void GUI::LoadSubsequentFrames() {
     imgData.resize(desiredFrames);
     compressedImgTextureArray.resize(desiredFrames);
     bsplineArray.resize(desiredFrames);
+        // intialize with the markers in the first frame
+    markerArray.resize(desiredFrames, markerArray[0]);
 
     // only support loading one channel
     std::vector<bool> channelVec(channelPerSlice, false);
@@ -121,10 +132,10 @@ void GUI::ComputeBsplineForAllFrames() {
     // DEBUG PURPOSE
     // used to test the correctness of parallel B-spline
     /*
-    logger().debug("reference value = {}", markerRecord.energy(0));
+    logger().debug("reference value = {}", markerArray[0].energy(0));
     double res;
     for (int i=0; i<currentLoadedFrames; i++) {
-        cylinder::EvaluateCylinder(bsplineArray[i], markerRecord.loc(0, 0), markerRecord.loc(0, 1), markerRecord.loc(0, 2), markerRecord.loc(0, 3), 3.0, res);
+        cylinder::EvaluateCylinder(bsplineArray[i], markerArray[0].loc(0, 0), markerArray[0].loc(0, 1), markerArray[0].loc(0, 2), markerArray[0].loc(0, 3), 3.0, res);
         logger().debug("frame {} res = {}", i, res);
     }
     */
@@ -133,6 +144,12 @@ void GUI::ComputeBsplineForAllFrames() {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Optical Flow
+
+
+void GUI::RunOpticalFlow() {
+
+
+}
 
 
 }  // namespace zebrafish

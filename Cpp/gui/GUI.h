@@ -92,7 +92,7 @@ private:
     ///       |         Loc             |   size
     /// alive | meanX meanY meanZ meanR | size(count)
 
-    markerRecord_t markerRecord;
+    std::vector<markerRecord_t> markerArray;
     ///   Loc   | energy |   size
     /// X Y Z R | energy | size(count)
 
@@ -185,7 +185,7 @@ private:
 
     //////////////////////////////////////////////////
     // property editor
-    int propertyListType;  // 0 for compressed, 1 for per slice
+    int propertyListType;
 
     //////////////////////////////////////////////////
     // visualization
@@ -235,9 +235,10 @@ protected:
     void DrawStage5();
     void DrawStage6();
     void DrawStage7();
+    void DrawStage8();
 
 private:
-    const int stageMax = 7;  // 7 stages (1..7)
+    const int stageMax = 8;  // 8 stages (1..8)
 
     void Draw3DImage();
     void DrawMainMenuBar();
@@ -307,6 +308,11 @@ private:
     // Stage 7 Optical Flow
     void LoadSubsequentFrames();
     void ComputeBsplineForAllFrames();
+    void RunOpticalFlow();
+
+    //////////////////////////////////////////////////
+    // Stage 8 Displacement
+    void OptimizeAllFrames();
 };
 
 }  // namespace zebrafish
