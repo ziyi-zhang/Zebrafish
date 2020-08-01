@@ -76,7 +76,6 @@ private:
     // shared
     igl::opengl::glfw::Viewer viewer;
     imageData_t imgData;
-    std::vector<Eigen::MatrixXd> markerPointLocArray;  // visualization purpose
     int stage;  // stage in zebrafish_panel
     int histBars;  // number of bars in histogram
     bool showBackgroundImage;
@@ -160,6 +159,12 @@ private:
     //////////////////////////////////////////////////
     // Optical Flow
     int desiredFrames;  // only load the first "desiredFrames" frames
+    std::vector<Eigen::Matrix<double, Eigen::Dynamic, 3> > opticalFlowCorrection;
+        ///  + opticalFlowCorrection[prevFrameIdx] is an #N x 3 matrix
+
+    //////////////////////////////////////////////////
+    // Displacement
+
 
     //////////////////////////////////////////////////
     // 3D image viewer
@@ -191,6 +196,9 @@ private:
     // visualization
     texture_t texture;
     textureArray_t compressedImgTextureArray;
+    std::vector<Eigen::MatrixXd> markerPointLocArray;  // visualization purpose
+    Eigen::Matrix<bool, Eigen::Dynamic, 1> markerPointStatusArray;  // visualization purpose
+    bool manualOverrideMarkerVis, showAllMarkers;
     int sliceToShow;  // which slice in the 3D image to show
     int frameToShow;  // which frame to show
     int currentLoadedFrames;
@@ -219,7 +227,7 @@ public:
     std::ostringstream oss;
 
     GUI();
-    void init(std::string imagePath);
+    void init(std::string imagePath, bool debug_build);
 
 protected:
     void draw_menu() override;

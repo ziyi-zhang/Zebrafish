@@ -27,10 +27,12 @@ int main(int argc, char **argv) {
         // At least 1 thread, at most 32 threads
         // prefer (#TTL - 1)
     int lsMethod = 2;
+    bool debug_build = false;
     CLI::App command_line{"ZebraFish"};
     command_line.add_option("-i,--img", image_path, "Input TIFF image to process")->check(CLI::ExistingFile);
     command_line.add_option("-n", num_threads, "Input number of threads");
     command_line.add_option("-l", lsMethod, "Input least square solver method");
+    command_line.add_flag("-b", debug_build);
 
     try {
         command_line.parse(argc, argv);
@@ -55,7 +57,7 @@ int main(int argc, char **argv) {
     logger().info("Desired #threads = {}", num_threads);
 
     // Start GUI
-    gui.init(image_path);
+    gui.init(image_path, debug_build);
 
     return EXIT_SUCCESS;
 }

@@ -37,11 +37,23 @@ void GUI::DrawStage6() {
         pointColor << 0.99, 0.41, 0.01;
 
         if (!markerPointLocArray.empty()) {
-            // show optimized cluster points
-            viewer.data().add_points(
-                markerPointLocArray[frameToShow],
-                pointColor
-            );
+            // show optimized markers
+            if (!manualOverrideMarkerVis) {
+                // show markers in the frame that is currently focused
+                viewer.data().add_points(
+                    markerPointLocArray[frameToShow],
+                    pointColor
+                );
+            } else {
+                // show markers in manually selected frames
+                for (int i=0; i<markerPointStatusArray.rows(); i++) {
+                    if (!markerPointStatusArray(i)) continue;
+                    viewer.data().add_points(
+                        markerPointLocArray[i],
+                        pointColor
+                    );
+                }
+            }
         }
 
         ////// DEBUG ONLY //////

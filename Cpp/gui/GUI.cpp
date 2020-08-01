@@ -523,6 +523,36 @@ void GUI::DrawWindow3DImageViewer() {
             ImGui::SliderInt("Slice", &sliceToShow, layerBegin, layerEnd);
         }
 
+        if (currentLoadedFrames > 1) {
+            // advanced visualization of markers in different frames
+
+            ImGui::Separator(); ////////////////////////
+
+            if (ImGui::TreeNode("Advanced multi-frame marker visualization")) {
+
+                ImGui::Checkbox("Manual override", &manualOverrideMarkerVis);
+                if (ImGui::Checkbox("Show all markers", &showAllMarkers)) {
+                    if (showAllMarkers) {
+                        for (int i=0; i<markerPointStatusArray.rows(); i++)
+                            markerPointStatusArray(i) = true;
+                    } else {
+                        for (int i=0; i<markerPointStatusArray.rows(); i++)
+                            markerPointStatusArray(i) = false;
+                        markerPointStatusArray(frameToShow) = true;
+                    }
+                }
+
+                for (int i=0; i<markerPointStatusArray.rows(); i++) {
+                    std::string label = "Frame ";
+                    label += std::to_string(i);
+                    ImGui::Checkbox(label.c_str(), &markerPointStatusArray(i));
+                }
+
+                ImGui::TreePop();
+                ImGui::Separator();
+            }
+        }
+
         ImGui::Separator(); ////////////////////////
 
         ImGui::Text("Image path = %s", imagePath.c_str());
@@ -692,6 +722,10 @@ void GUI::ComputeCompressedTexture(const image_t &img_, int index) {
 void GUI::UpdateMarkerPointLocArray() {
 
     markerPointLocArray.resize(currentLoadedFrames);
+    markerPointStatusArray.resize(currentLoadedFrames, 1);
+    for (int i=0; i<markerPointStatusArray.rows(); i++)
+        markerPointStatusArray(i) = false;
+    markerPointStatusArray(frameToShow) = true;
 
     for (int i=0; i<currentLoadedFrames; i++) {
 
@@ -738,7 +772,6 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     // shared
     bsplineArray.resize(1);
     imgData.resize(1);
-    markerPointLocArray.clear();
     stage = 1;
     histBars = 50;
     showBackgroundImage = true;
@@ -829,6 +862,10 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     //////////////////////////////////////////////////
     // visualization
     compressedImgTextureArray.resize(1);
+    markerPointLocArray.clear();
+    markerPointStatusArray.resize(1, 1);
+    manualOverrideMarkerVis = false;
+    showAllMarkers = false;
     sliceToShow = 0;
     frameToShow = 0;
     currentLoadedFrames = 0;
@@ -852,7 +889,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 }
 
 
-void GUI::init(std::string imagePath_) {
+void GUI::init(std::string imagePath_, bool debug_build) {
 
     // Debug purpose
     if (!imagePath_.empty()) {
@@ -877,6 +914,16 @@ void GUI::init(std::string imagePath_) {
         c0 = 516;
         r1 = 499;
         c1 = 589;
+    }
+
+    // Debug mode in "build"
+    if (debug_build) {
+        layerBegin = 24;
+        layerEnd = 40;
+        r0 = 419;
+        c0 = 516;
+        r1 = 469;
+        c1 = 556;
     }
 
     // callback

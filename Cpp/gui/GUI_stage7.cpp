@@ -33,11 +33,23 @@ void GUI::DrawStage7() {
         pointColor << 0.99, 0.41, 0.01;
 
         if (!markerPointLocArray.empty()) {
-            // show optimized cluster points
-            viewer.data().add_points(
-                markerPointLocArray[frameToShow],
-                pointColor
-            );
+            // show optimized markers
+            if (!manualOverrideMarkerVis) {
+                // show markers in the frame that is currently focused
+                viewer.data().add_points(
+                    markerPointLocArray[frameToShow],
+                    pointColor
+                );
+            } else {
+                // show markers in manually selected frames
+                for (int i=0; i<markerPointStatusArray.rows(); i++) {
+                    if (!markerPointStatusArray(i)) continue;
+                    viewer.data().add_points(
+                        markerPointLocArray[i],
+                        pointColor
+                    );
+                }
+            }
         }
 
         ////// DEBUG ONLY //////
@@ -90,8 +102,13 @@ void GUI::LoadSubsequentFrames() {
     imgData.resize(desiredFrames);
     compressedImgTextureArray.resize(desiredFrames);
     bsplineArray.resize(desiredFrames);
-        // intialize with the markers in the first frame
+        // initialize with the markers in the first frame
     markerArray.resize(desiredFrames, markerArray[0]);
+        // initialize with zero matrices
+    opticalFlowCorrection.resize(desiredFrames - 1);
+    for (int i=0; i<desiredFrames - 1; i++) {
+        opticalFlowCorrection[i] = Eigen::MatrixXd::Zero(markerArray[0].num, 3);
+    }
 
     // only support loading one channel
     std::vector<bool> channelVec(channelPerSlice, false);
@@ -148,7 +165,15 @@ void GUI::ComputeBsplineForAllFrames() {
 
 void GUI::RunOpticalFlow() {
 
+    int prevFrameIdx;
+    const int N = markerArray[0].num;
 
+    opticalFlowCorrection.resize(currentLoadedFrames - 1);
+    for (prevFrameIdx=0; prevFrameIdx<currentLoadedFrames - 1; prevFrameIdx++) {
+
+        // initialize (same effect as disable optical flow)
+        opticalFlowCorrection[prevFrameIdx] = Eigen::MatrixXd::Zero(N, 3);
+    }
 }
 
 

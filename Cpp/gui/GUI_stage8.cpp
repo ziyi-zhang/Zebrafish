@@ -32,11 +32,23 @@ void GUI::DrawStage8() {
         pointColor << 0.99, 0.41, 0.01;
 
         if (!markerPointLocArray.empty()) {
-            // show optimized cluster points
-            viewer.data().add_points(
-                markerPointLocArray[frameToShow],
-                pointColor
-            );
+            // show optimized markers
+            if (!manualOverrideMarkerVis) {
+                // show markers in the frame that is currently focused
+                viewer.data().add_points(
+                    markerPointLocArray[frameToShow],
+                    pointColor
+                );
+            } else {
+                // show markers in manually selected frames
+                for (int i=0; i<markerPointStatusArray.rows(); i++) {
+                    if (!markerPointStatusArray(i)) continue;
+                    viewer.data().add_points(
+                        markerPointLocArray[i],
+                        pointColor
+                    );
+                }
+            }
         }
 
         ////// DEBUG ONLY //////
@@ -104,7 +116,7 @@ void GUI::OptimizeOneFrame(int prevFrameIdx) {
         //////////////////////////////////////
         // lambda function for parallel_for //
         //////////////////////////////////////
-        [this/*.markerArray[?], &bsplineArray[?]*/, &param, prevFrameIdx]
+        [this/*.markerArray[?], &bsplineArray[?], .opticalFlowCorrection*/, &param, prevFrameIdx]
         (const tbb::blocked_range<int> &r) {
 
         // NOTE: LBFGSSolver is NOT thread safe. This must be instantiated for every thread
@@ -117,24 +129,24 @@ void GUI::OptimizeOneFrame(int prevFrameIdx) {
         for (int ii = r.begin(); ii != r.end(); ++ii) {    
 
                 Eigen::VectorXd vec(3, 1);
-                vec(0) = markerArray[prevFrameIdx].loc(ii, 0);  // x
-                vec(1) = markerArray[prevFrameIdx].loc(ii, 1);  // y
+                vec(0) = markerArray[prevFrameIdx].loc(ii, 0) + opticalFlowCorrection[prevFrameIdx](ii, 0);  // x
+                vec(1) = markerArray[prevFrameIdx].loc(ii, 1) + opticalFlowCorrection[prevFrameIdx](ii, 1);  // y
                 vec(2) = markerArray[prevFrameIdx].loc(ii, 3);  // r
                 double res;
 
                 ///////////////////////////////////
                 // lambda function for optimizer //
                 ///////////////////////////////////
-                auto func = [this/*.markerArray[?], .bsplineArray[?]*/, ii, prevFrameIdx]
+                auto func = [this/*.markerArray[?], .bsplineArray[?], .opticalFlowCorrection*/, ii, prevFrameIdx]
                 (const Eigen::VectorXd& x, Eigen::VectorXd& grad) {
 
                         DScalar ans;
 
-                        if (!cylinder::IsValid(bsplineArray[prevFrameIdx+1], x(0), x(1), markerArray[prevFrameIdx].loc(ii, 2), x(2), 3)) {
+                        if (!cylinder::IsValid(bsplineArray[prevFrameIdx+1], x(0), x(1), markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2), x(2), 3)) {
                             grad.setZero();
                             return 1.0;
                         }
-                        cylinder::EvaluateCylinder(bsplineArray[prevFrameIdx+1], DScalar(0, x(0)), DScalar(1, x(1)), markerArray[prevFrameIdx].loc(ii, 2), DScalar(2, x(2)), 3, ans);
+                        cylinder::EvaluateCylinder(bsplineArray[prevFrameIdx+1], DScalar(0, x(0)), DScalar(1, x(1)), markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2), DScalar(2, x(2)), 3, ans);
                         grad.resize(3, 1);
                         grad = ans.getGradient();
                         return ans.getValue();
