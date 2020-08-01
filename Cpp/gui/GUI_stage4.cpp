@@ -166,7 +166,7 @@ void GUI::Optimization() {
                 ///////////////////////////////////
                 // lambda function for optimizer //
                 ///////////////////////////////////
-                auto func = [this/*.sampleInput_Newton, .bsplineArray[0]*/, ii]
+                auto func = [this/*.grid_search, .bsplineArray[0]*/, ii]
                 (const Eigen::VectorXd& x, Eigen::VectorXd& grad) {
 
                         DScalar ans;

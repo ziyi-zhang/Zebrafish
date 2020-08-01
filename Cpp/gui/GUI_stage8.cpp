@@ -4,6 +4,11 @@
 #include <zebrafish/GUI.h>
 #include <zebrafish/Logger.hpp>
 
+#include <tbb/task_scheduler_init.h>
+#include <tbb/parallel_for.h>
+#include <tbb/enumerable_thread_specific.h>
+
+#include <LBFGS.h>
 #include <string>
 
 
@@ -71,8 +76,80 @@ void GUI::OptimizeAllFrames() {
 
     for (currentFrame=0; currentFrame<currentLoadedFrames-1; currentFrame++) {
 
-        
+        OptimizeOneFrame(currentFrame);
     }
+}
+
+
+void GUI::OptimizeOneFrame(int prevFrameIdx) {
+
+    /////////////////////////////////////////////////
+    // prepare LBFGS
+    LBFGSpp::LBFGSParam<double> param;
+    param.epsilon = optimEpsilon;
+    param.max_iterations = optimMaxIt;
+
+    // prepare for parallel optimization
+    const int N = markerArray[prevFrameIdx].num;
+    markerArray[prevFrameIdx+1].num = N;
+
+    logger().info("Optimization from frame {} to {}", prevFrameIdx, prevFrameIdx+1);
+    logger().info("Optimization #starting points = {}", N);
+
+    // Optimization
+    logger().info(">>>>>>>>>> Before optimization >>>>>>>>>>");
+    tbb::parallel_for( tbb::blocked_range<int>(0, N),
+        //////////////////////////////////////
+        // lambda function for parallel_for //
+        //////////////////////////////////////
+        [this/*.markerArray[?], &bsplineArray[?]*/, &param, prevFrameIdx]
+        (const tbb::blocked_range<int> &r) {
+
+        // NOTE: LBFGSSolver is NOT thread safe. This must be instantiated for every thread
+        LBFGSpp::LBFGSSolver<double> solver(param);
+
+        // NOTE: the "variable count" used by "Autodiff" will be stored in 
+        //       thread-local memory, so this must be set for every thread
+        DiffScalarBase::setVariableCount(3);
+
+        for (int ii = r.begin(); ii != r.end(); ++ii) {    
+
+                Eigen::VectorXd vec(3, 1);
+                vec(0) = markerArray[prevFrameIdx].loc(ii, 0);  // x
+                vec(1) = markerArray[prevFrameIdx].loc(ii, 1);  // y
+                vec(2) = markerArray[prevFrameIdx].loc(ii, 3);  // r
+                double res;
+
+                ///////////////////////////////////
+                // lambda function for optimizer //
+                ///////////////////////////////////
+                auto func = [this/*.markerArray[?], .bsplineArray[?]*/, ii, prevFrameIdx]
+                (const Eigen::VectorXd& x, Eigen::VectorXd& grad) {
+
+                        DScalar ans;
+
+                        if (!cylinder::IsValid(bsplineArray[prevFrameIdx+1], x(0), x(1), markerArray[prevFrameIdx].loc(ii, 2), x(2), 3)) {
+                            grad.setZero();
+                            return 1.0;
+                        }
+                        cylinder::EvaluateCylinder(bsplineArray[prevFrameIdx+1], DScalar(0, x(0)), DScalar(1, x(1)), markerArray[prevFrameIdx].loc(ii, 2), DScalar(2, x(2)), 3, ans);
+                        grad.resize(3, 1);
+                        grad = ans.getGradient();
+                        return ans.getValue();
+                    };
+                // NOTE: the template of "solver.minimize" does not accept a temprary variable (due to non-const argument)
+                //       so we define a "func" and pass it in
+                int it = solver.minimize(func, vec, res);
+                ///////////////////////////////////
+
+                markerArray[prevFrameIdx+1].loc(ii, 0) = vec(0);  // x
+                markerArray[prevFrameIdx+1].loc(ii, 1) = vec(1);  // y
+                markerArray[prevFrameIdx+1].loc(ii, 2) = markerArray[prevFrameIdx].loc(ii, 2);  // z
+                markerArray[prevFrameIdx+1].loc(ii, 3) = vec(2);  // r
+                markerArray[prevFrameIdx+1].energy(ii) = res;     // energy
+        }
+    });
+    logger().info("<<<<<<<<<< After optimization <<<<<<<<<<");
 }
 
 }  // namespace zebrafish

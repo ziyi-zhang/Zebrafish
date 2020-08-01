@@ -313,6 +313,7 @@ private:
     //////////////////////////////////////////////////
     // Stage 8 Displacement
     void OptimizeAllFrames();
+    void OptimizeOneFrame(int prevFrameIdx);
 };
 
 }  // namespace zebrafish
