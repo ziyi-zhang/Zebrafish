@@ -689,6 +689,32 @@ void GUI::ComputeCompressedTexture(const image_t &img_, int index) {
 }
 
 
+void GUI::UpdateMarkerPointLocArray() {
+
+    markerPointLocArray.resize(currentLoadedFrames);
+
+    for (int i=0; i<currentLoadedFrames; i++) {
+
+        markerRecord_t &markerRecord = markerArray[i];
+        const int N = markerRecord.num;
+        Eigen::MatrixXd tempLoc;
+
+        markerPointLocArray[i].resize(N, 3);
+        
+        tempLoc.resize(N, 3);
+        tempLoc.col(0) = markerRecord.loc.col(0);  // x
+        tempLoc.col(1) = markerRecord.loc.col(1);  // y
+        tempLoc.col(2) = markerRecord.loc.col(2);  // z
+
+        markerPointLocArray[i].col(0) = tempLoc.col(1).array() + 0.5;
+        markerPointLocArray[i].col(1) = (imgRows-0.5) - tempLoc.col(0).array();
+        markerPointLocArray[i].col(2) = tempLoc.col(2);
+    }
+
+    logger().info("   [Visualization] Marker location array updated: frames = {}", currentLoadedFrames);
+}
+
+
 void GUI::NormalizeImage(image_t &image, double thres) {
 /// This function modifies "image"
 
@@ -712,6 +738,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     // shared
     bsplineArray.resize(1);
     imgData.resize(1);
+    markerPointLocArray.clear();
     stage = 1;
     histBars = 50;
     showBackgroundImage = true;
@@ -768,7 +795,6 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     // ICP
     showMarkerPoints = true;
     showReferencePoints = true;
-    markerPointLoc.resize(1, 3);
     refPointLoc.resize(1, 3);
 
     // Optical Flow

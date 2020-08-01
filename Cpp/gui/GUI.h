@@ -76,6 +76,7 @@ private:
     // shared
     igl::opengl::glfw::Viewer viewer;
     imageData_t imgData;
+    std::vector<Eigen::MatrixXd> markerPointLocArray;  // visualization purpose
     int stage;  // stage in zebrafish_panel
     int histBars;  // number of bars in histogram
     bool showBackgroundImage;
@@ -153,7 +154,6 @@ private:
     std::string patternFilename;
     RMat_t Rmat;  // rotation matrix
     TMat_t Tmat;  // translation matrix
-    Eigen::MatrixXd markerPointLoc;  // visualization purpose
     Eigen::MatrixXd refPointLoc;  // visualization purpose
     Eigen::MatrixXd refV;  // #refV * 3 reference point locations
 
@@ -253,6 +253,7 @@ private:
 
     // shared
     void ComputeCompressedTexture(const image_t &img_, int index);
+    void UpdateMarkerPointLocArray();
     void NormalizeImage(image_t &image, double thres);
 
     //////////////////////////////////////////////////
@@ -301,7 +302,6 @@ private:
     // Stage 6 Iterative Closest Point
     void SearchICP();
     void PreprocessPatternLoc();
-    void UpdateMarkerPointLoc();
     void UpdateRefPointLoc();
 
     //////////////////////////////////////////////////

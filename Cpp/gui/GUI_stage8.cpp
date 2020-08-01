@@ -31,10 +31,10 @@ void GUI::DrawStage8() {
         Eigen::MatrixXd pointColor(1, 3);
         pointColor << 0.99, 0.41, 0.01;
 
-        if (markerPointLoc.rows() > 0) {
+        if (!markerPointLocArray.empty()) {
             // show optimized cluster points
             viewer.data().add_points(
-                markerPointLoc,
+                markerPointLocArray[frameToShow],
                 pointColor
             );
         }
@@ -78,6 +78,8 @@ void GUI::OptimizeAllFrames() {
 
         OptimizeOneFrame(currentFrame);
     }
+
+    UpdateMarkerPointLocArray();
 }
 
 

@@ -23,12 +23,12 @@ void GUI::DrawStage6() {
     if (stage5to6Flag) {
 
         FinalizeClusterLoc();
-        UpdateMarkerPointLoc();
+        UpdateMarkerPointLocArray();
         propertyListType = 2;
         stage5to6Flag = false;
     }
 
-    // Visualize marker cluster points
+    // Visualize marker cluster points (first frame)
     static int pointSize = 10;
     if (showMarkerPoints) {
 
@@ -36,10 +36,10 @@ void GUI::DrawStage6() {
         Eigen::MatrixXd pointColor(1, 3);
         pointColor << 0.99, 0.41, 0.01;
 
-        if (markerPointLoc.rows() > 0) {
+        if (!markerPointLocArray.empty()) {
             // show optimized cluster points
             viewer.data().add_points(
-                markerPointLoc,
+                markerPointLocArray[frameToShow],
                 pointColor
             );
         }
@@ -146,27 +146,6 @@ void GUI::PreprocessPatternLoc() {
     refV.col(1).array() -= refV.col(1).minCoeff();  // y
 
     // FIXME: should we scale here?
-}
-
-
-void GUI::UpdateMarkerPointLoc() {
-
-    markerRecord_t &markerRecord = markerArray[frameToShow];
-    const int N = markerRecord.num;
-    Eigen::MatrixXd tempLoc;
-
-    markerPointLoc.resize(N, 3);
-    
-    tempLoc.resize(N, 3);
-    tempLoc.col(0) = markerRecord.loc.col(0);  // x
-    tempLoc.col(1) = markerRecord.loc.col(1);  // y
-    tempLoc.col(2) = markerRecord.loc.col(2);  // z
-
-    markerPointLoc.col(0) = tempLoc.col(1).array() + 0.5;
-    markerPointLoc.col(1) = (imgRows-0.5) - tempLoc.col(0).array();
-    markerPointLoc.col(2) = tempLoc.col(2);
-
-    logger().info("   [Visualization] Marker clusters location updated: total number = {}", N);
 }
 
 
