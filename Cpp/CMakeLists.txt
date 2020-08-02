@@ -10,6 +10,8 @@ set(SOURCES
     Quadrature.h
     ICP.cpp
     ICP.h
+    OpticalFlow.cpp
+    OpticalFlow.h
     Quad.ipp
 )
 

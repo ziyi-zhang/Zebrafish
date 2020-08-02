@@ -551,6 +551,16 @@ void GUI::DrawWindow3DImageViewer() {
                 ImGui::TreePop();
                 ImGui::Separator();
             }
+
+            ImGui::Separator(); ////////////////////////
+
+            if (ImGui::TreeNode("Advanced optical flow visualization")) {
+
+                ImGui::Checkbox("Show optical flow", &showOpticalFlow);
+
+                ImGui::TreePop();
+                ImGui::Separator();
+            }
         }
 
         ImGui::Separator(); ////////////////////////
@@ -605,7 +615,7 @@ void GUI::DrawWindowPropertyEditor() {
             const int numItemToDisplay = std::min(maxNumItemDisplayed, ttlItem);
             for (int i=0; i<numItemToDisplay; i++) {
 
-                PropertyEditorItem::AppendPointRecordItem("Point", i, pointRecord);
+                PropertyEditorItem::AppendPointRecordItem("Cylinder", i, pointRecord);
             }
 
             ImGui::Columns(1);
@@ -832,6 +842,9 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 
     // Optical Flow
     desiredFrames = 0;
+    opticalFlowAlpha = 1;
+    opticalFlowIter = 50;
+    showOpticalFlow = false;
 
     // 3D image viewer
     V.resize(4, 3);

@@ -5,6 +5,7 @@
 #include <zebrafish/Logger.hpp>
 #include <zebrafish/TiffReader.h>
 #include <zebrafish/Quantile.h>
+#include <zebrafish/OpticalFlow.h>
 
 #include <tbb/task_scheduler_init.h>
 #include <tbb/parallel_for.h>
@@ -81,6 +82,8 @@ void GUI::DrawStage7() {
 
     if (ImGui::CollapsingHeader("Optical Flow", ImGuiTreeNodeFlags_DefaultOpen)) {
 
+        ImGui::InputDouble("alpha", &opticalFlowAlpha);
+        ImGui::SliderInt("iteration", &opticalFlowIter, 1, 100);
         if (ImGui::Button("Run Optical Flow")) {
             RunOpticalFlow();
         }
@@ -165,16 +168,36 @@ void GUI::ComputeBsplineForAllFrames() {
 
 void GUI::RunOpticalFlow() {
 
-    int prevFrameIdx;
+    FlowVelocity_t ux, uy, uz;
+    int prevFrameIdx, i;
     const int N = markerArray[0].num;
+    int x, y, z;
 
-    opticalFlowCorrection.resize(currentLoadedFrames - 1);
+    /// note: "opticalFlowCorrection" vector has been resized before calling this function
+
     for (prevFrameIdx=0; prevFrameIdx<currentLoadedFrames - 1; prevFrameIdx++) {
 
-        // initialize (same effect as disable optical flow)
-        opticalFlowCorrection[prevFrameIdx] = Eigen::MatrixXd::Zero(N, 3);
+        OpticalFlow::RunOpticalFlow(imgData[prevFrameIdx], imgData[prevFrameIdx+1], opticalFlowAlpha, opticalFlowIter, ux, uy, uz);
+
+        // calculate for each marker the correction displacement
+        for (i=0; i<N; i++) {
+
+            // alias
+            x = std::round( markerArray[prevFrameIdx].loc(i, 0) );
+            y = std::round( markerArray[prevFrameIdx].loc(i, 1) );
+            z = std::round( markerArray[prevFrameIdx].loc(i, 2) );
+
+            // correction
+            /// (1) Use "nearest cell" instead of interpolation
+            /// (2) x, y, z should always be in bound
+            opticalFlowCorrection[prevFrameIdx](i, 0) = ux[z](x, y);
+            opticalFlowCorrection[prevFrameIdx](i, 1) = uy[z](x, y);
+            opticalFlowCorrection[prevFrameIdx](i, 2) = uz[z](x, y);
+        }
+
+        std::cout << prevFrameIdx << "=========" << std::endl;
+        std::cout << opticalFlowCorrection[prevFrameIdx] << std::endl;
     }
 }
-
 
 }  // namespace zebrafish

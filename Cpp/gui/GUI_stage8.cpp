@@ -63,6 +63,27 @@ void GUI::DrawStage8() {
         ////// DEBUG ONLY //////
     }
 
+    // visualize optical flow points
+    // FIXME: DO NOT DO THIS
+    if (showOpticalFlow) {
+
+        viewer.data().point_size = pointSize;
+        Eigen::MatrixXd pointColor(1, 3);
+        pointColor << 0.77, 0.31, 0.77;
+
+        if (!opticalFlowCorrection.empty() && frameToShow < opticalFlowCorrection.size()) {
+            // show optical flow corrected location in the frame that is currently focused
+            Eigen::MatrixXd temp(markerPointLocArray[frameToShow].rows(), markerPointLocArray[frameToShow].cols());
+            temp.col(0) = markerPointLocArray[frameToShow].col(0) + opticalFlowCorrection[frameToShow].col(1);
+            temp.col(1) = markerPointLocArray[frameToShow].col(1) - opticalFlowCorrection[frameToShow].col(0);
+            temp.col(2) = markerPointLocArray[frameToShow].col(2) + opticalFlowCorrection[frameToShow].col(2);
+            viewer.data().add_points(
+                temp,
+                pointColor
+            );
+        }
+    }
+
     ImGui::Separator(); /////////////////////////////////////////
 
     if (ImGui::CollapsingHeader("Calculate Displacement", ImGuiTreeNodeFlags_DefaultOpen)) {

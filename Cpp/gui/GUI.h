@@ -159,8 +159,12 @@ private:
     //////////////////////////////////////////////////
     // Optical Flow
     int desiredFrames;  // only load the first "desiredFrames" frames
+    double opticalFlowAlpha;  // weight factor
+    int opticalFlowIter;
+    bool showOpticalFlow;
     std::vector<Eigen::Matrix<double, Eigen::Dynamic, 3> > opticalFlowCorrection;
-        ///  + opticalFlowCorrection[prevFrameIdx] is an #N x 3 matrix
+        /// opticalFlowCorrection[prevFrameIdx] is an #N x 3 matrix
+        /// i-th matrix correspond to the correction from i-th frame to (i+1)-th frame
 
     //////////////////////////////////////////////////
     // Displacement
