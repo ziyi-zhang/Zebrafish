@@ -69,7 +69,7 @@ void GUI::DrawStage8() {
 
         viewer.data().point_size = pointSize;
         Eigen::MatrixXd pointColor(1, 3);
-        pointColor << 0.77, 0.31, 0.77;
+        pointColor << 0.91, 0.69, 0.01;
 
         if (!opticalFlowCorrection.empty() && frameToShow < opticalFlowCorrection.size()) {
             // show optical flow corrected location in the frame that is currently focused
@@ -179,7 +179,7 @@ void GUI::OptimizeOneFrame(int prevFrameIdx) {
 
                 markerArray[prevFrameIdx+1].loc(ii, 0) = vec(0);  // x
                 markerArray[prevFrameIdx+1].loc(ii, 1) = vec(1);  // y
-                markerArray[prevFrameIdx+1].loc(ii, 2) = markerArray[prevFrameIdx].loc(ii, 2);  // z
+                markerArray[prevFrameIdx+1].loc(ii, 2) = markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2);  // z
                 markerArray[prevFrameIdx+1].loc(ii, 3) = vec(2);  // r
                 markerArray[prevFrameIdx+1].energy(ii) = res;     // energy
         }

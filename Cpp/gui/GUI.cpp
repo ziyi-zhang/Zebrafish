@@ -570,6 +570,7 @@ void GUI::DrawWindow3DImageViewer() {
         ImGui::Text("Using slices (top-down index) %d to %d", layerBegin, layerEnd);
         ImGui::Text("layers per image = %d", layerPerImg);
         ImGui::Text("channels per slice = %d", channelPerSlice);
+        ImGui::Text("Rows = %d  Cols = %d", imgRows, imgCols);
 
     } else {
 
@@ -842,7 +843,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 
     // Optical Flow
     desiredFrames = 0;
-    opticalFlowAlpha = 1;
+    opticalFlowAlpha = 0.2;
     opticalFlowIter = 50;
     showOpticalFlow = false;
 

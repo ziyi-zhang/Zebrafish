@@ -246,6 +246,7 @@ void OpticalFlow::RunOpticalFlow(const image_t &img1, const image_t &img2, doubl
     dz_square = dz * dz;
 
     // iterative solution
+    std::cout << "iter res" << std::endl;
     std::vector<Eigen::MatrixXd> numerator, denominator;
     for (i=0; i<iter; i++) {
 
@@ -258,6 +259,8 @@ void OpticalFlow::RunOpticalFlow(const image_t &img1, const image_t &img2, doubl
         ux = ux_bar - dx * (numerator / denominator);
         uy = uy_bar - dy * (numerator / denominator);
         uz = uz_bar - dz * (numerator / denominator);
+
+        std::cout << ux[40](58, 25) << " " << uy[40](58, 25) << " " << uz[40](58, 25) << std::endl;
     }
 }
 

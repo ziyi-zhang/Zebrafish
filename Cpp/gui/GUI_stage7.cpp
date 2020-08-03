@@ -119,6 +119,8 @@ void GUI::LoadSubsequentFrames() {
 
     ReadTif(imagePath, layerPerImg, channelVec, desiredFrames, imgData, r0, c0, r1, c1);
     currentLoadedFrames = desiredFrames;
+    // Update visualization array
+    UpdateMarkerPointLocArray();
 
     // quantile trim
     for (int i=0; i<currentLoadedFrames; i++) {
@@ -198,6 +200,8 @@ void GUI::RunOpticalFlow() {
         std::cout << prevFrameIdx << "=========" << std::endl;
         std::cout << opticalFlowCorrection[prevFrameIdx] << std::endl;
     }
+
+    logger().info("Optical Flow computed");
 }
 
 }  // namespace zebrafish
