@@ -68,8 +68,14 @@ void GUI::DrawStage2() {
     if (ImGui::CollapsingHeader("B-spline Config", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         if (ImGui::TreeNode("Advanced B-spline")) {
-            ImGui::Text("Not implemented yet...");
             
+            if (ImGui::SliderInt("B-spline degree", &bsplineDegree, 2, 3, "Degree %d")) {
+                bsplineArray[0].Set_degree(bsplineDegree);
+            }
+            if (ImGui::InputDouble("B-spline solver tolerance", &bsplineSolverTol, 0.0, 0.0, "%.2E")) {
+                bsplineArray[0].Set_solverTol(bsplineSolverTol);
+            }
+
             ImGui::TreePop();
             ImGui::Separator();
         }

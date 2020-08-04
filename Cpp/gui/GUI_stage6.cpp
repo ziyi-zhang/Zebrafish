@@ -33,8 +33,6 @@ void GUI::DrawStage6() {
     if (showMarkerPoints) {
 
         viewer.data().point_size = pointSize;
-        Eigen::MatrixXd pointColor(1, 3);
-        pointColor << 0.99, 0.41, 0.01;
 
         if (!markerPointLocArray.empty()) {
             // show optimized markers
@@ -42,7 +40,7 @@ void GUI::DrawStage6() {
                 // show markers in the frame that is currently focused
                 viewer.data().add_points(
                     markerPointLocArray[frameToShow],
-                    pointColor
+                    markerPointColor
                 );
             } else {
                 // show markers in manually selected frames
@@ -50,7 +48,7 @@ void GUI::DrawStage6() {
                     if (!markerPointStatusArray(i)) continue;
                     viewer.data().add_points(
                         markerPointLocArray[i],
-                        pointColor
+                        markerPointColor
                     );
                 }
             }

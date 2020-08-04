@@ -28,8 +28,6 @@ void GUI::DrawStage8() {
     if (showMarkerPoints) {
 
         viewer.data().point_size = pointSize;
-        Eigen::MatrixXd pointColor(1, 3);
-        pointColor << 0.99, 0.41, 0.01;
 
         if (!markerPointLocArray.empty()) {
             // show optimized markers
@@ -37,7 +35,7 @@ void GUI::DrawStage8() {
                 // show markers in the frame that is currently focused
                 viewer.data().add_points(
                     markerPointLocArray[frameToShow],
-                    pointColor
+                    markerPointColor
                 );
             } else {
                 // show markers in manually selected frames
@@ -45,7 +43,7 @@ void GUI::DrawStage8() {
                     if (!markerPointStatusArray(i)) continue;
                     viewer.data().add_points(
                         markerPointLocArray[i],
-                        pointColor
+                        markerPointColor
                     );
                 }
             }
@@ -88,6 +86,8 @@ void GUI::DrawStage8() {
 
     if (ImGui::CollapsingHeader("Calculate Displacement", ImGuiTreeNodeFlags_DefaultOpen)) {
 
+        ImGui::SliderInt("Depth correction search range", &depthCorrectionNum, 0, 12, "%d * gap");
+        ImGui::SliderFloat("Depth correction gap", &depthCorrectionGap, 0, 2.0, "%.3f pixels");
         if (ImGui::Button("Find new locations")) {
             OptimizeAllFrames();
         }
@@ -110,8 +110,11 @@ void GUI::OptimizeAllFrames() {
     for (currentFrame=0; currentFrame<currentLoadedFrames-1; currentFrame++) {
 
         OptimizeOneFrame(currentFrame);
+        // depth correction for the frame that was just updated
+        MarkerDepthCorrection(currentFrame + 1, depthCorrectionNum, depthCorrectionGap);
     }
 
+    // update visualization variable
     UpdateMarkerPointLocArray();
 }
 

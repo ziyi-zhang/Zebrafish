@@ -110,6 +110,11 @@ private:
     hist_t imgHist;
 
     //////////////////////////////////////////////////
+    // B-spline
+    int bsplineDegree;
+    double bsplineSolverTol;
+
+    //////////////////////////////////////////////////
     // Grid Search
     Eigen::MatrixXd gridSampleInput, gridSampleOutput;
     double gapX_grid, gapY_grid, gapZ_grid;
@@ -168,7 +173,8 @@ private:
 
     //////////////////////////////////////////////////
     // Displacement
-
+    int depthCorrectionNum;
+    float depthCorrectionGap;
 
     //////////////////////////////////////////////////
     // 3D image viewer
@@ -213,6 +219,8 @@ private:
     int Image3DViewerHeight;
     int RHSPanelWidth;
     double mainMenuHeight;
+    // color
+    Eigen::MatrixXd markerPointColor;
 
     //////////////////////////////////////////////////
     // bool flag indicating whether the panel is being rendered
@@ -266,6 +274,7 @@ private:
     // shared
     void ComputeCompressedTexture(const image_t &img_, int index);
     void UpdateMarkerPointLocArray();
+    void MarkerDepthCorrection(int frameIdx, int num = 2, double gap = 0.5);
     void NormalizeImage(image_t &image, double thres);
 
     //////////////////////////////////////////////////

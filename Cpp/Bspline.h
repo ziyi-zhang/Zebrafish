@@ -97,6 +97,7 @@ public:
     int Get_Ny() const { return Ny;}
     int Get_Nz() const { return Nz;}
     void Set_leastSquareMethod(int x) { leastSquareMethod = x; }
+    void Set_solverTol(double x) { solverTol = x; }
 
     // maintenance methods
     bspline();

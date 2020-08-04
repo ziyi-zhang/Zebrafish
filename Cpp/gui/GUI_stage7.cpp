@@ -30,8 +30,6 @@ void GUI::DrawStage7() {
     if (showMarkerPoints) {
 
         viewer.data().point_size = pointSize;
-        Eigen::MatrixXd pointColor(1, 3);
-        pointColor << 0.99, 0.41, 0.01;
 
         if (!markerPointLocArray.empty()) {
             // show optimized markers
@@ -39,7 +37,7 @@ void GUI::DrawStage7() {
                 // show markers in the frame that is currently focused
                 viewer.data().add_points(
                     markerPointLocArray[frameToShow],
-                    pointColor
+                    markerPointColor
                 );
             } else {
                 // show markers in manually selected frames
@@ -47,7 +45,7 @@ void GUI::DrawStage7() {
                     if (!markerPointStatusArray(i)) continue;
                     viewer.data().add_points(
                         markerPointLocArray[i],
-                        pointColor
+                        markerPointColor
                     );
                 }
             }
@@ -83,7 +81,7 @@ void GUI::DrawStage7() {
     if (ImGui::CollapsingHeader("Optical Flow", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         ImGui::InputDouble("alpha", &opticalFlowAlpha);
-        ImGui::SliderInt("iteration", &opticalFlowIter, 1, 100);
+        ImGui::SliderInt("iteration", &opticalFlowIter, 1, 300);
         if (ImGui::Button("Run Optical Flow")) {
             RunOpticalFlow();
         }
@@ -136,8 +134,11 @@ void GUI::ComputeBsplineForAllFrames() {
 
     const int bsplineDegree = 2;
 
-    for (int i=1; i<currentLoadedFrames; i++)
+    for (int i=1; i<currentLoadedFrames; i++) {
         bsplineArray[i].SetResolution(resolutionX, resolutionY, resolutionZ);
+        bsplineArray[i].Set_degree(bsplineDegree);
+        bsplineArray[i].Set_solverTol(bsplineSolverTol);
+    }
 
     // Parallel B-spline computation
     logger().info(">>>>>>>>>> Before B-spline >>>>>>>>>>");
@@ -147,6 +148,7 @@ void GUI::ComputeBsplineForAllFrames() {
 
             for (int ii = r.begin(); ii != r.end(); ++ii) {
                 bsplineArray[ii].CalcControlPts(imgData[ii], 0.7, 0.7, 0.7, bsplineDegree);
+                std::cout << "B-spline computed for frame " << ii << std::endl;
             }
         });
     logger().info("<<<<<<<<<< After B-spline <<<<<<<<<<");
@@ -197,8 +199,11 @@ void GUI::RunOpticalFlow() {
             opticalFlowCorrection[prevFrameIdx](i, 2) = uz[z](x, y);
         }
 
-        std::cout << prevFrameIdx << "=========" << std::endl;
+        // DEBUG PURPOSE
+        std::cout << "Optical Flow from [frame " << prevFrameIdx << "] to [frame " << prevFrameIdx+1 << "] " << std::endl;
+        std::cout << ">>>>> flow velocity at marker location >>>>>" << std::endl;
         std::cout << opticalFlowCorrection[prevFrameIdx] << std::endl;
+        std::cout << "<<<<<<<<<<" << std::endl;
     }
 
     logger().info("Optical Flow computed");
