@@ -271,6 +271,7 @@ void GUI::DrawStage5() {
             // update visualized points
             showCylFilterPoints = false;
             showClusterFilterPoints = true;
+            logger().debug("   <button> Cluster");
         }
         
         ImGui::Separator(); /////////////////////////////////////////
@@ -330,6 +331,7 @@ void GUI::DrawStage5() {
         if (ImGui::Button("Finalize cluster locations")) {
             FinalizeClusterLoc();
             propertyListType = 2;
+            logger().debug("   <button> Finalize cluster locations");
         }
 
         ImGui::TreePop();

@@ -239,7 +239,7 @@ public:
     std::ostringstream oss;
 
     GUI();
-    void init(std::string imagePath, bool debug_build);
+    void init(std::string imagePath, int debugMode);
 
 protected:
     void draw_menu() override;

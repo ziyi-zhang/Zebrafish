@@ -94,6 +94,7 @@ void GUI::DrawStage2() {
             const int bsplineDegree = 2;
             bsplineArray[0].SetResolution(resolutionX, resolutionY, resolutionZ);
             bsplineArray[0].CalcControlPts(imgData[0], 0.7, 0.7, 0.7, bsplineDegree);
+            logger().debug("   <button> Compute B-spline");
         }
     }
 

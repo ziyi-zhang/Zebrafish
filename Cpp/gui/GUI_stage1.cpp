@@ -90,6 +90,7 @@ void GUI::DrawStage1() {
             c0 = -1;
             r1 = -1;
             c1 = -1;
+            logger().debug("   <button> Reset crop area");
         }
 
         if (ImGui::TreeNode("Detailed")) {
@@ -133,6 +134,7 @@ void GUI::DrawStage1() {
             imgCols = imgData[0][0].cols();
             currentLoadedFrames = 1;
             desiredFrames = ttlFrames;
+            sliceToShow = layerBegin;  // do not start with slice 0 anymore
 
             // brightness
             double normalizeQuantileRes = QuantileImage(imgData[0], normalizeQuantile);
@@ -147,6 +149,7 @@ void GUI::DrawStage1() {
             logger().error("Error open tiff image (reload)");
             std::cerr << "Error open tiff image (reload)" << std::endl;
         }
+        logger().debug("   <button> Save");
     }
 
     ImGui::Separator(); /////////////////////////////////////////

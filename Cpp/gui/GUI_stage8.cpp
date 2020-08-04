@@ -90,6 +90,7 @@ void GUI::DrawStage8() {
         ImGui::SliderFloat("Depth correction gap", &depthCorrectionGap, 0, 2.0, "%.3f pixels");
         if (ImGui::Button("Find new locations")) {
             OptimizeAllFrames();
+            logger().debug("   <button> Find new locations");
         }
     }
 

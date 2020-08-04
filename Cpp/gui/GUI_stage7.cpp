@@ -70,9 +70,11 @@ void GUI::DrawStage7() {
         ImGui::SliderInt("Desired frame number", &desiredFrames, 2, ttlFrames, "%d frames");
         if (ImGui::Button("Load subsequent frames")) {
             LoadSubsequentFrames();
+            logger().debug("   <button> Load subsequent frames");
         }
         if (ImGui::Button("Compute B-spline for all")) {
             ComputeBsplineForAllFrames();
+            logger().debug("   <button> Compute B-spline for all");
         }
     }
 
@@ -84,6 +86,7 @@ void GUI::DrawStage7() {
         ImGui::SliderInt("iteration", &opticalFlowIter, 1, 300);
         if (ImGui::Button("Run Optical Flow")) {
             RunOpticalFlow();
+            logger().debug("   <button> Run Optical Flow");
         }
     }
 
@@ -194,6 +197,7 @@ void GUI::RunOpticalFlow() {
             // correction
             /// (1) Use "nearest cell" instead of interpolation
             /// (2) x, y, z should always be in bound
+            // FIXME: potential bug
             opticalFlowCorrection[prevFrameIdx](i, 0) = ux[z](x, y);
             opticalFlowCorrection[prevFrameIdx](i, 1) = uy[z](x, y);
             opticalFlowCorrection[prevFrameIdx](i, 2) = uz[z](x, y);

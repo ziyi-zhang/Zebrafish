@@ -1049,7 +1049,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 }
 
 
-void GUI::init(std::string imagePath_, bool debug_build) {
+void GUI::init(std::string imagePath_, int debugMode) {
 
     // Debug purpose
     if (!imagePath_.empty()) {
@@ -1076,14 +1076,23 @@ void GUI::init(std::string imagePath_, bool debug_build) {
         c1 = 589;
     }
 
-    // Debug mode in "build"
-    if (debug_build) {
+    // Debug mode
+    if (debugMode == -1) {
+        // very small area used by "build"
         layerBegin = 24;
         layerEnd = 40;
         r0 = 419;
         c0 = 516;
         r1 = 469;
         c1 = 556;
+    } else if (debugMode == 1) {
+        // large area
+        layerBegin = 24;
+        layerEnd = 46;
+        r0 = 356;
+        c0 = 448;
+        r1 = 507;
+        c1 = 596;
     }
 
     // callback

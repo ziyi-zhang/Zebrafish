@@ -117,7 +117,8 @@ void GUI::DrawStage6() {
                     logger().error("Error open OFF file {}", patternFilename);
                     std::cerr << "Error open OFF file" << std::endl;
                 }
-            } 
+            }
+            logger().debug("   <button> Load pattern OFF");
         }
         ImGui::SameLine();
         ImGui::Text("%s", patternFilename.c_str());
@@ -128,6 +129,7 @@ void GUI::DrawStage6() {
             UpdateRefPointLoc();
             // clear the background image
             showBackgroundImage = false;
+            logger().debug("   <button> Run ICP");
         }
     }
 
