@@ -134,7 +134,12 @@ void GUI::DrawStage1() {
             currentLoadedFrames = 1;
             desiredFrames = ttlFrames;
 
-            ComputeCompressedTexture(imgData[0], 0);  // re-compute compressed image texture
+            // brightness
+            double normalizeQuantileRes = QuantileImage(imgData[0], normalizeQuantile);
+            image_t tempImg = imgData[0];  // do not change "imgData" now
+            NormalizeImage(tempImg, normalizeQuantileRes);
+            // re-compute compressed image texture
+            ComputeCompressedTexture(tempImg, 0);
             showCropArea = false;  // turn this into false
 
             logger().info("Image reloaded");

@@ -2,6 +2,7 @@
 #include <zebrafish/TiffReader.h>
 #include <zebrafish/FileDialog.h>
 #include <zebrafish/Logger.hpp>
+#include <zebrafish/Quantile.h>
 
 #include <tbb/task_scheduler_init.h>
 #include <tbb/parallel_for.h>
@@ -314,7 +315,14 @@ void GUI::Draw3DImage() {
 
         if (layerBegin_cache != layerBegin || layerEnd_cache != layerEnd) {
             // if depth crop has updated
-            ComputeCompressedTexture(imgData[0], 0);  // only frame 0 could reach here
+            // Note: only frame 0 in stage 1 could reach here
+
+            logger().debug(" >>> quantile");
+            image_t tempImg = imgData[0];  // do not change "imgData" now
+            NormalizeImage(tempImg, 0.45);  // why dont use "normalizeQuantile"? would waste 1 second to compute the accurate value
+            logger().debug(" <<< quantile");
+
+            ComputeCompressedTexture(tempImg, 0);
             layerBegin_cache = layerBegin;
             layerEnd_cache = layerEnd;
         }
@@ -907,7 +915,6 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 
     // shared
     bsplineArray.resize(1);
-    bsplineArray[0].Set_solverTol(bsplineSolverTol);
     imgData.resize(1);
     stage = 1;
     histBars = 50;
@@ -927,7 +934,9 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 
     // B-spline
     bsplineDegree = 2;
-    bsplineSolverTol = 1e-8;
+    bsplineSolverTol = 1e-7;
+    bsplineArray[0].Set_degree(bsplineDegree);
+    bsplineArray[0].Set_solverTol(bsplineSolverTol);
 
     // grid search
     gapX_grid = 1.0;

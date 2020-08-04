@@ -25,6 +25,7 @@ void GUI::DrawStage6() {
         FinalizeClusterLoc();
         UpdateMarkerPointLocArray();
         propertyListType = 2;
+        rejectActive = false;
         stage5to6Flag = false;
     }
 
