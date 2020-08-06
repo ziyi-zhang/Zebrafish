@@ -22,7 +22,7 @@ private:
     static void CalcTransMat(Eigen::MatrixXd pt, Eigen::MatrixXd qt, RMat_t &R, TMat_t &T);
 
 public:
-    static double RunICP(const Eigen::MatrixXd &p, const Eigen::MatrixXd &q, RMat_t &R, TMat_t &T);
+    static double RunICP(const Eigen::MatrixXd &p, const Eigen::MatrixXd &q, RMat_t &R, TMat_t &T, Eigen::VectorXi &matchIdx);
     /// Run iterative closest point from point set p to q.
     /// Minimize the L2 error of sum(R*p + T - q).
     ///
@@ -30,6 +30,7 @@ public:
     /// @param[in]   q     { [3 x #ref]   reference point cloud }
     /// @param[out]  R     { [3 x 3] rotation matrix }
     /// @param[out]  T     { [3 x 1] translation matrix }
+    /// @param[out]  matchIdx   { p[i] corresponds to q[matchIdx(i)] }
     /// @return      { RMS error after ICP }
     ///
 

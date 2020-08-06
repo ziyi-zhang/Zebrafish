@@ -37,22 +37,11 @@ void GUI::DrawStage6() {
 
         if (!markerPointLocArray.empty()) {
             // show optimized markers
-            if (!manualOverrideMarkerVis) {
-                // show markers in the frame that is currently focused
-                viewer.data().add_points(
-                    markerPointLocArray[frameToShow],
-                    markerPointColor
-                );
-            } else {
-                // show markers in manually selected frames
-                for (int i=0; i<markerPointStatusArray.rows(); i++) {
-                    if (!markerPointStatusArray(i)) continue;
-                    viewer.data().add_points(
-                        markerPointLocArray[i],
-                        markerPointColor
-                    );
-                }
-            }
+
+            viewer.data().add_points(
+                markerPointLocArray[0],
+                markerPointColor
+            );
         }
 
         ////// DEBUG ONLY //////
@@ -94,6 +83,11 @@ void GUI::DrawStage6() {
         ////// DEBUG ONLY //////
     }
 
+    if (showICPLines) {
+        if (!markerPointLocArray.empty() && refPointLoc.rows()>0)
+            DrawICPLines();
+    }
+
     ImGui::Separator(); /////////////////////////////////////////
 
     if (ImGui::CollapsingHeader("Iterative Closest Point", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -102,11 +96,13 @@ void GUI::DrawStage6() {
         ImGui::Checkbox("Show background image", &showBackgroundImage);
         ImGui::Checkbox("Show detected centers", &showMarkerPoints);
         ImGui::Checkbox("Show pattern centers", &showReferencePoints);
+        ImGui::Checkbox("Show ICP correspondence", &showICPLines);
         ImGui::SliderInt("Point Size", &pointSize, 1, 30);
         ImGui::PopItemWidth();
 
         if (ImGui::Button("Load pattern OFF")) {
-            std::string filename = FileDialog::openFileName("./.*", {"*.off"});
+            // std::string filename = FileDialog::openFileName("./.*", {"*.off"});
+            std::string filename = "../data/26June_Pattern.off";
             if (!filename.empty()) {
                 patternFilename = filename;
                 Eigen::MatrixXd tempF;
@@ -123,6 +119,10 @@ void GUI::DrawStage6() {
         }
         ImGui::SameLine();
         ImGui::Text("%s", patternFilename.c_str());
+
+        if (ImGui::Button("Reset")) {
+            ResetICP();
+        }
 
         // align two point clouds manually
         if (ImGui::SliderFloat("X displacement", &ICP_xDisp, -0.5 * imgCols, imgRows, "%.2f pixels")) {
@@ -159,13 +159,25 @@ void GUI::DrawStage6() {
 ////////////////////////////////////////////////////////////////////////////////////////
 // ICP
 
+void GUI::ResetICP() {
+
+    ICP_Rmat = Eigen::MatrixXd::Identity(3, 3);
+    ICP_Tmat = Eigen::MatrixXd::Zero(3, 1);
+
+    // will not reset manaul alignment config
+
+    UpdateRefPointLoc();
+}
+
+
 void GUI::SearchICP() {
 
     double RMSerror;
     Eigen::MatrixXd markerLoc;
     markerLoc = markerArray[0].loc.block(0, 0, markerArray[0].num, 3);
+    ICP_matchIdx.resize(markerArray[0].num, 1);
 
-    RMSerror = ICP::RunICP(markerLoc.transpose(), refV_aligned.transpose(), ICP_Rmat, ICP_Tmat);
+    RMSerror = ICP::RunICP(markerLoc.transpose(), refV_aligned.transpose(), ICP_Rmat, ICP_Tmat, ICP_matchIdx);
     logger().info("RunICP error {}", RMSerror);
 }
 
@@ -209,6 +221,26 @@ void GUI::UpdateRefPointLoc() {
     std::cout << ICP_Tmat << std::endl;
 
     // std::cout << refPointLoc << std::endl;
+}
+
+
+void GUI::DrawICPLines() {
+
+    static Eigen::MatrixXd refTemp;
+    static Eigen::MatrixXd lineColor(1, 3);
+    lineColor << 0.77, 0.28, 0.24;
+
+    const int N = markerArray[0].num;
+    if (ICP_matchIdx.rows() != N) return;  // not ready
+    refTemp.resize(N, 3);
+
+    for (int i=0; i<N; i++) {
+        refTemp(i, 0) = refPointLoc(ICP_matchIdx(i), 0);
+        refTemp(i, 1) = refPointLoc(ICP_matchIdx(i), 1);
+        refTemp(i, 2) = refPointLoc(ICP_matchIdx(i), 2);
+    }
+
+    viewer.data().add_edges(markerPointLocArray[0], refTemp, lineColor);
 }
 
 }  // namespace zebrafish

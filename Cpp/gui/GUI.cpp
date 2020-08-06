@@ -978,6 +978,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     // ICP
     showMarkerPoints = true;
     showReferencePoints = true;
+    showICPLines = true;
     ICP_xDisp = 0.0f;
     ICP_yDisp = 0.0f;
     ICP_angleRot = 0.0f;
@@ -985,6 +986,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     refPointLoc.resize(1, 3);
     refV.resize(1, 3);
     refV_aligned.resize(1, 3);
+    ICP_matchIdx.resize(1, 1);
     ICP_Rmat = Eigen::MatrixXd::Identity(3, 3);
     ICP_Tmat = Eigen::MatrixXd::Zero(3, 1);
 

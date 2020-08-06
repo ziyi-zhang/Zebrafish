@@ -81,6 +81,8 @@ void GUI::DrawStage4() {
             Optimization();
             UpdateOptimPointLoc();
             UpdateOptimEnergyHist();
+
+            logger().debug("   <button> Optimization");
         }
 
         ImGui::Checkbox("Show optimized locations", &showOptimizedPoints);

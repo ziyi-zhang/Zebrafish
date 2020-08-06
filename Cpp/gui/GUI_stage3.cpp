@@ -117,6 +117,8 @@ void GUI::DrawStage3() {
             UpdateSampleNewton(gridSampleInput, gridSampleOutput);
             UpdatePromisingPointLoc();
             UpdateGridEnergyHist();
+
+            logger().debug("   <button> Run Grid Search");
         }
     }
 

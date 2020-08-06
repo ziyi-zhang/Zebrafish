@@ -154,13 +154,14 @@ private:
 
     //////////////////////////////////////////////////
     // ICP
-    bool showMarkerPoints, showReferencePoints;
+    bool showMarkerPoints, showReferencePoints, showICPLines;
     std::string patternFilename;
     float ICP_xDisp, ICP_yDisp, ICP_angleRot, ICP_scale;
     RMat_t ICP_Rmat;  // rotation matrix
     TMat_t ICP_Tmat;  // translation matrix
     Eigen::MatrixXd refPointLoc;  // visualization purpose
     Eigen::MatrixXd refV, refV_aligned;  // #refV * 3 reference point locations
+    Eigen::VectorXi ICP_matchIdx;  // p[i] corresponds to q[ ICP_matchIdx[i] ]
 
     //////////////////////////////////////////////////
     // Optical Flow
@@ -322,10 +323,12 @@ private:
 
     //////////////////////////////////////////////////
     // Stage 6 Iterative Closest Point
+    void ResetICP();
     void SearchICP();
     void PreprocessPatternLoc();
     void UpdateRefPointManualAlignment();
     void UpdateRefPointLoc();
+    void DrawICPLines();
 
     //////////////////////////////////////////////////
     // Stage 7 Optical Flow

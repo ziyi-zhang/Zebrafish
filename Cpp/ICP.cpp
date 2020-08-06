@@ -2,6 +2,7 @@
 #include <Eigen/Dense>
 #include <Eigen/SVD>
 #include <limits>
+#include <vector>
 #include <math.h>
 
 
@@ -14,22 +15,27 @@ void ICP::MatchPoints(const Eigen::MatrixXd &pt, const Eigen::MatrixXd &q, Eigen
 
     int i, j, minIdx;
     const int N = pt.cols(), M = q.cols();
-    double minDist, dist;
+    std::vector<bool> matched(M, false);
+    double minDistSq, distSq;
 
     for (i=0; i<N; i++) {
 
-        minDist = std::numeric_limits<double>::max();
+        minDistSq = std::numeric_limits<double>::max();
         for (j=0; j<M; j++) {
 
-            dist = (pt(0, i) - q(0, j))*(pt(0, i) - q(0, j)) + (pt(1, i) - q(1, j))*(pt(1, i) - q(1, j)) + (pt(2, i) - q(2, j))*(pt(2, i) - q(2, j));
-            if (dist < minDist) {
+            // if already matched to a previous point
+            if (matched[j]) continue;
+
+            distSq = (pt(0, i) - q(0, j))*(pt(0, i) - q(0, j)) + (pt(1, i) - q(1, j))*(pt(1, i) - q(1, j)) + (pt(2, i) - q(2, j))*(pt(2, i) - q(2, j));
+            if (distSq < minDistSq) {
                 minIdx = j;
-                minDist = dist;
+                minDistSq = distSq;
             }
         }
 
+        matched[minIdx] = true;
         matchIdx(i) = minIdx;
-        distSqVec(i) = minDist;
+        distSqVec(i) = minDistSq;
     }
 }
 
@@ -41,7 +47,7 @@ void ICP::CalcTransMat(Eigen::MatrixXd pt, Eigen::MatrixXd qt, RMat_t &R, TMat_t
 
     // minus centroid
     pt.colwise() -= pt_mean;
-    qt.colwise()  -= qt_mean;
+    qt.colwise() -= qt_mean;
 
     // SVD
     Eigen::MatrixXd covMat;
@@ -52,7 +58,7 @@ void ICP::CalcTransMat(Eigen::MatrixXd pt, Eigen::MatrixXd qt, RMat_t &R, TMat_t
 }
 
 
-double ICP::RunICP(const Eigen::MatrixXd &p, const Eigen::MatrixXd &q, RMat_t &R_res, TMat_t &T_res) {
+double ICP::RunICP(const Eigen::MatrixXd &p, const Eigen::MatrixXd &q, RMat_t &R_res, TMat_t &T_res, Eigen::VectorXi &matchIdx) {
 
     assert(p.rows() == 3 && "P should be of size 3xN");
     assert(q.rows() == 3 && "Q should be of size 3xM");
@@ -62,17 +68,14 @@ double ICP::RunICP(const Eigen::MatrixXd &p, const Eigen::MatrixXd &q, RMat_t &R
     double RMSe;
     Eigen::MatrixXd pt = p;  // store transformed p
     Eigen::MatrixXd qt;
-    Eigen::VectorXi matchIdx;  // p[i] corresponds to q[matchIdx(i)]
     Eigen::VectorXd distSqVec;
     matchIdx.resize(N, 1);
     distSqVec.resize(N, 1);
     RMat_t R;
     TMat_t T;
 
-    R_res << 1.0, 0.0, 0.0, 
-             0.0, 1.0, 0.0, 
-             0.0, 0.0, 1.0;
-    T_res << 0.0, 0.0, 0.0;
+    R_res = Eigen::MatrixXd::Identity(3, 3);
+    T_res = Eigen::MatrixXd::Zero(3, 1);
 
     const int maxIt = 10;
     for (iter=0; iter<maxIt; iter++) {
@@ -94,8 +97,7 @@ double ICP::RunICP(const Eigen::MatrixXd &p, const Eigen::MatrixXd &q, RMat_t &R
         // inplace
         R_res = R * R_res;
         T_res = R * T_res + T;
-        pt = R_res * p;
-        pt.colwise() += T_res;
+        pt = (R_res * p).colwise() + T_res;
 
         // calculate error
         RMSe = std::sqrt( distSqVec.sum() / distSqVec.size() );
