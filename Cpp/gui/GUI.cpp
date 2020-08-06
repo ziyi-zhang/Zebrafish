@@ -979,6 +979,9 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     showMarkerPoints = true;
     showReferencePoints = true;
     showICPLines = true;
+    ICP_patternRows = 0;
+    ICP_patternCols = 0;
+    ICP_patternSpacing = 18.0;
     ICP_xDisp = 0.0f;
     ICP_yDisp = 0.0f;
     ICP_angleRot = 0.0f;

@@ -24,6 +24,7 @@ void GUI::DrawStage6() {
 
         FinalizeClusterLoc();
         UpdateMarkerPointLocArray();
+        InitializeICPPattern();
         propertyListType = 2;
         rejectActive = false;
         stage5to6Flag = false;
@@ -102,9 +103,14 @@ void GUI::DrawStage6() {
 
         ImGui::Separator();  /////////////////////////////////////////
 
+        ImGui::SliderInt("Pattern rows", &ICP_patternRows, 5, ICP_patternRef * 3);
+        ImGui::SliderInt("Pattern cols", &ICP_patternCols, 5, ICP_patternRef * 3);
         if (ImGui::Button("Generate triangular pattern")) {
 
-            
+            GenerateICPPattern();
+            PreprocessPatternLoc();
+            UpdateRefPointLoc();
+            logger().debug("   <button> Generate triangular pattern");
         }
 
         if (ImGui::Button("Load pattern OFF")) {
@@ -166,6 +172,34 @@ void GUI::DrawStage6() {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // ICP
+
+void GUI::InitializeICPPattern() {
+
+    ICP_patternRef = std::ceil(std::sqrt(markerArray[0].num) * 1.2);
+    if (ICP_patternRef < 5) ICP_patternRef = 5;
+    ICP_patternRows = ICP_patternRef;
+    ICP_patternCols = ICP_patternRef;
+}
+
+
+void GUI::GenerateICPPattern() {
+
+    refV.resize(ICP_patternRows * ICP_patternCols, 3);
+    int count = 0;
+    for (int row=0; row<ICP_patternRows; row++)
+        for (int col=0; col<ICP_patternCols; col++) {
+
+            refV(count, 0) = ICP_patternSpacing * double(col);
+            if (row & 1)  
+                refV(count, 0) += ICP_patternSpacing / 2.0;
+            refV(count, 1) = std::sqrt(3) / 2.0 * ICP_patternSpacing * double(row);
+            refV(count, 2) = 1.0;
+            count++;
+        }
+
+    std::cout << refV << std::endl;
+}
+
 
 void GUI::ResetICP() {
 

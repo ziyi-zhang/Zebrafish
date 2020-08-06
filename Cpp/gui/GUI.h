@@ -156,6 +156,8 @@ private:
     // ICP
     bool showMarkerPoints, showReferencePoints, showICPLines;
     std::string patternFilename;
+    int ICP_patternRef, ICP_patternRows, ICP_patternCols;
+    double ICP_patternSpacing;
     float ICP_xDisp, ICP_yDisp, ICP_angleRot, ICP_scale;
     RMat_t ICP_Rmat;  // rotation matrix
     TMat_t ICP_Tmat;  // translation matrix
@@ -323,6 +325,8 @@ private:
 
     //////////////////////////////////////////////////
     // Stage 6 Iterative Closest Point
+    void InitializeICPPattern();
+    void GenerateICPPattern();
     void ResetICP();
     void SearchICP();
     void PreprocessPatternLoc();
