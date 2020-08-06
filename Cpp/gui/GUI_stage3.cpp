@@ -115,8 +115,8 @@ void GUI::DrawStage3() {
             GridSearch();
             // register results to "pointRecord"
             UpdateSampleNewton(gridSampleInput, gridSampleOutput);
-            UpdateGridEnergyHist();
             UpdatePromisingPointLoc();
+            UpdateGridEnergyHist();
         }
     }
 

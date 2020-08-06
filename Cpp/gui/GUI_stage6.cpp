@@ -72,7 +72,7 @@ void GUI::DrawStage6() {
 
         viewer.data().point_size = pointSize;
         Eigen::MatrixXd pointColor(1, 3);
-        pointColor << 0.41, 0.41, 0.99;
+        pointColor << 0.0, 0.447, 0.741;
 
         if (refPointLoc.rows() > 0) {
             // show optimized cluster points
@@ -113,6 +113,7 @@ void GUI::DrawStage6() {
                 if (igl::readOFF(patternFilename, refV, tempF)) {
 
                     PreprocessPatternLoc();
+                    UpdateRefPointLoc();
                 } else {
                     logger().error("Error open OFF file {}", patternFilename);
                     std::cerr << "Error open OFF file" << std::endl;
@@ -123,12 +124,28 @@ void GUI::DrawStage6() {
         ImGui::SameLine();
         ImGui::Text("%s", patternFilename.c_str());
 
+        // align two point clouds manually
+        if (ImGui::SliderFloat("X displacement", &ICP_xDisp, -0.5 * imgCols, imgRows, "%.2f pixels")) {
+            UpdateRefPointManualAlignment();
+            UpdateRefPointLoc();
+        }
+        if (ImGui::SliderFloat("Y displacement", &ICP_yDisp, -imgRows, 0.5 * imgRows, "%.2f pixels")) {
+            UpdateRefPointManualAlignment();
+            UpdateRefPointLoc();
+        }
+        if (ImGui::SliderFloat("Rotation", &ICP_angleRot, -igl::PI, igl::PI, "%.3f rads")) {
+            UpdateRefPointManualAlignment();
+            UpdateRefPointLoc();
+        }
+        if (ImGui::SliderFloat("Scale", &ICP_scale, 0.2f, 4.0f, "%.3f x")) {
+            UpdateRefPointManualAlignment();
+            UpdateRefPointLoc();
+        }
+
         if (ImGui::Button("Run ICP")) {
             
             SearchICP();
             UpdateRefPointLoc();
-            // clear the background image
-            showBackgroundImage = false;
             logger().debug("   <button> Run ICP");
         }
     }
@@ -148,28 +165,48 @@ void GUI::SearchICP() {
     Eigen::MatrixXd markerLoc;
     markerLoc = markerArray[0].loc.block(0, 0, markerArray[0].num, 3);
 
-    RMSerror = ICP::RunICP(markerLoc.transpose(), refV.transpose(), Rmat, Tmat);
+    RMSerror = ICP::RunICP(markerLoc.transpose(), refV_aligned.transpose(), ICP_Rmat, ICP_Tmat);
     logger().info("RunICP error {}", RMSerror);
 }
 
 
 void GUI::PreprocessPatternLoc() {
 
+    assert(refV.size() > 0);
+
     refV.col(0).array() -= refV.col(0).minCoeff();  // x
     refV.col(1).array() -= refV.col(1).minCoeff();  // y
+    refV.col(2) = Eigen::MatrixXd::Ones(refV.rows(), 1);  // force "z" to be 1
 
     // FIXME: should we scale here?
+
+    // save a copy to "refV_aligned"
+    refV_aligned = refV;
+}
+
+
+void GUI::UpdateRefPointManualAlignment() {
+
+    assert(refV.size() > 0);
+
+    static RMat_t manualAlignRotMat;
+    manualAlignRotMat << std::cos(-ICP_angleRot), - std::sin(-ICP_angleRot), ICP_xDisp, 
+                         std::sin(-ICP_angleRot),   std::cos(-ICP_angleRot), ICP_yDisp, 
+                         0.0,          0.0,            1.0;
+
+    refV_aligned = refV.array() * ICP_scale;
+    refV_aligned = ( manualAlignRotMat * refV_aligned.transpose() ).transpose();
 }
 
 
 void GUI::UpdateRefPointLoc() {
 
-    refPointLoc = (Rmat.transpose() * (refV.transpose().colwise() - Tmat)).transpose();
-    // refPointLoc = refV;
-    // markerPointLoc = ((Rmat * markerPointLoc.transpose()).colwise() + Tmat).transpose();
+    /// NOTE: ICP_Rmat is a unitary matrix
+    ///       ICP_Rmat.transpose() * ICP_Rmat = Identity
+    refPointLoc = (ICP_Rmat.transpose() * (refV_aligned.transpose().colwise() - ICP_Tmat)).transpose();
 
-    std::cout << Rmat << std::endl;
-    std::cout << Tmat << std::endl;
+    std::cout << ICP_Rmat << std::endl;
+    std::cout << ICP_Tmat << std::endl;
 
     // std::cout << refPointLoc << std::endl;
 }
