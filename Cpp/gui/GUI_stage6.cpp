@@ -100,9 +100,15 @@ void GUI::DrawStage6() {
         ImGui::SliderInt("Point Size", &pointSize, 1, 30);
         ImGui::PopItemWidth();
 
+        ImGui::Separator();  /////////////////////////////////////////
+
+        if (ImGui::Button("Generate triangular pattern")) {
+
+            
+        }
+
         if (ImGui::Button("Load pattern OFF")) {
-            // std::string filename = FileDialog::openFileName("./.*", {"*.off"});
-            std::string filename = "../data/26June_Pattern.off";
+            std::string filename = FileDialog::openFileName("./.*", {"*.off"});
             if (!filename.empty()) {
                 patternFilename = filename;
                 Eigen::MatrixXd tempF;
@@ -120,7 +126,9 @@ void GUI::DrawStage6() {
         ImGui::SameLine();
         ImGui::Text("%s", patternFilename.c_str());
 
-        if (ImGui::Button("Reset")) {
+        ImGui::Separator();  /////////////////////////////////////////
+
+        if (ImGui::Button("Reset ICP transformation")) {
             ResetICP();
         }
 
@@ -177,7 +185,7 @@ void GUI::SearchICP() {
     markerLoc = markerArray[0].loc.block(0, 0, markerArray[0].num, 3);
     ICP_matchIdx.resize(markerArray[0].num, 1);
 
-    RMSerror = ICP::RunICP(markerLoc.transpose(), refV_aligned.transpose(), ICP_Rmat, ICP_Tmat, ICP_matchIdx);
+    RMSerror = ICP::RunICP(markerPointLocArray[0].transpose(), refV_aligned.transpose(), ICP_Rmat, ICP_Tmat, ICP_matchIdx);
     logger().info("RunICP error {}", RMSerror);
 }
 
@@ -229,9 +237,10 @@ void GUI::DrawICPLines() {
     static Eigen::MatrixXd refTemp;
     static Eigen::MatrixXd lineColor(1, 3);
     lineColor << 0.77, 0.28, 0.24;
+    viewer.data().line_width = 1.0f;
 
     const int N = markerArray[0].num;
-    if (ICP_matchIdx.rows() != N) return;  // not ready
+    if (ICP_matchIdx.rows() != N) return;  // not ready yet
     refTemp.resize(N, 3);
 
     for (int i=0; i<N; i++) {

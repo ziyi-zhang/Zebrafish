@@ -37,6 +37,16 @@ void ICP::MatchPoints(const Eigen::MatrixXd &pt, const Eigen::MatrixXd &q, Eigen
         matchIdx(i) = minIdx;
         distSqVec(i) = minDistSq;
     }
+
+    /*
+    // DEBUG PURPOSE
+    std::cout << "pt =" << std::endl;
+    std::cout << pt << std::endl;
+    std::cout << "q =" << std::endl;
+    std::cout << q << std::endl;
+    std::cout << "matchIdx = " << std::endl;
+    std::cout << matchIdx << std::endl;
+    */
 }
 
 
