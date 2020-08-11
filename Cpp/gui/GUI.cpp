@@ -278,6 +278,7 @@ bool GUI::MouseMoveCallback(igl::opengl::glfw::Viewer &viewer, int mouse_x, int 
 void GUI::draw_menu() {
 
     Draw3DImage();
+    DrawMarkerMesh();
     DrawMainMenuBar();
     DrawZebrafishPanel();
 
@@ -289,7 +290,7 @@ void GUI::draw_menu() {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Draw 3D image
+// Draw 3D image & marker mesh
 
 
 void GUI::Draw3DImage() {
@@ -343,6 +344,31 @@ void GUI::Draw3DImage() {
     viewer.data().show_lines = false;
     viewer.data().show_texture = true;
     viewer.data().set_texture(texture, texture, texture);
+}
+
+
+void GUI::DrawMarkerMesh() {
+
+    viewer.data(meshID).clear();
+
+    // do not draw if not needed
+    if (!showMarkerMesh) return;
+    if (markerMeshArray.size() == 0 || markerPointLocArray.empty()) return;
+
+    // show mesh
+    static Eigen::MatrixXd tempV;
+    tempV = markerPointLocArray[frameToShow];
+    tempV.col(2).array() -= 0.3;  // colliding with marker points
+    viewer.data(meshID).show_faces = false;
+    viewer.data(meshID).show_lines = true;
+    viewer.data(meshID).show_texture = false;
+    // viewer.data(meshID).set_colors(Eigen::RowVector3d(0.78, 0.82, 0.83));
+    viewer.data(meshID).line_width = 3.0;
+    viewer.data(meshID).shininess = 0;
+    viewer.data(meshID).set_mesh(
+        tempV,  // mesh V
+        markerMeshArray  // mesh F
+    );
 }
 
 
@@ -979,6 +1005,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     showMarkerPoints = true;
     showReferencePoints = true;
     showICPLines = true;
+    showMarkerMesh = false;
     ICP_patternRows = 0;
     ICP_patternCols = 0;
     ICP_patternSpacing = 18.0;
@@ -990,6 +1017,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     refV.resize(1, 3);
     refV_aligned.resize(1, 3);
     ICP_matchIdx.resize(1, 1);
+    markerMeshArray.resize(0, 3);
     ICP_Rmat = Eigen::MatrixXd::Identity(3, 3);
     ICP_Tmat = Eigen::MatrixXd::Zero(3, 1);
 
@@ -1124,6 +1152,9 @@ void GUI::init(std::string imagePath_, int debugMode) {
     viewer.core().set_rotation_type(igl::opengl::ViewerCore::RotationType::ROTATION_TYPE_NO_ROTATION);
     viewer.core().background_color << 0.7f, 0.7f, 0.75f, 1.0f;
         // viewer.core().is_animating = true;
+    int defaultMeshID = viewer.selected_data_index;
+    meshID = viewer.append_mesh();
+    viewer.selected_data_index = defaultMeshID;
     viewer.plugins.push_back(this);
     viewer.launch(true, false, "Zebrafish GUI", windowWidth, windowHeight);
 }

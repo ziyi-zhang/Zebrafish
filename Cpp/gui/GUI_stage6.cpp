@@ -7,6 +7,7 @@
 #include <zebrafish/ICP.h>
 
 #include <string>
+#include <map>
 
 
 namespace zebrafish {
@@ -57,6 +58,9 @@ void GUI::DrawStage6() {
         ////// DEBUG ONLY //////
     }
 
+    // Visualize meshes
+    DrawMarkerMesh();
+
     // Visualize reference points
     if (showReferencePoints) {
 
@@ -98,6 +102,7 @@ void GUI::DrawStage6() {
         ImGui::Checkbox("Show detected centers", &showMarkerPoints);
         ImGui::Checkbox("Show pattern centers", &showReferencePoints);
         ImGui::Checkbox("Show ICP correspondence", &showICPLines);
+        ImGui::Checkbox("Show mesh", &showMarkerMesh);
         ImGui::SliderInt("Point Size", &pointSize, 1, 30);
         ImGui::PopItemWidth();
 
@@ -190,14 +195,12 @@ void GUI::GenerateICPPattern() {
         for (int col=0; col<ICP_patternCols; col++) {
 
             refV(count, 0) = ICP_patternSpacing * double(col);
-            if (row & 1)  
+            if (row & 1)  // odd row
                 refV(count, 0) += ICP_patternSpacing / 2.0;
             refV(count, 1) = std::sqrt(3) / 2.0 * ICP_patternSpacing * double(row);
             refV(count, 2) = 1.0;
             count++;
         }
-
-    std::cout << refV << std::endl;
 }
 
 
@@ -220,7 +223,75 @@ void GUI::SearchICP() {
     ICP_matchIdx.resize(markerArray[0].num, 1);
 
     RMSerror = ICP::RunICP(markerPointLocArray[0].transpose(), refV_aligned.transpose(), ICP_Rmat, ICP_Tmat, ICP_matchIdx);
+    UpdateMarkerMesh();
     logger().info("RunICP error {}", RMSerror);
+}
+
+
+void GUI::UpdateMarkerMesh() {
+
+    int row, col, i, count;
+    std::map<int, int> indexMap;
+    const int N = ICP_matchIdx.size();
+    Eigen::MatrixXi tempMarkerMeshArray(N*2, 3);
+
+    for (i=0; i<N; i++) {
+        indexMap.insert({ICP_matchIdx(i), i});  // pattern idx -> marker idx
+    }
+
+    count = 0;
+    // iterate triangles pointing up
+        //    it3
+        //  it1  it2
+    for (row=0; row<=ICP_patternRows-2; row++)
+        for (col=0; col<=ICP_patternCols-2; col++) {
+
+              int refIdx = row * ICP_patternCols + col;
+            auto it1 = indexMap.find(refIdx);
+            if (it1 == indexMap.end()) continue;
+            auto it2 = indexMap.find(refIdx + 1);
+            if (it2 == indexMap.end()) continue;
+              refIdx += ICP_patternCols;
+              if (row & 1) refIdx++;  // odd row
+            auto it3 = indexMap.find(refIdx);
+            if (it3 == indexMap.end()) continue;
+
+            // we find a valid triangle
+            tempMarkerMeshArray(count, 0) = it1->second;
+            tempMarkerMeshArray(count, 1) = it2->second;
+            tempMarkerMeshArray(count, 2) = it3->second;
+            count++;
+    }
+    // iterate triangles pointing down
+        //  it1  it2
+        //    it3
+    for (row=1; row<=ICP_patternRows-1; row++)
+        for (col=0; col<=ICP_patternCols-2; col++) {
+
+              int refIdx = row * ICP_patternCols + col;
+            auto it1 = indexMap.find(refIdx);
+            if (it1 == indexMap.end()) continue;
+            auto it2 = indexMap.find(refIdx + 1);
+            if (it2 == indexMap.end()) continue;
+              refIdx -= ICP_patternCols;
+              if (row & 1) refIdx++;  // odd row
+            auto it3 = indexMap.find(refIdx);
+            if (it3 == indexMap.end()) continue;
+
+            // we find a valid triangle
+            tempMarkerMeshArray(count, 0) = it1->second;
+            tempMarkerMeshArray(count, 1) = it2->second;
+            tempMarkerMeshArray(count, 2) = it3->second;
+            count++;
+    }
+
+    // update mesh array
+    markerMeshArray.resize(count, 3);
+    markerMeshArray = tempMarkerMeshArray.block(0, 0, count, 3);
+    // DEBUG PURPOSE
+    // std::cout << "mesh array" << std::endl;
+    // std::cout << markerMeshArray << std::endl;
+    // std::cout << ICP_matchIdx.transpose() << std::endl;
 }
 
 
@@ -243,13 +314,13 @@ void GUI::UpdateRefPointManualAlignment() {
 
     assert(refV.size() > 0);
 
-    static RMat_t manualAlignRotMat;
-    manualAlignRotMat << std::cos(-ICP_angleRot), - std::sin(-ICP_angleRot), ICP_xDisp, 
+    static RMat_t manualAlignTransMat;
+    manualAlignTransMat << std::cos(-ICP_angleRot), - std::sin(-ICP_angleRot), ICP_xDisp, 
                          std::sin(-ICP_angleRot),   std::cos(-ICP_angleRot), ICP_yDisp, 
                          0.0,          0.0,            1.0;
 
     refV_aligned = refV.array() * ICP_scale;
-    refV_aligned = ( manualAlignRotMat * refV_aligned.transpose() ).transpose();
+    refV_aligned = ( manualAlignTransMat * refV_aligned.transpose() ).transpose();
 }
 
 
@@ -259,9 +330,8 @@ void GUI::UpdateRefPointLoc() {
     ///       ICP_Rmat.transpose() * ICP_Rmat = Identity
     refPointLoc = (ICP_Rmat.transpose() * (refV_aligned.transpose().colwise() - ICP_Tmat)).transpose();
 
-    std::cout << ICP_Rmat << std::endl;
-    std::cout << ICP_Tmat << std::endl;
-
+    // std::cout << ICP_Rmat << std::endl;
+    // std::cout << ICP_Tmat << std::endl;
     // std::cout << refPointLoc << std::endl;
 }
 

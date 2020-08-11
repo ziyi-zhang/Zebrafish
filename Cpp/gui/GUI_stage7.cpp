@@ -63,6 +63,9 @@ void GUI::DrawStage7() {
         ////// DEBUG ONLY //////
     }
 
+    // Visualize meshes
+    DrawMarkerMesh();
+
     ImGui::Separator(); /////////////////////////////////////////
 
     if (ImGui::CollapsingHeader("Load frames", ImGuiTreeNodeFlags_DefaultOpen)) {

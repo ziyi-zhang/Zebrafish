@@ -88,6 +88,7 @@ double ICP::RunICP(const Eigen::MatrixXd &p, const Eigen::MatrixXd &q, RMat_t &R
     T_res = Eigen::MatrixXd::Zero(3, 1);
 
     const int maxIt = 10;
+    printf("====== ICP ======");
     for (iter=0; iter<maxIt; iter++) {
 
         // Match closest point

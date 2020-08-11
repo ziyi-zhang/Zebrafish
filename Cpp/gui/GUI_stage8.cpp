@@ -61,6 +61,9 @@ void GUI::DrawStage8() {
         ////// DEBUG ONLY //////
     }
 
+    // Visualize meshes
+    DrawMarkerMesh();
+
     // visualize optical flow points
     // FIXME: DO NOT DO THIS
     if (showOpticalFlow) {

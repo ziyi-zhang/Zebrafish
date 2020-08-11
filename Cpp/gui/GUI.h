@@ -154,7 +154,7 @@ private:
 
     //////////////////////////////////////////////////
     // ICP
-    bool showMarkerPoints, showReferencePoints, showICPLines;
+    bool showMarkerPoints, showReferencePoints, showICPLines, showMarkerMesh;
     std::string patternFilename;
     int ICP_patternRef, ICP_patternRows, ICP_patternCols;
     double ICP_patternSpacing;
@@ -163,6 +163,8 @@ private:
     TMat_t ICP_Tmat;  // translation matrix
     Eigen::MatrixXd refPointLoc;  // visualization purpose
     Eigen::MatrixXd refV, refV_aligned;  // #refV * 3 reference point locations
+    Eigen::MatrixXi markerMeshArray;  // F matrix for mesh
+    int meshID;
     Eigen::VectorXi ICP_matchIdx;  // p[i] corresponds to q[ ICP_matchIdx[i] ]
 
     //////////////////////////////////////////////////
@@ -265,6 +267,7 @@ private:
     const int stageMax = 8;  // 8 stages (1..8)
 
     void Draw3DImage();
+    void DrawMarkerMesh();
     void DrawMainMenuBar();
     void DrawZebrafishPanel();
     void DrawMenuFile();
@@ -329,6 +332,7 @@ private:
     void GenerateICPPattern();
     void ResetICP();
     void SearchICP();
+    void UpdateMarkerMesh();
     void PreprocessPatternLoc();
     void UpdateRefPointManualAlignment();
     void UpdateRefPointLoc();
