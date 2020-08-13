@@ -164,10 +164,6 @@ void GUI::DrawStage3() {
         }
         ImGui::PopItemWidth();
     }
-
-    ImGui::Separator(); /////////////////////////////////////////
-
-    ImGui::Text("Stage 3: Grid Search");
 }
 
 

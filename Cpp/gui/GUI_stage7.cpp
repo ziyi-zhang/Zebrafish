@@ -92,10 +92,6 @@ void GUI::DrawStage7() {
             logger().debug("   <button> Run Optical Flow");
         }
     }
-
-    ImGui::Separator(); /////////////////////////////////////////
-
-    ImGui::Text("Stage 7: Optical Flow");
 }
 
 
@@ -120,19 +116,19 @@ void GUI::LoadSubsequentFrames() {
     // only support loading one channel
     std::vector<bool> channelVec(channelPerSlice, false);
     channelVec[channelToLoad] = true;
-
+    // Read all desired frame to "imgData"
     ReadTif(imagePath, layerPerImg, channelVec, desiredFrames, imgData, r0, c0, r1, c1);
     currentLoadedFrames = desiredFrames;
     // Update visualization array
     UpdateMarkerPointLocArray();
 
-    // quantile trim
+    // quantile curtail
     for (int i=0; i<currentLoadedFrames; i++) {
         double normalizeQuantileRes = QuantileImage(imgData[i], normalizeQuantile);
         NormalizeImage(imgData[i], normalizeQuantileRes);
-        ComputeCompressedTexture(imgData[i], i);
-        logger().info("[Quantile Trim] 3D Image (index = {}) normalized with normalizeQuantile =  {:.4f}  thres =  {:.4f}", i, normalizeQuantile, normalizeQuantileRes);
     }
+    // update compressed textures
+    ComputeCompressedTextureForAllLoadedFrames();
 }
 
 

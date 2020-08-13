@@ -96,10 +96,6 @@ void GUI::DrawStage8() {
             logger().debug("   <button> Find new locations");
         }
     }
-
-    ImGui::Separator(); /////////////////////////////////////////
-
-    ImGui::Text("Stage 8: Displacement");
 }
 
 

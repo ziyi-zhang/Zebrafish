@@ -57,11 +57,23 @@ void GUI::DrawStage1() {
 
         ImGui::PushItemWidth(zebrafishWidth / 3.0);
         ImGui::InputInt("Layers Per Image", &layerPerImg);
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("The number of layers in one frame.\nFor example there can be ten frames, and each frame is consisted of 40 2D images of size 1024x1024.");
+        }
         ImGui::InputInt("Channels Per Slice", &channelPerSlice);
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("The number of channels this image has.\nZebrafish will only use the data from one channel, but this information is required to properly load the image.");
+        }
         ImGui::InputInt("Frames", &ttlFrames);
-        if (ImGui::TreeNode("Advanced channel config")) {
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("The number of frames or timestamps");
+        }
+        if (ImGui::TreeNode("Advanced channel")) {
 
             ImGui::SliderInt("Which channel to load?", &channelToLoad, 0, channelPerSlice-1, "channel %d");
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Only the chosen channel will be used");
+            }
             ImGui::TreePop();
             ImGui::Separator();
         }
@@ -70,23 +82,28 @@ void GUI::DrawStage1() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    if (ImGui::CollapsingHeader("Depth Cropping", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("Depth Crop", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         ImGui::SliderInt("Slice index start", &layerBegin, 0, layerEnd);
         ImGui::SliderInt("Slice index end", &layerEnd, layerBegin, layerPerImg-1);
     }
+    if (showTooltip && ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Crop the 3D images for all frames in depth.\nOnly slices in this closed interval will be used.");
+    }
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    if (ImGui::CollapsingHeader("Area Cropping", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("Area Crop", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        if (ImGui::Checkbox("Enable Mouse Crop", &cropActive)) {
+        if (ImGui::Checkbox("Mouse crop", &cropActive)) {
             if (!cropActive) 
-                logger().info("Mouse crop: de-activated.");
+                logger().debug("Mouse crop: de-activated.");
             else
-                logger().info("Mouse crop: activated.");
+                logger().debug("Mouse crop: activated.");
         }
-        ImGui::Checkbox("Show cropped area", &showCropArea);
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Use mouse to select an area of interest.\nClick this once and move the mouse to the image. Click and hold. Drag the mouse to select an area. Release.\nThe area will be highlighted in a red box.");
+        }
         if (ImGui::Button("Reset crop area")) {
             r0 = -1;
             c0 = -1;
@@ -94,9 +111,13 @@ void GUI::DrawStage1() {
             c1 = -1;
             logger().debug("   <button> Reset crop area");
         }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Reset the area to be the entire 2D image");
+        }
 
-        if (ImGui::TreeNode("Detailed")) {
+        if (ImGui::TreeNode("Advanced area crop")) {
 
+            ImGui::Checkbox("Show cropped area", &showCropArea);
             ImGui::PushItemWidth(80);
             ImGui::InputInt("R0", &r0);
             ImGui::SameLine();
@@ -121,10 +142,21 @@ void GUI::DrawStage1() {
         ImGui::InputDouble("Resolution Z (um)", &resolutionZ);
         ImGui::PopItemWidth();
     }
+    if (showTooltip && ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("The physical distance of one pixel (in micrometers).\nResolution Z is the vertical distance between two frames.");
+    }
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    if (ImGui::Button("Save")) {
+    if (ImGui::Button("Reset")) {
+        ImageReadReset();
+        logger().debug("   <button> Reset");
+    }
+    if (showTooltip && ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Reset all parameters entered in this stage");
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Preview")) {
         if (imagePath.empty()) {
             logger().error("Error: ImagePath is empty");
             return;  // invalid operation
@@ -139,24 +171,47 @@ void GUI::DrawStage1() {
             sliceToShow = layerBegin;  // do not start with slice 0 anymore
 
             // brightness
-            double normalizeQuantileRes = QuantileImage(imgData[0], normalizeQuantile);
-            image_t tempImg = imgData[0];  // do not change "imgData" now
-            NormalizeImage(tempImg, normalizeQuantileRes);
             // re-compute compressed image texture
-            ComputeCompressedTexture(tempImg, 0);
-            showCropArea = false;  // turn this into false
+            switch (imageViewerCompressType) {
+                case COMPRESS_AVG:
+                    ComputeCompressedTextureAvg(imgData[0], 0);
+                    break;
+                case COMPRESS_MAX:
+                    ComputeCompressedTextureMax(imgData[0], 0);
+                    break;
+                default:
+                    assert(false);
+                    break;
+            }
 
             logger().info("Image reloaded");
         } else {
             logger().error("Error open tiff image (reload)");
             std::cerr << "Error open tiff image (reload)" << std::endl;
         }
-        logger().debug("   <button> Save");
+        logger().debug("   <button> Preview");
     }
+    if (showTooltip && ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Preview the image with the parameters entered in this page.\nThis will be the image used by upcoming stages.");
+    }
+}
 
-    ImGui::Separator(); /////////////////////////////////////////
 
-    ImGui::Text("Stage 1: image read");
+void GUI::ImageReadReset() {
+
+    layerPerImg = 40;
+    channelPerSlice = 2;
+    channelToLoad = 0;
+    layerBegin = 0;
+    layerEnd = layerPerImg - 1;
+    resolutionX = 0;
+    resolutionY = 0;
+    resolutionZ = 0;
+    r0 = -1;
+    c0 = -1;
+    r1 = -1;
+    c1 = -1;
+    showCropArea = true;
 }
 
 

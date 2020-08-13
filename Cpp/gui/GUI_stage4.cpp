@@ -117,10 +117,6 @@ void GUI::DrawStage4() {
         ImGui::PushItemWidth(zebrafishWidth * 0.75);
         ImGui::PopItemWidth();
     }
-
-    ImGui::Separator(); /////////////////////////////////////////
-
-    ImGui::Text("Stage 4: Optimization");
 }
 
 

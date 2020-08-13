@@ -15,6 +15,15 @@ namespace {
 
 void GUI::DrawStage2() {
 
+    static bool updateNormalizedTexture;
+    if (stage1to2Flag) {
+
+        showCropArea = false;
+        ComputeImgHist(imgData[0]);
+        updateNormalizedTexture = true;
+        stage1to2Flag = false;
+    }
+
     ImGui::Separator(); /////////////////////////////////////////
 
     if (ImGui::CollapsingHeader("Preprocess", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -46,19 +55,25 @@ void GUI::DrawStage2() {
 
         ImGui::PushItemWidth(zebrafishWidth * 0.75);
         ImGui::Text("Quantile Thres");
-        if (ImGui::SliderFloat("", &normalizeQuantile, 0.95, 0.999, "%.3f") || stage1to2Flag) {
+        if (ImGui::SliderFloat("", &normalizeQuantile, 0.95, 0.999, "%.3f") || updateNormalizedTexture) {
 
-            if (stage1to2Flag) ComputeImgHist(imgData[0]);
-            stage1to2Flag = false;
-
-            if (normalizeQuantile>0.999) normalizeQuantile = 0.999;
-            if (normalizeQuantile<0.95) normalizeQuantile = 0.95;
-            normalizeQuantileRes = QuantileImage(imgData[0], normalizeQuantile);
+            updateNormalizedTexture = false;
+            normalizeQuantileRes = QuantileImage(imgData[0], normalizeQuantile, layerBegin, layerEnd);
             image_t img_ = imgData[0];
             NormalizeImage(img_, normalizeQuantileRes);  // Do not modify "imgData[0]" now
-            logger().info("Trial: normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, normalizeQuantileRes);
+            logger().info("Slider trial: normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, normalizeQuantileRes);
 
-            ComputeCompressedTexture(img_, 0);
+            switch (imageViewerCompressType) {
+                case COMPRESS_AVG:
+                    ComputeCompressedTextureAvg(img_, 0);
+                    break;
+                case COMPRESS_MAX:
+                    ComputeCompressedTextureMax(img_, 0);
+                    break;
+                default:
+                    assert(false);
+                    break;
+            }
         }
         ImGui::PopItemWidth();
     }
@@ -86,7 +101,17 @@ void GUI::DrawStage2() {
             // put into effect
             normalizeQuantileRes = QuantileImage(imgData[0], normalizeQuantile);
             NormalizeImage(imgData[0], normalizeQuantileRes);
-            ComputeCompressedTexture(imgData[0], 0);
+            switch (imageViewerCompressType) {
+                case COMPRESS_AVG:
+                    ComputeCompressedTextureAvg(imgData[0], 0);
+                    break;
+                case COMPRESS_MAX:
+                    ComputeCompressedTextureMax(imgData[0], 0);
+                    break;
+                default:
+                    assert(false);
+                    break;
+            }
             logger().info("[Finalized] Image normalized with normalizeQuantile =  {:.4f}  thres =  {:.4f}", normalizeQuantile, normalizeQuantileRes);
 
             // Compute B-spline
@@ -97,10 +122,6 @@ void GUI::DrawStage2() {
             logger().debug("   <button> Compute B-spline");
         }
     }
-
-    ImGui::Separator(); /////////////////////////////////////////
-
-    ImGui::Text("Stage 2: Pre-process & B-spline");
 }
 
 

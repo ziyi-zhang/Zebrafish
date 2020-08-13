@@ -79,6 +79,7 @@ private:
     int stage;  // stage in zebrafish_panel
     int histBars;  // number of bars in histogram
     bool showBackgroundImage;
+    bool showTooltip;
 
     //////////////////////////////////////////////////
     // core
@@ -187,6 +188,7 @@ private:
     Eigen::MatrixXd V;
     Eigen::MatrixXi F;
     int imageViewerType;
+    int imageViewerCompressType;
 
     //////////////////////////////////////////////////
     // [mouse pick] crop image
@@ -272,6 +274,7 @@ private:
     void DrawZebrafishPanel();
     void DrawMenuFile();
     void DrawMenuWindow();
+    void DrawMenuHelp();
     
     void DrawWindowLog();
     void DrawWindow3DImageViewer();
@@ -279,13 +282,16 @@ private:
     void DrawWindowGraphics();
 
     // shared
-    void ComputeCompressedTexture(const image_t &img_, int index);
+    void ComputeCompressedTextureAvg(const image_t &img_, int index);
+    void ComputeCompressedTextureMax(const image_t &img_, int index);
+    void ComputeCompressedTextureForAllLoadedFrames();
     void UpdateMarkerPointLocArray();
     void MarkerDepthCorrection(int frameIdx, int num = 2, double gap = 0.5);
     void NormalizeImage(image_t &image, double thres);
 
     //////////////////////////////////////////////////
     // Stage 1 Image Read
+    void ImageReadReset();
     void CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype);
     void DrawRect(double x0, double y0, double x1, double y1, const Eigen::MatrixXd &lineColor);
 

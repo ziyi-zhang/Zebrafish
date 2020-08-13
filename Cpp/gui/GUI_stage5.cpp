@@ -337,8 +337,6 @@ void GUI::DrawStage5() {
         ImGui::TreePop();
         ImGui::Separator();
     }
-
-    ImGui::Text("Stage 5: Filter & Cluster");
 }
 
 

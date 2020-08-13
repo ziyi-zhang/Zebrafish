@@ -22,6 +22,11 @@ enum REJECT_MODE {
     REJECT_AREA   = 1
 };
 
+enum COMPRESS_METHOD {
+    COMPRESS_MAX = 0,
+    COMPRESS_AVG = 1
+};
+
 ///////////
 // types //
 ///////////

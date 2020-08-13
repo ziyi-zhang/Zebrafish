@@ -213,7 +213,6 @@ bool GUI::MouseDownCallback(igl::opengl::glfw::Viewer &viewer, int button, int m
 
         Eigen::Vector2f mouse;
         mouse << viewer.down_mouse_x, viewer.down_mouse_y;
-        logger().info("Mouse down call back");
         CropImage(mouse, MOUSEDOWN);
 
         // disable ligigl default mouse_down
@@ -318,12 +317,7 @@ void GUI::Draw3DImage() {
             // if depth crop has updated
             // Note: only frame 0 in stage 1 could reach here
 
-            logger().debug(" >>> quantile");
-            image_t tempImg = imgData[0];  // do not change "imgData" now
-            NormalizeImage(tempImg, 0.45);  // why dont use "normalizeQuantile"? would waste 1 second to compute the accurate value
-            logger().debug(" <<< quantile");
-
-            ComputeCompressedTexture(tempImg, 0);
+            ComputeCompressedTextureMax(imgData[0], 0);
             layerBegin_cache = layerBegin;
             layerEnd_cache = layerEnd;
         }
@@ -398,7 +392,35 @@ void GUI::DrawZebrafishPanel() {
         if (stage == 5) stage4to5Flag = true;
         if (stage == 6) stage5to6Flag = true;
     }
-    ImGui::Text("Stage %d", stage);
+    switch (stage) {
+    case 1:
+        ImGui::Text("Stage 1: Image Data");
+        break;
+    case 2:
+        ImGui::Text("Stage 2: Pre-process & B-spline");
+        break;
+    case 3:
+        ImGui::Text("Stage 3: Grid Search");
+        break;
+    case 4:
+        ImGui::Text("Stage 4: Optimization");
+        break;
+    case 5:
+        ImGui::Text("Stage 5: Filter & Cluster");
+        break;
+    case 6:
+        ImGui::Text("Stage 6: Mesh");  // iterative closest point
+        break;
+    case 7:
+        ImGui::Text("Stage 7: Estimate Movement");  // optical flow
+        break;
+    case 8:
+        ImGui::Text("Stage 8: Determine Displacement");
+        break;
+    default:
+        assert(false);
+        break;
+    }
 
     // Stage specific GUI
     ImGui::Separator();
@@ -453,6 +475,10 @@ void GUI::DrawMainMenuBar() {
             DrawMenuWindow();
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Help")) {
+            DrawMenuHelp();
+            ImGui::EndMenu();
+        }
         mainMenuHeight = ImGui::GetWindowHeight();
         ImGui::EndMainMenuBar();
     }
@@ -460,7 +486,7 @@ void GUI::DrawMainMenuBar() {
 
 
 void GUI::DrawMenuFile() {
-// [ New ] [ Open ] [Close]
+// [ New ] [ Open ] [ Close ]
 // Accessed from [ Main menu - File ]
 
     ImGui::MenuItem("New", NULL, false, false);
@@ -501,6 +527,14 @@ void GUI::DrawMenuWindow() {
     ImGui::Separator();
 
     ImGui::MenuItem("Graphics", NULL, &show_graphics);
+}
+
+
+void GUI::DrawMenuHelp() {
+// [ tooltip ]
+// Accessed from [ Main menu - Help ]
+
+    ImGui::MenuItem("Tooltip", NULL, &showTooltip);
 }
 
 
@@ -610,6 +644,19 @@ void GUI::DrawWindow3DImageViewer() {
         ImGui::Text("layers per image = %d", layerPerImg);
         ImGui::Text("channels per slice = %d", channelPerSlice);
         ImGui::Text("Rows = %d  Cols = %d", imgRows, imgCols);
+
+        ImGui::Separator(); ////////////////////////
+        if (ImGui::TreeNode("Advanced viewer")) {
+
+            ImGui::PushItemWidth(RHSPanelWidth/2.0);
+            std::vector<std::string> typeName{"Max", "Mean"};
+            if (ImGui::Combo("Compress (flatten) method", &imageViewerCompressType, typeName)) {
+                ComputeCompressedTextureForAllLoadedFrames();
+            }
+            ImGui::PopItemWidth();
+            ImGui::TreePop();
+            ImGui::Separator();
+        }
 
     } else {
 
@@ -745,8 +792,9 @@ void GUI::DrawWindowGraphics() {
 // shared
 
 
-void GUI::ComputeCompressedTexture(const image_t &img_, int index) {
-/// Compress "img_" and store the result to "compressedImgTextureArray [index] "
+void GUI::ComputeCompressedTextureAvg(const image_t &img_, int index) {
+/// Compress "img_" and store the result to "compressedImgTextureArray[index]"
+/// Flatten by taking the average of all slices
 
     const int num = img_.size();
     assert(num > 0);
@@ -765,7 +813,51 @@ void GUI::ComputeCompressedTexture(const image_t &img_, int index) {
     compressedImgTextureArray[index] = (compressed.array() * (255.0 / double(layerEnd-layerBegin+1))).cast<unsigned char>();
     compressedImgTextureArray[index].transposeInPlace();
 
-    logger().info("Compressed image texture (index = {}) re-computed: slice index {} to {}", index, layerBegin, layerEnd);
+    logger().info("Compressed (avg) image texture (index = {}) re-computed: slice index {} to {}", index, layerBegin, layerEnd);
+}
+
+
+void GUI::ComputeCompressedTextureMax(const image_t &img_, int index) {
+/// Compress "img_" and store the result to "compressedImgTextureArray[index]"
+/// Flatten by taking the max of all slices
+
+    const int num = img_.size();
+    assert(num > 0);
+    assert(layerBegin >= 0 && layerBegin < num);
+    assert(layerEnd >=0 && layerEnd < num);
+    assert(layerBegin <= layerEnd);
+    const int imgRows_ = img_[0].rows();
+    const int imgCols_ = img_[0].cols();
+
+    Eigen::MatrixXd compressed;
+    compressed = Eigen::MatrixXd::Zero(imgRows_, imgCols_);
+    for (int i=layerBegin; i<=layerEnd; i++) {
+        compressed = compressed.cwiseMax(img_[i]);
+    }
+
+    compressedImgTextureArray[index] = (compressed.array() * 255.0).cast<unsigned char>();
+    compressedImgTextureArray[index].transposeInPlace();
+
+    logger().info("Compressed (max) image texture (index = {}) re-computed: slice index {} to {}", index, layerBegin, layerEnd);
+}
+
+
+void GUI::ComputeCompressedTextureForAllLoadedFrames() {
+
+    for (int i=0; i<currentLoadedFrames; i++) {
+        
+        switch (imageViewerCompressType) {
+            case COMPRESS_AVG:
+                ComputeCompressedTextureAvg(imgData[i], i);
+                break;
+            case COMPRESS_MAX:
+                ComputeCompressedTextureMax(imgData[i], i);
+                break;
+            default:
+                assert(false);
+                break;
+        }
+    }
 }
 
 
@@ -945,6 +1037,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     stage = 1;
     histBars = 50;
     showBackgroundImage = true;
+    showTooltip = true;
 
     // image (imageData)
     layerPerImg = 40;  // a random guess to preview the image file
@@ -978,7 +1071,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 
     // optimization
     showOptimizedPoints = true;
-    optimEnergyThres = -0.1;
+    optimEnergyThres = -0.08;
     optimEpsilon = 1e-4;
     optimMaxIt = 50;
     optimPointLoc.resize(1, 3);
@@ -1005,7 +1098,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     showMarkerPoints = true;
     showReferencePoints = true;
     showICPLines = true;
-    showMarkerMesh = false;
+    showMarkerMesh = true;
     ICP_patternRows = 0;
     ICP_patternCols = 0;
     ICP_patternSpacing = 18.0;
@@ -1035,6 +1128,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     V.resize(4, 3);
     F.resize(2, 3);
     imageViewerType = 0;
+    imageViewerCompressType = COMPRESS_MAX;
 
     // crop image
     cropActive = false;
@@ -1079,7 +1173,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 
     // bool flag indicating whether the panel is being rendered
     show_log = false;
-    show_3DImage_viewer = false;
+    show_3DImage_viewer = true;
     show_property_editor = false;
     show_graphics = false;
 

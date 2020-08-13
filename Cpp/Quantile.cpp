@@ -5,7 +5,7 @@
 
 namespace zebrafish {
 
-double QuantileImage(const zebrafish::image_t &image, double q) {
+double QuantileImage(const zebrafish::image_t &image, double q, int layerBegin, int layerEnd) {
 
     int i, j, depth;
     int N = image.size();
@@ -13,7 +13,12 @@ double QuantileImage(const zebrafish::image_t &image, double q) {
     int num = floor((1.0-q) * N * M);  // target number for quantile(q)
     std::priority_queue<double, std::vector<double>, std::greater<double> > heap;
 
-    for (depth=0; depth<N; depth++) {
+    if (layerBegin == -1 || layerEnd == -1) {
+        layerBegin = 0;
+        layerEnd = N-1;
+    }
+
+    for (depth=layerBegin; depth<=layerEnd; depth++) {
 
         const Eigen::MatrixXd &layer = image[depth];  // alias
         for (i=0; i<layer.size(); i++) {

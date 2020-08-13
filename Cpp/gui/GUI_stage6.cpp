@@ -168,10 +168,6 @@ void GUI::DrawStage6() {
             logger().debug("   <button> Run ICP");
         }
     }
-
-    ImGui::Separator(); /////////////////////////////////////////
-
-    ImGui::Text("Stage 6: ICP");
 }
 
 
