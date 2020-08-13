@@ -99,7 +99,7 @@ void GUI::DrawStage2() {
 
             // IMPORTANT: The effect of quantile does not affect the raw data until now
             // put into effect
-            normalizeQuantileRes = QuantileImage(imgData[0], normalizeQuantile);
+            normalizeQuantileRes = QuantileImage(imgData[0], normalizeQuantile, layerBegin, layerEnd);
             NormalizeImage(imgData[0], normalizeQuantileRes);
             switch (imageViewerCompressType) {
                 case COMPRESS_AVG:

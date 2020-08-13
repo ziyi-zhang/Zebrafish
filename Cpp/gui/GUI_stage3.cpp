@@ -15,9 +15,9 @@ namespace zebrafish {
 
 namespace {
 
-bool ValidGridSearchPoint(const image_t &image, const bspline &bsp, double x, double y, double z, double r) {
+bool ValidGridSearchPoint(const image_t &image, int layerBegin, int layerEnd, const bspline &bsp, double x, double y, double z, double r) {
 
-    static const double thres = QuantileImage(image, 0.85);
+    static const double thres = QuantileImage(image, 0.85, layerBegin, layerEnd);
 
     // valid cylinder
     if (!cylinder::IsValid(bsp, x, y, z, r, 3.0)) return false;
@@ -197,7 +197,7 @@ void GUI::GridSearch() {
                     yy = iy * gapY_grid;
                     zz = iz * gapZ_grid;
                     rr = rArray(ir);
-                    if (!ValidGridSearchPoint(imgData[0], bsplineArray[0], xx, yy, zz, rr)) continue;
+                    if (!ValidGridSearchPoint(imgData[0], layerBegin, layerEnd, bsplineArray[0], xx, yy, zz, rr)) continue;
 
                     gridSampleInput(sampleCount, 0) = xx;
                     gridSampleInput(sampleCount, 1) = yy;

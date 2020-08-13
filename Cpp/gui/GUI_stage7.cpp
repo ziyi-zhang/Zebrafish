@@ -124,7 +124,7 @@ void GUI::LoadSubsequentFrames() {
 
     // quantile curtail
     for (int i=0; i<currentLoadedFrames; i++) {
-        double normalizeQuantileRes = QuantileImage(imgData[i], normalizeQuantile);
+        double normalizeQuantileRes = QuantileImage(imgData[i], normalizeQuantile, layerBegin, layerEnd);
         NormalizeImage(imgData[i], normalizeQuantileRes);
     }
     // update compressed textures

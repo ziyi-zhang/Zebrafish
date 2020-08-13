@@ -646,12 +646,19 @@ void GUI::DrawWindow3DImageViewer() {
         ImGui::Text("Rows = %d  Cols = %d", imgRows, imgCols);
 
         ImGui::Separator(); ////////////////////////
+
         if (ImGui::TreeNode("Advanced viewer")) {
 
             ImGui::PushItemWidth(RHSPanelWidth/2.0);
             std::vector<std::string> typeName{"Max", "Mean"};
             if (ImGui::Combo("Compress (flatten) method", &imageViewerCompressType, typeName)) {
                 ComputeCompressedTextureForAllLoadedFrames();
+            }
+
+            if (imageViewerCompressType == COMPRESS_AVG) {
+                ImGui::SliderFloat("Darken factor", &imageViewerDarkenFactor_avg, 1.0, 3.0);
+            } else if (imageViewerCompressType == COMPRESS_MAX) {
+                ImGui::SliderFloat("Darken factor", &imageViewerDarkenFactor_max, 1.0, 3.0);
             }
             ImGui::PopItemWidth();
             ImGui::TreePop();
@@ -810,7 +817,7 @@ void GUI::ComputeCompressedTextureAvg(const image_t &img_, int index) {
         compressed += img_[i];
     }
 
-    compressedImgTextureArray[index] = (compressed.array() * (255.0 / double(layerEnd-layerBegin+1))).cast<unsigned char>();
+    compressedImgTextureArray[index] = (compressed.array() * (255.0 / double(layerEnd-layerBegin+1) / imageViewerDarkenFactor_avg)).cast<unsigned char>();
     compressedImgTextureArray[index].transposeInPlace();
 
     logger().info("Compressed (avg) image texture (index = {}) re-computed: slice index {} to {}", index, layerBegin, layerEnd);
@@ -835,7 +842,7 @@ void GUI::ComputeCompressedTextureMax(const image_t &img_, int index) {
         compressed = compressed.cwiseMax(img_[i]);
     }
 
-    compressedImgTextureArray[index] = (compressed.array() * 255.0).cast<unsigned char>();
+    compressedImgTextureArray[index] = (compressed.array() * 255.0 / imageViewerDarkenFactor_max).cast<unsigned char>();
     compressedImgTextureArray[index].transposeInPlace();
 
     logger().info("Compressed (max) image texture (index = {}) re-computed: slice index {} to {}", index, layerBegin, layerEnd);
@@ -1071,13 +1078,13 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 
     // optimization
     showOptimizedPoints = true;
-    optimEnergyThres = -0.08;
+    optimEnergyThres = -0.1;
     optimEpsilon = 1e-4;
     optimMaxIt = 50;
     optimPointLoc.resize(1, 3);
 
     // cylinder filter
-    cylinderEnergyThres = -0.15;
+    cylinderEnergyThres = -0.1;
     cylinderRadiusThres = 5.0;
     cylinderIterThres = optimMaxIt;
     showCylFilterPoints = true;
@@ -1129,6 +1136,8 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     F.resize(2, 3);
     imageViewerType = 0;
     imageViewerCompressType = COMPRESS_MAX;
+    imageViewerDarkenFactor_avg = 1.0;
+    imageViewerDarkenFactor_max = 1.4;
 
     // crop image
     cropActive = false;

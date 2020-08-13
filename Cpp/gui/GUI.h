@@ -189,6 +189,7 @@ private:
     Eigen::MatrixXi F;
     int imageViewerType;
     int imageViewerCompressType;
+    float imageViewerDarkenFactor_max, imageViewerDarkenFactor_avg;
 
     //////////////////////////////////////////////////
     // [mouse pick] crop image
