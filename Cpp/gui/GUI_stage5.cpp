@@ -153,17 +153,6 @@ void GUI::DrawStage5() {
     }
 
     ImGui::Separator(); /////////////////////////////////////////
-
-    ImGui::Checkbox("Show cylinder filtered locations", &showCylFilterPoints);
-    ImGui::Checkbox("Show cluster filtered locations", &showClusterFilterPoints);
-
-    ImGui::Separator(); /////////////////////////////////////////
-
-    ImGui::PushItemWidth(zebrafishWidth / 3.0);
-    ImGui::SliderInt("Point Size", &filterPointSize, 1, 30);
-    ImGui::PopItemWidth();
-
-    ImGui::Separator(); /////////////////////////////////////////
     
     // ----------------------------------------------------------
 
@@ -194,7 +183,10 @@ void GUI::DrawStage5() {
         );
         drawList->PopClipRect();
         ImGui::PopItemWidth();
-        ImGui::SliderFloat("energy threshold", &cylinderEnergyThres, cylEnergyHist.minValue, cylEnergyHist.maxValue);
+        ImGui::SliderFloat(" ", &cylinderEnergyThres, cylEnergyHist.minValue, cylEnergyHist.maxValue);
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Energy threshold. Cylinders with higher energy will be discarded.");
+        }
 
         ImGui::Separator(); /////////////////////////////////////////
 
@@ -219,32 +211,47 @@ void GUI::DrawStage5() {
         );
         drawList->PopClipRect();
         ImGui::PopItemWidth();
-        ImGui::SliderFloat("maximum radius", &cylinderRadiusThres, cylRadiusHist.minValue, cylRadiusHist.maxValue, "%.2f pixels");
+        ImGui::SliderFloat("  ", &cylinderRadiusThres, cylRadiusHist.minValue, cylRadiusHist.maxValue, "%.2f pixels");
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Maximum radius. Cylinders with larger radii will be discarded.");
+        }
         
         ImGui::Separator(); /////////////////////////////////////////
 
-        // Histogram of cylinder radius
-        ImGui::Text("Histogram of optimization iterations");
+        if (ImGui::TreeNode("Advanced cylinder filter")) {
+        
+            // Histogram of iterations
+            ImGui::Text("Histogram of optimization iterations");
 
-        ImGui::PushItemWidth(width + 2);
+            ImGui::PushItemWidth(width + 2);
 
-        before = ImGui::GetCursorScreenPos();
-        ImGui::PlotHistogram("", cylIterHist.hist.data(), cylIterHist.hist.size(), 0, NULL, 0, cylIterHist.hist.maxCoeff(), ImVec2(0, 80));
-        after = ImGui::GetCursorScreenPos();
-        after.y -= ImGui::GetStyle().ItemSpacing.y;
+            before = ImGui::GetCursorScreenPos();
+            ImGui::PlotHistogram("", cylIterHist.hist.data(), cylIterHist.hist.size(), 0, NULL, 0, cylIterHist.hist.maxCoeff(), ImVec2(0, 80));
+            after = ImGui::GetCursorScreenPos();
+            after.y -= ImGui::GetStyle().ItemSpacing.y;
 
-        ratio = ((cylinderIterThres-cylIterHist.minValue)/(cylIterHist.maxValue-cylIterHist.minValue));
-        ratio = std::min(1.0f, std::max(0.0f, ratio));
-        drawList->PushClipRectFullScreen();
-        drawList->AddLine(
-            ImVec2(before.x + width * ratio, before.y), 
-            ImVec2(before.x + width * ratio, after.y), 
-            IM_COL32(50, 205, 50, 255), 
-            2.0f
-        );
-        drawList->PopClipRect();
-        ImGui::PopItemWidth();
-        ImGui::SliderInt("maximum iteration", &cylinderIterThres, 1, optimMaxIt, "%d iterations");
+            ratio = ((cylinderIterThres-cylIterHist.minValue)/(cylIterHist.maxValue-cylIterHist.minValue));
+            ratio = std::min(1.0f, std::max(0.0f, ratio));
+            drawList->PushClipRectFullScreen();
+            drawList->AddLine(
+                ImVec2(before.x + width * ratio, before.y), 
+                ImVec2(before.x + width * ratio, after.y), 
+                IM_COL32(50, 205, 50, 255), 
+                2.0f
+            );
+            drawList->PopClipRect();
+            ImGui::PopItemWidth();
+            ImGui::SliderInt("   ", &cylinderIterThres, 1, optimMaxIt, "%d iterations");
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Maximum iteration. Cylinders that failed to converge within the iteration limit will be discarded.");
+            }
+
+            // more
+            ImGui::Text("More filters to be implemented...");
+
+            ImGui::TreePop();
+            ImGui::Separator();
+        }
     }
 
     ImGui::Separator(); /////////////////////////////////////////
@@ -253,14 +260,19 @@ void GUI::DrawStage5() {
 
     if (ImGui::CollapsingHeader("Cluster Filter", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        if (ImGui::TreeNode("Advanced cluster config")) {
+        if (ImGui::TreeNode("Advanced cluster")) {
 
+            const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+            ImGui::PushItemWidth(inputWidth);
             ImGui::InputFloat("Cluster dist thres", &clusterDistThres);
+            ImGui::PopItemWidth();
 
             ImGui::TreePop();
             ImGui::Separator();
         }
 
+        const float inputWidth = ImGui::GetWindowWidth() / 2.0;
+        ImGui::PushItemWidth(inputWidth);
         if (ImGui::Button("Cluster")) {
             
             Cluster();
@@ -272,6 +284,10 @@ void GUI::DrawStage5() {
             showCylFilterPoints = false;
             showClusterFilterPoints = true;
             logger().debug("   <button> Cluster");
+        }
+        ImGui::PopItemWidth();
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Cluster the cylinders into groups.\nNote re-cluster is necessary if cylinder filter has been changed.");
         }
         
         ImGui::Separator(); /////////////////////////////////////////
@@ -300,39 +316,75 @@ void GUI::DrawStage5() {
         );
         drawList->PopClipRect();
         ImGui::PopItemWidth();
-        ImGui::SliderInt("Minimal cluster size", &clusterSizeThres, clusterSizeHist.minValue, clusterSizeHist.maxValue);
-        
-        ImGui::Separator();
-    }
+        ImGui::SliderInt("    ", &clusterSizeThres, clusterSizeHist.minValue, clusterSizeHist.maxValue);
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Minimum size. Cluster consisted of fewer cylinders will be discarded.");
+        }
 
-    ImGui::Separator(); /////////////////////////////////////////
+        ImGui::Separator(); /////////////////////////////////////////
 
-    if (ImGui::CollapsingHeader("Mouse Reject", ImGuiTreeNodeFlags_DefaultOpen)) {
-    
-        std::vector<std::string> typeName{"Single cluster", "Area clusters"};
-        ImGui::Combo("Reject mode", &rejectMode, typeName);
+        // Mouse reject
         ImGui::Checkbox("Mouse reject", &rejectActive);
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Manually reject unwanted clusters.\nClick this checkbox and move the cursor to the image. Selected clusters will be highlighted. Click the mouse to reject them.");
+        }
 
         if (ImGui::TreeNode("Advanced mouse pick")) {
 
-            ImGui::InputDouble("Mouse pick radius square", &mousePickDistSquareThres);
-            ImGui::TreePop();
-            ImGui::Separator();
-        }
+            const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+            ImGui::PushItemWidth(inputWidth);
 
-        ImGui::Separator();
-    }
+            std::vector<std::string> typeName{"Single cluster", "Area clusters"};
+            ImGui::Combo("Reject mode", &rejectMode, typeName);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Single cluster will only reject one nearest cluster at one mouse click.\nArea cluster will reject all adjacent clusters at one mouse click.");
+            }
+            ImGui::InputDouble("Mouse pick radius (squared)", &mousePickDistSquareThres, 0.0, 0.0, "%.2f");
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Mouse pick will only highlight and reject clusters within the specified radius.\nNote the input should be the square of the threshold radius. The unit is in pixel squared.");
+            }
+
+            ImGui::PopItemWidth();
+            
+            ImGui::TreePop();
+            // ImGui::Separator();  // end of collapsing header
+        }
+    }  // collapsing header: cluster filter
 
     ImGui::Separator(); /////////////////////////////////////////
+    ImGui::Separator(); /////////////////////////////////////////
 
-    if (ImGui::TreeNode("Advanced finalize")) {
-    
-        ImGui::InputFloat("Finalize cluster dist thres", &finalizeClusterDistThres);
+    if (ImGui::TreeNode("Advanced post-cluster")) {
+
+        const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+        ImGui::PushItemWidth(inputWidth);
+
+        ImGui::InputFloat("Finalize cluster dist threshold", &finalizeClusterDistThres);
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Clusters whose xy-plane distance smaller than this threshold will be grouped to calculate the final location of a marker.\nThe unit is in pixels.");
+        }
         if (ImGui::Button("Finalize cluster locations")) {
             FinalizeClusterLoc();
             propertyListType = 2;
             logger().debug("   <button> Finalize cluster locations");
         }
+        
+        ImGui::PopItemWidth();
+
+        ImGui::TreePop();
+        ImGui::Separator();
+    }
+
+    if (ImGui::TreeNode("Advanced visualization")) {
+
+        const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+        ImGui::PushItemWidth(inputWidth);
+
+        ImGui::Checkbox("Show cylinder filtered locations", &showCylFilterPoints);
+        ImGui::Checkbox("Show cluster filtered locations", &showClusterFilterPoints);
+        ImGui::SliderInt("Point Size", &filterPointSize, 1, 30);
+        
+        ImGui::PopItemWidth();
 
         ImGui::TreePop();
         ImGui::Separator();

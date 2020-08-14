@@ -110,7 +110,7 @@ void GUI::DrawStage3() {
             ImGui::Separator();
         }
 
-        if (ImGui::Button("Run Grid Search")) {
+        if (ImGui::Button("Start Grid Search")) {
 
             GridSearch();
             // register results to "pointRecord"
@@ -118,7 +118,10 @@ void GUI::DrawStage3() {
             UpdatePromisingPointLoc();
             UpdateGridEnergyHist();
 
-            logger().debug("   <button> Run Grid Search");
+            logger().debug("   <button> Start Grid Search");
+        }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Start grid search with the specified resolution. This may take some time.");
         }
     }
 
@@ -126,14 +129,8 @@ void GUI::DrawStage3() {
 
     if (ImGui::CollapsingHeader("Grid Search Result", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        ImGui::Checkbox("Show promising locations", &showPromisingPoints);
-
-        ImGui::PushItemWidth(zebrafishWidth / 3.0);
-        ImGui::SliderInt("Point Size", &gridSearchPointSize, 1, 30);
-        ImGui::PopItemWidth();
-
         // Histogram
-        ImGui::Text("Histogram of energy");
+        ImGui::Text("Histogram of grid search energy");
 
         const float width = ImGui::GetWindowWidth() * 0.75f - 2;
         ImGui::PushItemWidth(width + 2);
@@ -157,12 +154,27 @@ void GUI::DrawStage3() {
         ImGui::PopItemWidth();
 
         ImGui::PushItemWidth(zebrafishWidth * 0.75);
-        ImGui::Text("Grid Search Energy Threshold");
+        ImGui::Text("Grid search energy threshold");
         if (ImGui::SliderFloat("", &gridEnergyThres, gridEnergyHist.minValue, gridEnergyHist.maxValue, "%.3f")) {
 
             UpdateSampleNewton(gridSampleInput, gridSampleOutput);
         }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Set the grid search energy threshold. The next stage only optimizes points with smaller energy.\nA large threshold makes the detection more stable.\nA small threshold makes optimization faster.");
+        }
         ImGui::PopItemWidth();
+
+        if (ImGui::TreeNode("Advanced visualization")) {
+
+            const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+            ImGui::PushItemWidth(inputWidth);
+            ImGui::Checkbox("Show grid search promising location", &showPromisingPoints);
+            ImGui::SliderInt("Point Size", &gridSearchPointSize, 1, 30);
+            ImGui::PopItemWidth();
+            
+            ImGui::TreePop();
+            ImGui::Separator();
+        }
     }
 }
 

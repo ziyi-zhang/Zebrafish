@@ -64,12 +64,42 @@ void GUI::DrawStage4() {
 
     if (ImGui::CollapsingHeader("Optimization", ImGuiTreeNodeFlags_DefaultOpen)) {
         
-        if (ImGui::TreeNode("Advanced optim config")) {
+        if (ImGui::TreeNode("Advanced optimization")) {
             
             const float inputWidth = ImGui::GetWindowWidth() / 3.0;
             ImGui::PushItemWidth(inputWidth);
             ImGui::InputDouble("BFGS epsilon", &optimEpsilon);
             ImGui::InputDouble("BFGS max iter", &optimMaxIt);
+            ImGui::PopItemWidth();
+
+            // whether to show
+            ImGui::Checkbox("Show optimized locations", &showOptimizedPoints);
+
+            ImGui::PushItemWidth(zebrafishWidth / 3.0);
+            ImGui::SliderInt("Point Size", &optimPointSize, 1, 30);
+            ImGui::PopItemWidth();
+
+            // Histogram
+            ImGui::Text("Histogram of energy");
+
+            const float width = ImGui::GetWindowWidth() * 0.75f - 2;
+            ImGui::PushItemWidth(width + 2);
+
+            ImVec2 before = ImGui::GetCursorScreenPos();
+            ImGui::PlotHistogram("", optimEnergyHist.hist.data(), optimEnergyHist.hist.size(), 0, NULL, 0, optimEnergyHist.hist.maxCoeff(), ImVec2(0, 80));
+            ImVec2 after = ImGui::GetCursorScreenPos();
+            after.y -= ImGui::GetStyle().ItemSpacing.y;
+
+            float ratio = 0.0f;
+            ImDrawList *drawList = ImGui::GetWindowDrawList();
+            drawList->PushClipRectFullScreen();
+            drawList->AddLine(
+                ImVec2(before.x + width * ratio, before.y), 
+                ImVec2(before.x + width * ratio, after.y), 
+                IM_COL32(50, 205, 50, 255), 
+                2.0f
+            );
+            drawList->PopClipRect();
             ImGui::PopItemWidth();
             
             ImGui::TreePop();
@@ -84,38 +114,9 @@ void GUI::DrawStage4() {
 
             logger().debug("   <button> Optimization");
         }
-
-        ImGui::Checkbox("Show optimized locations", &showOptimizedPoints);
-
-        ImGui::PushItemWidth(zebrafishWidth / 3.0);
-        ImGui::SliderInt("Point Size", &optimPointSize, 1, 30);
-        ImGui::PopItemWidth();
-
-        // Histogram
-        ImGui::Text("Histogram of energy");
-
-        const float width = ImGui::GetWindowWidth() * 0.75f - 2;
-        ImGui::PushItemWidth(width + 2);
-
-        ImVec2 before = ImGui::GetCursorScreenPos();
-        ImGui::PlotHistogram("", optimEnergyHist.hist.data(), optimEnergyHist.hist.size(), 0, NULL, 0, optimEnergyHist.hist.maxCoeff(), ImVec2(0, 80));
-        ImVec2 after = ImGui::GetCursorScreenPos();
-        after.y -= ImGui::GetStyle().ItemSpacing.y;
-
-        float ratio = 0.0f;
-        ImDrawList *drawList = ImGui::GetWindowDrawList();
-        drawList->PushClipRectFullScreen();
-        drawList->AddLine(
-            ImVec2(before.x + width * ratio, before.y), 
-            ImVec2(before.x + width * ratio, after.y), 
-            IM_COL32(50, 205, 50, 255), 
-            2.0f
-        );
-        drawList->PopClipRect();
-        ImGui::PopItemWidth();
-
-        ImGui::PushItemWidth(zebrafishWidth * 0.75);
-        ImGui::PopItemWidth();
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Start optimization with the specified precision. This may take some time.");
+        }
     }
 }
 

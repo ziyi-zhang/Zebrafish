@@ -95,7 +95,7 @@ struct PropertyEditorItem {
                 res = true;
             }
         } else {
-            if (ImGui::Checkbox(" inalid", &clusterRecord.alive(uid))) {
+            if (ImGui::Checkbox(" invalid", &clusterRecord.alive(uid))) {
                 res = true;
             }
         }
@@ -348,6 +348,7 @@ void GUI::DrawMarkerMesh() {
     // do not draw if not needed
     if (!showMarkerMesh) return;
     if (markerMeshArray.size() == 0 || markerPointLocArray.empty()) return;
+    if (stage < 6) return;  // do not visualize mesh before stage 6: mesh
 
     // show mesh
     static Eigen::MatrixXd tempV;
@@ -357,7 +358,7 @@ void GUI::DrawMarkerMesh() {
     viewer.data(meshID).show_lines = true;
     viewer.data(meshID).show_texture = false;
     // viewer.data(meshID).set_colors(Eigen::RowVector3d(0.78, 0.82, 0.83));
-    viewer.data(meshID).line_width = 3.0;
+    viewer.data(meshID).line_width = lineWidth;
     viewer.data(meshID).shininess = 0;
     viewer.data(meshID).set_mesh(
         tempV,  // mesh V
@@ -649,7 +650,7 @@ void GUI::DrawWindow3DImageViewer() {
 
         if (ImGui::TreeNode("Advanced viewer")) {
 
-            ImGui::PushItemWidth(RHSPanelWidth/2.0);
+            ImGui::PushItemWidth(RHSPanelWidth/3.0);
             std::vector<std::string> typeName{"Max", "Mean"};
             if (ImGui::Combo("Compress (flatten) method", &imageViewerCompressType, typeName)) {
                 ComputeCompressedTextureForAllLoadedFrames();
@@ -1045,6 +1046,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     histBars = 50;
     showBackgroundImage = true;
     showTooltip = true;
+    lineWidth = 4.0;
 
     // image (imageData)
     layerPerImg = 40;  // a random guess to preview the image file
@@ -1104,8 +1106,8 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     // ICP
     showMarkerPoints = true;
     showReferencePoints = true;
-    showICPLines = true;
-    showMarkerMesh = true;
+    showICPLines = false;
+    showMarkerMesh = false;
     ICP_patternRows = 0;
     ICP_patternCols = 0;
     ICP_patternSpacing = 18.0;
@@ -1124,7 +1126,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     // Optical Flow
     desiredFrames = 0;
     opticalFlowAlpha = 0.2;
-    opticalFlowIter = 100;
+    opticalFlowIter = 60;
     showOpticalFlow = false;
 
     // Displacement

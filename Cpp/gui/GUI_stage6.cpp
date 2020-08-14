@@ -29,6 +29,8 @@ void GUI::DrawStage6() {
         propertyListType = 2;
         rejectActive = false;
         stage5to6Flag = false;
+
+        logger().debug("   <auto> Finalize cluster locations");
     }
 
     // Visualize marker cluster points (first frame)
@@ -95,21 +97,16 @@ void GUI::DrawStage6() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    if (ImGui::CollapsingHeader("Iterative Closest Point", ImGuiTreeNodeFlags_DefaultOpen)) {
-
-        ImGui::PushItemWidth(zebrafishWidth / 3.0);
-        ImGui::Checkbox("Show background image", &showBackgroundImage);
-        ImGui::Checkbox("Show detected centers", &showMarkerPoints);
-        ImGui::Checkbox("Show pattern centers", &showReferencePoints);
-        ImGui::Checkbox("Show ICP correspondence", &showICPLines);
-        ImGui::Checkbox("Show mesh", &showMarkerMesh);
-        ImGui::SliderInt("Point Size", &pointSize, 1, 30);
-        ImGui::PopItemWidth();
-
-        ImGui::Separator();  /////////////////////////////////////////
-
+    if (ImGui::CollapsingHeader("Pattern", ImGuiTreeNodeFlags_DefaultOpen)) {
+    
         ImGui::SliderInt("Pattern rows", &ICP_patternRows, 5, ICP_patternRef * 3);
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Generate a standard triangular mesh pattern with specified rows.\nThe reference pattern should be larger than the detected markers.");
+        }
         ImGui::SliderInt("Pattern cols", &ICP_patternCols, 5, ICP_patternRef * 3);
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Generate a standard triangular mesh pattern with specified columns.\nThe reference pattern should be larger than the detected markers.");
+        }
         if (ImGui::Button("Generate triangular pattern")) {
 
             GenerateICPPattern();
@@ -117,55 +114,118 @@ void GUI::DrawStage6() {
             UpdateRefPointLoc();
             logger().debug("   <button> Generate triangular pattern");
         }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Generate a standard triangular mesh pattern with specified size.\nThe reference pattern should be larger than the detected markers.");
+        }
 
-        if (ImGui::Button("Load pattern OFF")) {
-            std::string filename = FileDialog::openFileName("./.*", {"*.off"});
-            if (!filename.empty()) {
-                patternFilename = filename;
-                Eigen::MatrixXd tempF;
-                if (igl::readOFF(patternFilename, refV, tempF)) {
+        if (ImGui::TreeNode("Advanced pattern")) {
 
-                    PreprocessPatternLoc();
-                    UpdateRefPointLoc();
-                } else {
-                    logger().error("Error open OFF file {}", patternFilename);
-                    std::cerr << "Error open OFF file" << std::endl;
+            if (ImGui::Button("Load pattern from file")) {
+                std::string filename = FileDialog::openFileName("./.*", {"*.off"});
+                if (!filename.empty()) {
+                    patternFilename = filename;
+                    Eigen::MatrixXd tempF;
+                    if (igl::readOFF(patternFilename, refV, tempF)) {
+
+                        PreprocessPatternLoc();
+                        UpdateRefPointLoc();
+                    } else {
+                        logger().error("Error open OFF file {}", patternFilename);
+                        std::cerr << "Error open OFF file" << std::endl;
+                    }
                 }
+                logger().debug("   <button> Load pattern from file");
             }
-            logger().debug("   <button> Load pattern OFF");
-        }
-        ImGui::SameLine();
-        ImGui::Text("%s", patternFilename.c_str());
+            ImGui::SameLine();
+            ImGui::Text("%s", patternFilename.c_str());
 
-        ImGui::Separator();  /////////////////////////////////////////
+            ImGui::TreePop();
+            ImGui::Separator();
+        }
+    }
 
-        if (ImGui::Button("Reset ICP transformation")) {
-            ResetICP();
-        }
+    if (ImGui::CollapsingHeader("Iterative Closest Point", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        // align two point clouds manually
-        if (ImGui::SliderFloat("X displacement", &ICP_xDisp, -0.5 * imgCols, imgRows, "%.2f pixels")) {
-            UpdateRefPointManualAlignment();
-            UpdateRefPointLoc();
-        }
-        if (ImGui::SliderFloat("Y displacement", &ICP_yDisp, -imgRows, 0.5 * imgRows, "%.2f pixels")) {
-            UpdateRefPointManualAlignment();
-            UpdateRefPointLoc();
-        }
-        if (ImGui::SliderFloat("Rotation", &ICP_angleRot, -igl::PI, igl::PI, "%.3f rads")) {
-            UpdateRefPointManualAlignment();
-            UpdateRefPointLoc();
-        }
-        if (ImGui::SliderFloat("Scale", &ICP_scale, 0.2f, 4.0f, "%.3f x")) {
-            UpdateRefPointManualAlignment();
-            UpdateRefPointLoc();
+        if (ImGui::TreeNode("Advanced ICP")) {
+
+            const float inputWidth = ImGui::GetWindowWidth() / 2.0;
+            ImGui::PushItemWidth(inputWidth);
+
+            if (ImGui::Button("Reset trans")) {
+                ResetICPTransformation();
+                showICPLines = false;
+                showMarkerMesh = false;
+            }
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Reset ICP transformation matrix. This resets the state right before ""Run ICP""\nNote: This does not reset manual transformation matrix.");
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Reset all")) {
+                ResetICPTransformation();
+                ICP_xDisp = 0.0f;
+                ICP_yDisp = 0.0f;
+                ICP_angleRot = 0.0f;
+                ICP_scale = 1.0f;
+                UpdateRefPointManualAlignment();
+                UpdateRefPointLoc();
+                showICPLines = false;
+                showMarkerMesh = false;
+            }
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Reset both ICP and manual transformation matrix.");
+            }
+
+            // align two point clouds manually
+            if (ImGui::SliderFloat("X displacement", &ICP_xDisp, -0.5 * imgCols, imgRows, "%.2f pixels")) {
+                UpdateRefPointManualAlignment();
+                UpdateRefPointLoc();
+            }
+            if (ImGui::SliderFloat("Y displacement", &ICP_yDisp, -imgRows, 0.5 * imgRows, "%.2f pixels")) {
+                UpdateRefPointManualAlignment();
+                UpdateRefPointLoc();
+            }
+            if (ImGui::SliderFloat("Rotation", &ICP_angleRot, -igl::PI, igl::PI, "%.3f rads")) {
+                UpdateRefPointManualAlignment();
+                UpdateRefPointLoc();
+            }
+            if (ImGui::SliderFloat("Scale", &ICP_scale, 0.2f, 4.0f, "%.3f x")) {
+                UpdateRefPointManualAlignment();
+                UpdateRefPointLoc();
+            }
+
+            ImGui::PopItemWidth();
+            
+            ImGui::TreePop();
+            ImGui::Separator();
         }
 
         if (ImGui::Button("Run ICP")) {
             
             SearchICP();
             UpdateRefPointLoc();
+            showICPLines = true;
+            showMarkerMesh = true;
             logger().debug("   <button> Run ICP");
+        }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Align the reference pattern with the detected markers.\nAutomatically create a mesh with the markers.");
+        }
+
+        if (ImGui::TreeNode("Advanced ICP visualization")) {
+
+            const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+            ImGui::PushItemWidth(inputWidth);
+            ImGui::Checkbox("Show background image", &showBackgroundImage);
+            ImGui::Checkbox("Show marker centers", &showMarkerPoints);
+            ImGui::Checkbox("Show pattern centers", &showReferencePoints);
+            ImGui::Checkbox("Show ICP correspondence", &showICPLines);
+            ImGui::Checkbox("Show mesh", &showMarkerMesh);
+            ImGui::SliderInt("Point Size", &pointSize, 1, 30);
+            ImGui::SliderFloat("Line width", &lineWidth, 1, 16);
+            ImGui::PopItemWidth();
+
+            ImGui::TreePop();
+            ImGui::Separator();
         }
     }
 }
@@ -176,7 +236,8 @@ void GUI::DrawStage6() {
 
 void GUI::InitializeICPPattern() {
 
-    ICP_patternRef = std::ceil(std::sqrt(markerArray[0].num) * 1.2);
+    // need a larger reference pattern for ICP to work
+    ICP_patternRef = std::ceil(std::sqrt(markerArray[0].num) * 1.3) + 1;
     if (ICP_patternRef < 5) ICP_patternRef = 5;
     ICP_patternRows = ICP_patternRef;
     ICP_patternCols = ICP_patternRef;
@@ -200,7 +261,7 @@ void GUI::GenerateICPPattern() {
 }
 
 
-void GUI::ResetICP() {
+void GUI::ResetICPTransformation() {
 
     ICP_Rmat = Eigen::MatrixXd::Identity(3, 3);
     ICP_Tmat = Eigen::MatrixXd::Zero(3, 1);

@@ -80,6 +80,7 @@ private:
     int histBars;  // number of bars in histogram
     bool showBackgroundImage;
     bool showTooltip;
+    float lineWidth;
 
     //////////////////////////////////////////////////
     // core
@@ -337,7 +338,7 @@ private:
     // Stage 6 Iterative Closest Point
     void InitializeICPPattern();
     void GenerateICPPattern();
-    void ResetICP();
+    void ResetICPTransformation();
     void SearchICP();
     void UpdateMarkerMesh();
     void PreprocessPatternLoc();

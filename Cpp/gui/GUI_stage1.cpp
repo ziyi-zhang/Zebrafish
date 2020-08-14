@@ -98,8 +98,10 @@ void GUI::DrawStage1() {
         if (ImGui::Checkbox("Mouse crop", &cropActive)) {
             if (!cropActive) 
                 logger().debug("Mouse crop: de-activated.");
-            else
+            else {
                 logger().debug("Mouse crop: activated.");
+                showCropArea = true;
+            }
         }
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Use mouse to select an area of interest.\nClick this once and move the mouse to the image. Click and hold. Drag the mouse to select an area. Release.\nThe area will be highlighted in a red box.");
@@ -126,6 +128,7 @@ void GUI::DrawStage1() {
             ImGui::SameLine();
             ImGui::InputInt("C1", &c1);
             ImGui::PopItemWidth();
+            ImGui::SliderFloat("Line width", &lineWidth, 1, 16);
 
             ImGui::TreePop();
             ImGui::Separator();
@@ -156,7 +159,7 @@ void GUI::DrawStage1() {
         ImGui::SetTooltip("Reset all parameters entered in this stage");
     }
     ImGui::SameLine();
-    if (ImGui::Button("Preview")) {
+    if (ImGui::Button("Apply")) {
         if (imagePath.empty()) {
             logger().error("Error: ImagePath is empty");
             return;  // invalid operation
@@ -189,7 +192,7 @@ void GUI::DrawStage1() {
             logger().error("Error open tiff image (reload)");
             std::cerr << "Error open tiff image (reload)" << std::endl;
         }
-        logger().debug("   <button> Preview");
+        logger().debug("   <button> Apply");
     }
     if (showTooltip && ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Preview the image with the parameters entered in this page.\nThis will be the image used by upcoming stages.");
@@ -278,7 +281,6 @@ void GUI::CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype) {
 
 void GUI::DrawRect(double x0, double y0, double x1, double y1, const Eigen::MatrixXd &lineColor) {
 
-
     static Eigen::MatrixXd lineX, lineY;
     lineX.resize(4, 3);
     lineY.resize(4, 3);
@@ -292,6 +294,7 @@ void GUI::DrawRect(double x0, double y0, double x1, double y1, const Eigen::Matr
              x1, y1, 0.1, 
              x1, y0, 0.1, 
              x0, y0, 0.1;
+    viewer.data().line_width = lineWidth;
     viewer.data().add_edges(lineX, lineY, lineColor);
 }
 

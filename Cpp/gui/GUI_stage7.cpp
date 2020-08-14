@@ -68,29 +68,79 @@ void GUI::DrawStage7() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    if (ImGui::CollapsingHeader("Load frames", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("Load Frames", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        ImGui::SliderInt("Desired frame number", &desiredFrames, 2, ttlFrames, "%d frames");
-        if (ImGui::Button("Load subsequent frames")) {
+        const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+        ImGui::PushItemWidth(inputWidth);
+
+        ImGui::SliderInt("Desired #frame", &desiredFrames, 2, ttlFrames, "%d frames");
+        if (ImGui::Button("Prepare all frames")) {
             LoadSubsequentFrames();
-            logger().debug("   <button> Load subsequent frames");
-        }
-        if (ImGui::Button("Compute B-spline for all")) {
             ComputeBsplineForAllFrames();
-            logger().debug("   <button> Compute B-spline for all");
+            logger().debug("   <button> Prepare all frames");
         }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Load desired number of frames and prepare them for optimization. This may take some time.");
+        }
+
+        if (ImGui::TreeNode("Advanced loading")) {
+
+            if (ImGui::Button("Load subsequent frames")) {
+                LoadSubsequentFrames();
+                logger().debug("   <button> Load subsequent frames");
+            }
+            if (ImGui::Button("Compute B-spline for all")) {
+                ComputeBsplineForAllFrames();
+                logger().debug("   <button> Compute B-spline for all");
+            }
+            ImGui::TreePop();
+            ImGui::Separator();
+        }
+
+        ImGui::PopItemWidth();
     }
 
     ImGui::Separator(); /////////////////////////////////////////
 
     if (ImGui::CollapsingHeader("Optical Flow", ImGuiTreeNodeFlags_DefaultOpen)) {
 
+        const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+        ImGui::PushItemWidth(inputWidth);
+
         ImGui::InputDouble("alpha", &opticalFlowAlpha);
-        ImGui::SliderInt("iteration", &opticalFlowIter, 1, 300);
-        if (ImGui::Button("Run Optical Flow")) {
-            RunOpticalFlow();
-            logger().debug("   <button> Run Optical Flow");
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Weighting factor in Horn Schunck optical flow. The square of this value will be used in the energy function.\nLarger weighting factor will make the flow field smoother.");
         }
+        ImGui::SliderInt("iteration", &opticalFlowIter, 1, 200);
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("The number of iterations used when solving optical flow.\nA large number will make optical flow correction more accurate.\nA small number will make the computation faster.");
+        }
+        if (ImGui::Button("Start Optical Flow")) {
+            RunOpticalFlow();
+            logger().debug("   <button> Start Optical Flow");
+        }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Run optical flow. This may take some time.\nNote optical flow is **optional**. It only makes the pipeline more stable, but sometimes it is OK to proceed without optical flow.");
+        }
+
+        ImGui::PopItemWidth();
+    }
+
+    ImGui::Separator(); /////////////////////////////////////////
+
+    if (ImGui::TreeNode("Advanced visualization ")) {
+
+        const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+        ImGui::PushItemWidth(inputWidth);
+        ImGui::Checkbox("Show background image", &showBackgroundImage);
+        ImGui::Checkbox("Show marker centers", &showMarkerPoints);
+        ImGui::Checkbox("Show mesh", &showMarkerMesh);
+        ImGui::SliderInt("Point Size", &pointSize, 1, 30);
+        ImGui::SliderFloat("Line width", &lineWidth, 1, 16);
+        ImGui::PopItemWidth();
+
+        ImGui::TreePop();
+        ImGui::Separator();
     }
 }
 

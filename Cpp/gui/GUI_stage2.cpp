@@ -54,7 +54,7 @@ void GUI::DrawStage2() {
         ImGui::PopItemWidth();
 
         ImGui::PushItemWidth(zebrafishWidth * 0.75);
-        ImGui::Text("Quantile Thres");
+        ImGui::Text("Outlier brightness threshold (in quantile)");
         if (ImGui::SliderFloat("", &normalizeQuantile, 0.95, 0.999, "%.3f") || updateNormalizedTexture) {
 
             updateNormalizedTexture = false;
@@ -75,11 +75,15 @@ void GUI::DrawStage2() {
                     break;
             }
         }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Set the pixel brightness threshold. All pixels brighter than this value will be trimmed.\nAn appropriate value would move the green line at the tail of the histogram, leaving only negligible bars to its right.");
+        }
         ImGui::PopItemWidth();
     }
 
     ImGui::Separator(); /////////////////////////////////////////
 
+    static float bsp_xratio = 0.7, bsp_yratio = 0.7, bsp_zratio = 0.7;
     if (ImGui::CollapsingHeader("B-spline Config", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         if (ImGui::TreeNode("Advanced B-spline")) {
@@ -90,6 +94,9 @@ void GUI::DrawStage2() {
             if (ImGui::InputDouble("B-spline solver tolerance", &bsplineSolverTol, 0.0, 0.0, "%.2E")) {
                 bsplineArray[0].Set_solverTol(bsplineSolverTol);
             }
+            ImGui::SliderFloat("X ratio", &bsp_xratio, 0.2, 1.0);
+            ImGui::SliderFloat("Y ratio", &bsp_yratio, 0.2, 1.0);
+            ImGui::SliderFloat("Z ratio", &bsp_zratio, 0.2, 1.0);
 
             ImGui::TreePop();
             ImGui::Separator();
@@ -118,8 +125,11 @@ void GUI::DrawStage2() {
             logger().info("Computing Bspine for the first frame");
             const int bsplineDegree = 2;
             bsplineArray[0].SetResolution(resolutionX, resolutionY, resolutionZ);
-            bsplineArray[0].CalcControlPts(imgData[0], 0.7, 0.7, 0.7, bsplineDegree);
+            bsplineArray[0].CalcControlPts(imgData[0], bsp_xratio, bsp_yratio, bsp_zratio, bsplineDegree);
             logger().debug("   <button> Compute B-spline");
+        }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Compute B-spline control points for the first frame. This may take some time.\nNote: If the brightness threshold changes, the B-spline must be re-computed.");
         }
     }
 }

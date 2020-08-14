@@ -87,13 +87,55 @@ void GUI::DrawStage8() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    if (ImGui::CollapsingHeader("Calculate Displacement", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("Displacement", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        ImGui::SliderInt("Depth correction search range", &depthCorrectionNum, 0, 12, "%d * gap");
-        ImGui::SliderFloat("Depth correction gap", &depthCorrectionGap, 0, 2.0, "%.3f pixels");
-        if (ImGui::Button("Find new locations")) {
+        if (ImGui::TreeNode("Advanced depth correction")) {
+
+            const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+            ImGui::PushItemWidth(inputWidth);
+
+            ImGui::SliderInt("DC search range", &depthCorrectionNum, 0, 12, "%d * gap");
+            ImGui::SliderFloat("DC gap", &depthCorrectionGap, 0, 2.0, "%.3f pixels");
+
+            ImGui::PopItemWidth();
+
+            ImGui::TreePop();
+            ImGui::Separator();
+        }
+
+        if (ImGui::Button("Calculate Displacement")) {
             OptimizeAllFrames();
-            logger().debug("   <button> Find new locations");
+            logger().debug("   <button> Calculate Displacement");
+        }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Calculate displacement for all loaded frames");
+        }
+    }
+
+    if (ImGui::TreeNode("Advanced visualization  ")) {
+
+        const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+        ImGui::PushItemWidth(inputWidth);
+        ImGui::Checkbox("Show background image", &showBackgroundImage);
+        ImGui::Checkbox("Show marker centers", &showMarkerPoints);
+        ImGui::Checkbox("Show mesh", &showMarkerMesh);
+        ImGui::SliderInt("Point size", &pointSize, 1, 30);
+        ImGui::SliderFloat("Line width", &lineWidth, 1, 16);
+        ImGui::PopItemWidth();
+
+        ImGui::TreePop();
+        ImGui::Separator();
+    }
+
+    ImGui::Separator(); /////////////////////////////////////////
+
+    if (ImGui::CollapsingHeader("Save & Export", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+        if (ImGui::Button("Save as VTU")) {
+
+        }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("dummy");
         }
     }
 }
