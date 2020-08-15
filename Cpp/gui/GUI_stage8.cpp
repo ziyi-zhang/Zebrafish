@@ -4,6 +4,7 @@
 #include <zebrafish/GUI.h>
 #include <zebrafish/Logger.hpp>
 #include <zebrafish/VTUwriter.h>
+#include <zebrafish/TiffReader.h>
 
 #include <tbb/task_scheduler_init.h>
 #include <tbb/parallel_for.h>
@@ -18,7 +19,7 @@ namespace zebrafish {
 namespace {
 
 using std::string;
-string GetVTUFileName(const string &imagePath, int index) {
+string GetFileName(const string &imagePath, int index, const string &ext) {
 
     string fileName;
     // erase extension (.tif / .tiff)
@@ -36,7 +37,7 @@ string GetVTUFileName(const string &imagePath, int index) {
     fileName += "-frame";
     fileName += std::to_string(index);
     // add extension
-    fileName += ".vtu";
+    fileName += ext;
 
     return fileName;
 }
@@ -168,25 +169,46 @@ void GUI::DrawStage8() {
 
     if (ImGui::CollapsingHeader("Save & Export", ImGuiTreeNodeFlags_DefaultOpen)) {
 
+        static std::string saveStr, meshSaveStr, imageSaveStr;
+        static bool meshSaveFlag, imageSaveFlag;
         if (ImGui::Button("Save as VTU")) {
 
+            static bool success1 = false, success2 = false;
             // Save mesh to VTU
-            static std::string meshSaveStr;
-            if (SaveMeshToVTU()) {
-                meshSaveStr = "Mesh saved";
-            } else {
-                meshSaveStr = "Failed to export";
-            }
-            ImGui::SameLine();
-            ImGui::Text("%s", meshSaveStr.c_str());
-
+            meshSaveFlag = SaveMeshToVTU();
             // Save image to TIFF
-            SaveImageToTIFF();
+            imageSaveFlag = SaveImageToTIFF();
+
+            saveStr = (meshSaveFlag && imageSaveFlag) ? "Data saved" : "Save failed";
+            meshSaveStr = (meshSaveFlag) ? "saved" : "failed";
+            imageSaveStr = (imageSaveFlag) ? "saved" : "failed";
 
             logger().debug("   <button> Save as VTU");
         }
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("dummy");
+        }
+        ImGui::SameLine();
+        ImGui::Text("%s", saveStr.c_str());
+
+        if (ImGui::TreeNode("Advanced export")) {
+        
+            if (ImGui::Button("SaveMeshToVTU")) {
+                meshSaveFlag = SaveMeshToVTU();
+                meshSaveStr = (meshSaveFlag) ? "saved" : "failed";
+            }
+            ImGui::SameLine();
+            ImGui::Text("%s", meshSaveStr.c_str());
+
+            if (ImGui::Button("SaveImageToTiff")) {
+                imageSaveFlag = SaveImageToTIFF();
+                imageSaveStr = (imageSaveFlag) ? "saved" : "failed";
+            }
+            ImGui::SameLine();
+            ImGui::Text("%s", imageSaveStr.c_str());
+
+            ImGui::TreePop();
+            ImGui::Separator();
         }
     }
 }
@@ -296,7 +318,7 @@ bool GUI::SaveMeshToVTU() {
     for (int i=0; i<currentLoadedFrames; i++) {
 
         // prepare filename
-        std::string vtuFileName = GetVTUFileName(imagePath, i);
+        std::string vtuFileName = GetFileName(imagePath, i, "marker.vtu");
         // prepare displacement
         Eigen::MatrixXd displacement;
         GetDisplacement(markerPointLocArray, i, displacement);
@@ -311,9 +333,19 @@ bool GUI::SaveMeshToVTU() {
 }
 
 
-void GUI::SaveImageToTIFF() {
+bool GUI::SaveImageToTIFF() {
+// return true if successful
 
+    for (int i=0; i<currentLoadedFrames; i++) {
 
+        // prepare filename
+        std::string tifFileName = GetFileName(imagePath, i, "image.tif");
+        if (!WriteTif(tifFileName, imgData[i], layerBegin, layerEnd)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 }  // namespace zebrafish

@@ -231,9 +231,9 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
 }
 
 
-bool WriteTif(const std::string &path, const image_t &imgData) {
+bool WriteTif(const std::string &path, const image_t &imgData, int sliceBegin, int sliceEnd) {
 
-    bool ok = false;
+    bool ok = true;
     TinyTIFFFile *tiffr = NULL;
     const uint16_t samples = 8;
     assert(!imgData.empty());
@@ -241,17 +241,22 @@ bool WriteTif(const std::string &path, const image_t &imgData) {
     const int cols = imgData[0].cols();
     const int slices = imgData.size();
 
+    assert(sliceBegin >= 0 && sliceBegin < slices);
+    assert(sliceEnd >= 0 && sliceEnd < slices);
+
     tiffr = TinyTIFFWriter_open(path.c_str(), samples, cols, rows);
 
     if (!tiffr) {
 
         logger().error("ERROR writing TIFF %s", path);
         std::cerr << "ERROR writing TIFF " << path << std::endl;
+        ok = false;
     } else {
 
-        for (uint16_t slice=0; slice<slices; slice++) {
+        for (uint16_t slice=sliceBegin; slice<sliceEnd; slice++) {
 
-            Eigen::Matrix<uint8_t, rows, cols> temp = (imgData[slice].array() * 255.0).cast<uint8_t>();
+            Eigen::MatrixXd tempDouble = (imgData[slice].array() * 255.0).transpose();
+            Eigen::Matrix<uint8_t, Eigen::Dynamic, Eigen::Dynamic> temp = tempDouble.rowwise().reverse().cast<uint8_t>();
             uint8_t* data = temp.data();
             TinyTIFFWriter_writeImage(tiffr, data);
         }

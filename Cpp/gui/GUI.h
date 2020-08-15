@@ -357,7 +357,7 @@ private:
     void OptimizeAllFrames();
     void OptimizeOneFrame(int prevFrameIdx);
     bool SaveMeshToVTU();
-    void SaveImageToTIFF();
+    bool SaveImageToTIFF();
 };
 
 }  // namespace zebrafish
