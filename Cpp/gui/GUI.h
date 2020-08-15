@@ -356,6 +356,8 @@ private:
     // Stage 8 Displacement
     void OptimizeAllFrames();
     void OptimizeOneFrame(int prevFrameIdx);
+    bool SaveMeshToVTU();
+    void SaveImageToTIFF();
 };
 
 }  // namespace zebrafish

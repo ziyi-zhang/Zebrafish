@@ -1,9 +1,13 @@
 set(SOURCES
     autodiff.h
+    base64Layer.cpp
+    base64Layer.h
 	TiffReader.cpp
     TiffReader.h
     Logger.cpp
     Logger.hpp
+    VTUwriter.cpp
+    VTUwriter.h
 )
 
 prepend_current_path(SOURCES)

@@ -3,6 +3,7 @@
 #include <zebrafish/Bspline.h>
 #include <zebrafish/GUI.h>
 #include <zebrafish/Logger.hpp>
+#include <zebrafish/VTUwriter.h>
 
 #include <tbb/task_scheduler_init.h>
 #include <tbb/parallel_for.h>
@@ -16,10 +17,46 @@ namespace zebrafish {
 
 namespace {
 
+using std::string;
+string GetVTUFileName(const string &imagePath, int index) {
+
+    string fileName;
+    // erase extension (.tif / .tiff)
+    size_t lastdot = imagePath.find_last_of(".");
+    if (lastdot == string::npos)
+        fileName = imagePath;
+    else
+        fileName = imagePath.substr(0, lastdot);
+    // erase path
+    size_t lastDelimiter = fileName.find_last_of("/");
+    if (lastDelimiter != string::npos) fileName.erase(0, lastDelimiter + 1);
+    lastDelimiter = fileName.find_last_of("\\");
+    if (lastDelimiter != string::npos) fileName.erase(0, lastDelimiter + 1);
+    // add index
+    fileName += "-frame";
+    fileName += std::to_string(index);
+    // add extension
+    fileName += ".vtu";
+
+    return fileName;
+}
+
+
+void GetDisplacement(const std::vector<Eigen::MatrixXd> &markerPointLocArray, int currFrameIdx, Eigen::MatrixXd &disp) {
+
+    disp.resizeLike(markerPointLocArray[currFrameIdx]);
+
+    if (currFrameIdx == 0) {
+        disp.setZero();
+    } else {
+        disp = markerPointLocArray[currFrameIdx] - markerPointLocArray[currFrameIdx - 1];
+    }
+}
+
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Stage 8: Dispalcement
+// Stage 8: Dispalcement & Export
 
 void GUI::DrawStage8() {
 
@@ -133,6 +170,20 @@ void GUI::DrawStage8() {
 
         if (ImGui::Button("Save as VTU")) {
 
+            // Save mesh to VTU
+            static std::string meshSaveStr;
+            if (SaveMeshToVTU()) {
+                meshSaveStr = "Mesh saved";
+            } else {
+                meshSaveStr = "Failed to export";
+            }
+            ImGui::SameLine();
+            ImGui::Text("%s", meshSaveStr.c_str());
+
+            // Save image to TIFF
+            SaveImageToTIFF();
+
+            logger().debug("   <button> Save as VTU");
         }
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("dummy");
@@ -230,6 +281,39 @@ void GUI::OptimizeOneFrame(int prevFrameIdx) {
         }
     });
     logger().info("<<<<<<<<<< After optimization <<<<<<<<<<");
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Export
+
+
+bool GUI::SaveMeshToVTU() {
+// return true if successful
+
+    static VTUWriter vtuWriter;
+
+    for (int i=0; i<currentLoadedFrames; i++) {
+
+        // prepare filename
+        std::string vtuFileName = GetVTUFileName(imagePath, i);
+        // prepare displacement
+        Eigen::MatrixXd displacement;
+        GetDisplacement(markerPointLocArray, i, displacement);
+        vtuWriter.add_field("displacement", displacement);
+        // write to VTU
+        if (!vtuWriter.write_tet_mesh(vtuFileName, markerPointLocArray[i], markerMeshArray)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+void GUI::SaveImageToTIFF() {
+
+
 }
 
 }  // namespace zebrafish

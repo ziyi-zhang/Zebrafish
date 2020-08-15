@@ -19,4 +19,6 @@ bool ReadTifFirstFrame(const std::string &path, const int layerPerImg, const int
 bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<bool> &channelVec, const int targetNumImg, imageData_t &imgData, 
              int r0 = -1, int c0 = -1, int r1 = -1, int c1 = -1);
 
+bool WriteTif(const std::string &path, const image_t &imgData);
+
 }  // namespace zebrafish

@@ -3,6 +3,7 @@
 #include <zebrafish/Logger.hpp>
 
 #include <tinytiffreader.h>
+#include <tinytiffwriter.h>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -228,5 +229,37 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
 
     return ok;
 }
+
+
+bool WriteTif(const std::string &path, const image_t &imgData) {
+
+    bool ok = false;
+    TinyTIFFFile *tiffr = NULL;
+    const uint16_t samples = 8;
+    assert(!imgData.empty());
+    const int rows = imgData[0].rows();
+    const int cols = imgData[0].cols();
+    const int slices = imgData.size();
+
+    tiffr = TinyTIFFWriter_open(path.c_str(), samples, cols, rows);
+
+    if (!tiffr) {
+
+        logger().error("ERROR writing TIFF %s", path);
+        std::cerr << "ERROR writing TIFF " << path << std::endl;
+    } else {
+
+        for (uint16_t slice=0; slice<slices; slice++) {
+
+            Eigen::Matrix<uint8_t, rows, cols> temp = (imgData[slice].array() * 255.0).cast<uint8_t>();
+            uint8_t* data = temp.data();
+            TinyTIFFWriter_writeImage(tiffr, data);
+        }
+    }
+
+    TinyTIFFWriter_close(tiffr);
+    return ok;
+}
+
 
 }  // namespace zebrafish

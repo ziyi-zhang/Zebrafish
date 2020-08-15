@@ -416,7 +416,7 @@ void GUI::DrawZebrafishPanel() {
         ImGui::Text("Stage 7: Estimate Movement");  // optical flow
         break;
     case 8:
-        ImGui::Text("Stage 8: Determine Displacement");
+        ImGui::Text("Stage 8: Displacement & Export");
         break;
     default:
         assert(false);
