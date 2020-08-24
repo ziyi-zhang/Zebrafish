@@ -796,7 +796,7 @@ void GUI::FinalizeClusterLoc() {
         markerFirstFrame.loc(i, 3) /= markerFirstFrame.size(i);  // r
 
         // calculate energy (directly)
-        cylinder::EvaluateCylinder(bsplineArray[0], markerFirstFrame.loc(i, 0), markerFirstFrame.loc(i, 1), markerFirstFrame.loc(i, 2), markerFirstFrame.loc(i, 3), 3.0, markerFirstFrame.energy(i));
+        cylinder::EvaluateCylinder(bsplineArray[0], markerFirstFrame.loc(i, 0), markerFirstFrame.loc(i, 1), markerFirstFrame.loc(i, 2), markerFirstFrame.loc(i, 3), 3.0, markerFirstFrame.energy(i), reverseColor);
     }
 
     // push to "markerArray"

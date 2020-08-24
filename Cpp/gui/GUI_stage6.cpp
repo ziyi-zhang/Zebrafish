@@ -188,7 +188,11 @@ void GUI::DrawStage6() {
                 UpdateRefPointManualAlignment();
                 UpdateRefPointLoc();
             }
-            if (ImGui::SliderFloat("Scale", &ICP_scale, 0.2f, 4.0f, "%.3f x")) {
+            if (ImGui::SliderFloat("Scale", &ICP_scale, 0.2f, 3.0f, "%.4f x")) {
+                UpdateRefPointManualAlignment();
+                UpdateRefPointLoc();
+            }
+            if (ImGui::InputFloat("Scale", &ICP_scale)) {
                 UpdateRefPointManualAlignment();
                 UpdateRefPointLoc();
             }

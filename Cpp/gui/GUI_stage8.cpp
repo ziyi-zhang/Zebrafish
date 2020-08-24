@@ -196,9 +196,9 @@ void GUI::DrawStage8() {
     static bool saveIncrementalDisplacement_relative = true;
     if (ImGui::CollapsingHeader("Save & Export", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        static std::string saveStr, meshSaveStr, imageSaveStr;
+        static std::string saveStr;
         static bool meshSaveFlag, imageSaveFlag;
-        if (ImGui::Button("Save as VTU")) {
+        if (ImGui::Button("Export VTU and TIFF")) {
 
             static bool success1 = false, success2 = false;
             // Save mesh to VTU
@@ -207,13 +207,11 @@ void GUI::DrawStage8() {
             imageSaveFlag = SaveImageToTIFF();
 
             saveStr = (meshSaveFlag && imageSaveFlag) ? "Data saved" : "Save failed";
-            meshSaveStr = (meshSaveFlag) ? "saved" : "failed";
-            imageSaveStr = (imageSaveFlag) ? "saved" : "failed";
 
             logger().debug("   <button> Save as VTU");
         }
         if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("dummy");
+            ImGui::SetTooltip("Export the displacements and the gradient of the displacement. The cropped may also be saved as new TIFF images.");
         }
         ImGui::SameLine();
         ImGui::Text("%s", saveStr.c_str());
@@ -226,17 +224,11 @@ void GUI::DrawStage8() {
             }
             if (ImGui::Button("SaveMeshToVTU")) {
                 meshSaveFlag = SaveMeshToVTU(onlySaveFirstFrameMesh);
-                meshSaveStr = (meshSaveFlag) ? "saved" : "failed";
             }
-            ImGui::SameLine();
-            ImGui::Text("%s", meshSaveStr.c_str());
 
             if (ImGui::Button("SaveImageToTiff")) {
                 imageSaveFlag = SaveImageToTIFF();
-                imageSaveStr = (imageSaveFlag) ? "saved" : "failed";
             }
-            ImGui::SameLine();
-            ImGui::Text("%s", imageSaveStr.c_str());
 
             ImGui::TreePop();
             ImGui::Separator();
@@ -316,7 +308,7 @@ void GUI::OptimizeOneFrame(int prevFrameIdx) {
                             grad.setZero();
                             return 1.0;
                         }
-                        cylinder::EvaluateCylinder(bsplineArray[prevFrameIdx+1], DScalar(0, x(0)), DScalar(1, x(1)), markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2), DScalar(2, x(2)), 3, ans);
+                        cylinder::EvaluateCylinder(bsplineArray[prevFrameIdx+1], DScalar(0, x(0)), DScalar(1, x(1)), markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2), DScalar(2, x(2)), 3, ans, reverseColor);
                         grad.resize(3, 1);
                         grad = ans.getGradient();
                         return ans.getValue();

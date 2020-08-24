@@ -965,7 +965,7 @@ void GUI::MarkerDepthCorrection(int frameIdx, int num, double gap) {
                             grad.setZero();
                             return 1.0;
                         }
-                        cylinder::EvaluateCylinder(bsplineArray[frameIdx], DScalar(0, x(0)), DScalar(1, x(1)), z_, DScalar(2, x(2)), 3, ans);
+                        cylinder::EvaluateCylinder(bsplineArray[frameIdx], DScalar(0, x(0)), DScalar(1, x(1)), z_, DScalar(2, x(2)), 3, ans, reverseColor);
                         grad.resize(3, 1);
                         grad = ans.getGradient();
                         return ans.getValue();
@@ -1047,6 +1047,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     showBackgroundImage = true;
     showTooltip = true;
     lineWidth = 4.0;
+    reverseColor = false;
 
     // image (imageData)
     layerPerImg = 40;  // a random guess to preview the image file

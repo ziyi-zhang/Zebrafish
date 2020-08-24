@@ -174,7 +174,7 @@ void GUI::Optimization() {
                             grad.setZero();
                             return 1.0;
                         }
-                        cylinder::EvaluateCylinder(bsplineArray[0], DScalar(0, x(0)), DScalar(1, x(1)), pointRecord.grid_search(ii, 2), DScalar(2, x(2)), 3, ans);
+                        cylinder::EvaluateCylinder(bsplineArray[0], DScalar(0, x(0)), DScalar(1, x(1)), pointRecord.grid_search(ii, 2), DScalar(2, x(2)), 3, ans, reverseColor);
                         grad.resize(3, 1);
                         grad = ans.getGradient();
                         return ans.getValue();

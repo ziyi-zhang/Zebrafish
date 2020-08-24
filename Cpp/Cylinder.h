@@ -47,7 +47,7 @@ public:
     /// @return      { whether the cylidner is valid }
 
     template <typename T>
-    static void EvaluateCylinder(const bspline &bsp, T x, T y, double z, T r, double h, T &res);
+    static void EvaluateCylinder(const bspline &bsp, T x, T y, double z, T r, double h, T &res, bool reverse = false);
     /// Calculate sample points for the given cylinder and evaluate the energy.
     /// This function does not check the cylinder is valid.
     ///

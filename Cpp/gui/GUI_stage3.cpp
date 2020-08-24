@@ -97,13 +97,15 @@ void GUI::DrawStage3() {
             
             const float inputWidth = ImGui::GetWindowWidth() / 3.0;
             ImGui::PushItemWidth(inputWidth);
-            ImGui::InputDouble("Gap X", &gapX_grid);
-            ImGui::InputDouble("Gap Y", &gapY_grid);
-            ImGui::InputDouble("Gap Z", &gapZ_grid);
+            ImGui::InputDouble("Gap X", &gapX_grid, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Gap Y", &gapY_grid, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Gap Z", &gapZ_grid, 0.0, 0.0, "%.2f");
 
-            ImGui::InputDouble("rArray min", &rArrayMin_grid);
-            ImGui::InputDouble("rArray max", &rArrayMax_grid);
-            ImGui::InputDouble("rArray gap", &rArrayGap_grid);
+            ImGui::InputDouble("rArray min", &rArrayMin_grid, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("rArray max", &rArrayMax_grid, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("rArray gap", &rArrayGap_grid, 0.0, 0.0, "%.2f");
+
+            ImGui::Checkbox("Reverse color", &reverseColor);
             ImGui::PopItemWidth();
             
             ImGui::TreePop();
@@ -230,7 +232,7 @@ void GUI::GridSearch() {
 
             const double cylinderHeight = 3.0;
             for (int ii = r.begin(); ii != r.end(); ++ii) {
-                cylinder::EvaluateCylinder(bsplineArray[0], gridSampleInput(ii, 0), gridSampleInput(ii, 1), gridSampleInput(ii, 2), gridSampleInput(ii, 3), cylinderHeight, gridSampleOutput(ii));
+                cylinder::EvaluateCylinder(bsplineArray[0], gridSampleInput(ii, 0), gridSampleInput(ii, 1), gridSampleInput(ii, 2), gridSampleInput(ii, 3), cylinderHeight, gridSampleOutput(ii), reverseColor);
             }
         });
     logger().info("<<<<<<<<<< After grid search <<<<<<<<<<");
