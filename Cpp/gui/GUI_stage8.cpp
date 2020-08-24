@@ -12,6 +12,7 @@
 
 #include <LBFGS.h>
 #include <string>
+#include <ctime>
 
 
 namespace zebrafish {
@@ -19,7 +20,7 @@ namespace zebrafish {
 namespace {
 
 using std::string;
-string GetFileName(const string &imagePath, int index, const string &ext) {
+string GetFileName(const string &imagePath, int index, const string &ext, const string &extra) {
 
     string fileName;
     // erase extension (.tif / .tiff)
@@ -33,9 +34,23 @@ string GetFileName(const string &imagePath, int index, const string &ext) {
     if (lastDelimiter != string::npos) fileName.erase(0, lastDelimiter + 1);
     lastDelimiter = fileName.find_last_of("\\");
     if (lastDelimiter != string::npos) fileName.erase(0, lastDelimiter + 1);
+    // add extra
+    fileName += "-";
+    fileName += extra;
     // add index
     fileName += "-frame";
     fileName += std::to_string(index);
+    // add time
+    /*
+    char buffer[80];
+    time_t rawTime;
+    struct tm *timeInfo;
+    time(&rawTime);
+    timeInfo = localtime(&rawTime);
+    strftime(buffer, 80, "%Y-%m-%dT%H-%M-%S", timeInfo);
+    fileName += "-";
+    fileName += buffer;
+    */
     // add extension
     fileName += ext;
 
@@ -47,6 +62,7 @@ void GetDisplacement(const std::vector<Eigen::MatrixXd> &markerPointLocArray, in
 
     disp.resizeLike(markerPointLocArray[currFrameIdx]);
 
+    // loc[currFrame] - loc[lastFrame]
     if (currFrameIdx == 0) {
         disp.setZero();
     } else {
@@ -132,8 +148,14 @@ void GUI::DrawStage8() {
             const float inputWidth = ImGui::GetWindowWidth() / 3.0;
             ImGui::PushItemWidth(inputWidth);
 
-            ImGui::SliderInt("DC search range", &depthCorrectionNum, 0, 12, "%d * gap");
-            ImGui::SliderFloat("DC gap", &depthCorrectionGap, 0, 2.0, "%.3f pixels");
+            ImGui::SliderFloat("DC gap", &depthCorrectionGap, 0, 0.5, "%.3f pixels");
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Depth correction gap in pixels");
+            }
+            ImGui::SliderInt("DC trial numbers", &depthCorrectionNum, 0, 16, "%d * gap");
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Depth correction trial numbers. A vertical interval of length [range]x[gap] pixels will be searched to determine whether the depth should be corrected.");
+            }
 
             ImGui::PopItemWidth();
 
@@ -167,6 +189,11 @@ void GUI::DrawStage8() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
+    static bool onlySaveFirstFrameMesh = true;
+    static bool saveAccumulatedDisplacement = true;
+    static bool saveAccumulatedDisplacement_relative = true;
+    static bool saveIncrementalDisplacement = true;
+    static bool saveIncrementalDisplacement_relative = true;
     if (ImGui::CollapsingHeader("Save & Export", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         static std::string saveStr, meshSaveStr, imageSaveStr;
@@ -175,7 +202,7 @@ void GUI::DrawStage8() {
 
             static bool success1 = false, success2 = false;
             // Save mesh to VTU
-            meshSaveFlag = SaveMeshToVTU();
+            meshSaveFlag = SaveMeshToVTU(onlySaveFirstFrameMesh);
             // Save image to TIFF
             imageSaveFlag = SaveImageToTIFF();
 
@@ -193,8 +220,12 @@ void GUI::DrawStage8() {
 
         if (ImGui::TreeNode("Advanced export")) {
         
+            ImGui::Checkbox("Only save first frame mesh", &onlySaveFirstFrameMesh);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("If checked, the exported VTU will save the mesh location in the first frame for all frames.\nOtherwise different frames will have their corresponding meshes.");
+            }
             if (ImGui::Button("SaveMeshToVTU")) {
-                meshSaveFlag = SaveMeshToVTU();
+                meshSaveFlag = SaveMeshToVTU(onlySaveFirstFrameMesh);
                 meshSaveStr = (meshSaveFlag) ? "saved" : "failed";
             }
             ImGui::SameLine();
@@ -310,7 +341,7 @@ void GUI::OptimizeOneFrame(int prevFrameIdx) {
 // Export
 
 
-bool GUI::SaveMeshToVTU() {
+bool GUI::SaveMeshToVTU(bool onlySaveFirstFrameMesh) {
 // return true if successful
 
     static VTUWriter vtuWriter;
@@ -318,13 +349,28 @@ bool GUI::SaveMeshToVTU() {
     for (int i=0; i<currentLoadedFrames; i++) {
 
         // prepare filename
-        std::string vtuFileName = GetFileName(imagePath, i, "marker.vtu");
+        std::string vtuFileName;
+        if (onlySaveFirstFrameMesh)
+            vtuFileName = GetFileName(imagePath, i, ".vtu", "marker");
+        else
+            vtuFileName = GetFileName(imagePath, i, ".vtu", "MovingMesh-marker");
         // prepare displacement
         Eigen::MatrixXd displacement;
         GetDisplacement(markerPointLocArray, i, displacement);
         vtuWriter.add_field("displacement", displacement);
+        // prepare relative displacement
+        Eigen::RowVectorXd meanDisp = displacement.colwise().mean();
+        displacement.rowwise() -= meanDisp;
+        vtuWriter.add_field("relative displacement", displacement);
+        // prepare mesh point array
+        Eigen::MatrixXd meshPoint;
+        if (onlySaveFirstFrameMesh)
+            meshPoint = markerPointLocArray[0];
+        else
+            meshPoint = markerPointLocArray[i];
+        meshPoint.col(2).array() -= layerBegin;
         // write to VTU
-        if (!vtuWriter.write_tet_mesh(vtuFileName, markerPointLocArray[i], markerMeshArray)) {
+        if (!vtuWriter.write_tet_mesh(vtuFileName, meshPoint, markerMeshArray)) {
             return false;
         }
     }
@@ -339,7 +385,7 @@ bool GUI::SaveImageToTIFF() {
     for (int i=0; i<currentLoadedFrames; i++) {
 
         // prepare filename
-        std::string tifFileName = GetFileName(imagePath, i, "image.tif");
+        std::string tifFileName = GetFileName(imagePath, i, ".tif", "image");
         if (!WriteTif(tifFileName, imgData[i], layerBegin, layerEnd)) {
             return false;
         }

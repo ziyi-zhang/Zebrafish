@@ -36,7 +36,7 @@ void GUI::DrawStage1() {
     }
 
     // showCropArea
-    if (showCropArea) {
+    if (showCropArea && currentLoadedFrames > 0) {
         // show the area specified by current [r0, c0] x [r1, c1]
         Eigen::MatrixXd lineColor(1, 3);
         lineColor << 0.77, 0.28, 0.24;

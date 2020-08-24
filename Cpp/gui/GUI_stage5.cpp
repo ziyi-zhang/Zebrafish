@@ -316,7 +316,7 @@ void GUI::DrawStage5() {
         );
         drawList->PopClipRect();
         ImGui::PopItemWidth();
-        ImGui::SliderInt("    ", &clusterSizeThres, clusterSizeHist.minValue, clusterSizeHist.maxValue);
+        ImGui::SliderInt("    ", &clusterSizeThres, clusterSizeHist.minValue, std::floor(clusterSizeHist.maxValue / 2.0));
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Minimum size. Cluster consisted of fewer cylinders will be discarded.");
         }

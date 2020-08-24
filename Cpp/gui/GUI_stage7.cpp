@@ -107,7 +107,7 @@ void GUI::DrawStage7() {
         const float inputWidth = ImGui::GetWindowWidth() / 3.0;
         ImGui::PushItemWidth(inputWidth);
 
-        ImGui::InputDouble("alpha", &opticalFlowAlpha);
+        ImGui::InputDouble("alpha", &opticalFlowAlpha, 0.0, 0.0, "%.2f");
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Weighting factor in Horn Schunck optical flow. The square of this value will be used in the energy function.\nLarger weighting factor will make the flow field smoother.");
         }

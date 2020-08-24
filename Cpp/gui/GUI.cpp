@@ -1051,6 +1051,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     // image (imageData)
     layerPerImg = 40;  // a random guess to preview the image file
     channelPerSlice = 2;  // a random guess to preview the image file
+    ttlFrames = 5;
     channelToLoad = 0;
     layerBegin = 0;
     layerEnd = layerPerImg - 1;
@@ -1130,8 +1131,8 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     showOpticalFlow = false;
 
     // Displacement
-    depthCorrectionNum = 4;
-    depthCorrectionGap = 0.5;
+    depthCorrectionNum = 8;
+    depthCorrectionGap = 0.15;
 
     // 3D image viewer
     V.resize(4, 3);
