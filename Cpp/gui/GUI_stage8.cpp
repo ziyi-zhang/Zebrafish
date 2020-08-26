@@ -70,6 +70,77 @@ void GetDisplacement(const std::vector<Eigen::MatrixXd> &markerPointLocArray, in
     }
 }
 
+
+double GetTriArea(const Eigen::MatrixXd &meshPoint, int v1, int v2, int v3) {
+// should have used cross product...
+
+    double a2 = (meshPoint(v1, 0)-meshPoint(v2, 0)) * (meshPoint(v1, 0)-meshPoint(v2, 0)) + 
+                (meshPoint(v1, 1)-meshPoint(v2, 1)) * (meshPoint(v1, 1)-meshPoint(v2, 1)) + 
+                (meshPoint(v1, 2)-meshPoint(v2, 2)) * (meshPoint(v1, 2)-meshPoint(v2, 2));
+    double b2 = (meshPoint(v1, 0)-meshPoint(v3, 0)) * (meshPoint(v1, 0)-meshPoint(v3, 0)) + 
+                (meshPoint(v1, 1)-meshPoint(v3, 1)) * (meshPoint(v1, 1)-meshPoint(v3, 1)) + 
+                (meshPoint(v1, 2)-meshPoint(v3, 2)) * (meshPoint(v1, 2)-meshPoint(v3, 2));
+    double c2 = (meshPoint(v3, 0)-meshPoint(v2, 0)) * (meshPoint(v3, 0)-meshPoint(v2, 0)) + 
+                (meshPoint(v3, 1)-meshPoint(v2, 1)) * (meshPoint(v3, 1)-meshPoint(v2, 1)) + 
+                (meshPoint(v3, 2)-meshPoint(v2, 2)) * (meshPoint(v3, 2)-meshPoint(v2, 2));
+
+    return 0.25 * std::sqrt(4.0 * a2 * b2 - (a2+b2-c2) * (a2+b2-c2));  // Helen's formula
+}
+
+
+void GetPerpendicularVector(const Eigen::MatrixXd &meshPoint, int v1, int v2, int v3, Eigen::Vector3d &V31_perp) {
+
+    using Eigen::Vector3d;
+
+    Vector3d Vik, Vij, Vip, Vpj;
+    Vij << meshPoint(v2, 0)-meshPoint(v1, 0), meshPoint(v2, 1)-meshPoint(v1, 1), meshPoint(v2, 2)-meshPoint(v1, 2);
+    Vik << meshPoint(v3, 0)-meshPoint(v1, 0), meshPoint(v3, 1)-meshPoint(v1, 1), meshPoint(v3, 2)-meshPoint(v1, 2);
+    Vip = Vik.normalized() * (Vij.dot(Vik.normalized()));
+    Vpj = Vij - Vip;
+    V31_perp = Vpj.normalized() * Vik.norm();
+}
+
+
+void GetJacobian(const Eigen::MatrixXd &meshPoint, const Eigen::MatrixXi &markerMeshArray, const Eigen::MatrixXd &displacement, Eigen::MatrixXd &jacobian) {
+// Calculate gradient on a mesh for x, y, z
+// Ref: Geometric Modeling - Daniele Panozzo - Single Patch Parametrization
+
+    const int N = markerMeshArray.rows();  // number of triangles
+    int v1, v2, v3;
+    double area;
+    Eigen::Vector3d Vki_perp, Vij_perp;
+    jacobian.resize(N, 3);
+
+    for (int i=0; i<N; i++) {  // i-th triangle
+
+        v1 = markerMeshArray(i, 0);
+        v2 = markerMeshArray(i, 1);
+        v3 = markerMeshArray(i, 2);
+        GetPerpendicularVector(meshPoint, v1, v2, v3, Vki_perp);
+        GetPerpendicularVector(meshPoint, v2, v3, v1, Vij_perp);
+        area = GetTriArea(meshPoint, v1, v2, v3);
+        // DEBUG PURPOSE
+        /*
+        using namespace std;
+        cout << "-->>" << endl;
+        cout << meshPoint.row(v1) << endl;
+        cout << meshPoint.row(v2) << endl;
+        cout << meshPoint.row(v3) << endl;
+        cout << Vki_perp.transpose() << endl;
+        cout << Vij_perp.transpose() << endl;
+        cout << area << endl;
+        */
+        // DEBUG PURPOSE
+
+        for (int dim=0; dim<3; dim++) {  // x, y, z
+
+            jacobian(i, dim) = (displacement(v2, dim) - displacement(v1, dim)) * Vki_perp(dim) + 
+                               (displacement(v3, dim) - displacement(v1, dim)) * Vij_perp(dim);
+            jacobian(i, dim) /= (2.0 * area);
+        }
+    }
+}
+
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -201,7 +272,7 @@ void GUI::DrawStage8() {
         if (ImGui::Button("Export VTU and TIFF")) {
 
             static bool success1 = false, success2 = false;
-            // Save mesh to VTU
+            // Save mesh to VTU (point data)
             meshSaveFlag = SaveMeshToVTU(onlySaveFirstFrameMesh);
             // Save image to TIFF
             imageSaveFlag = SaveImageToTIFF();
@@ -361,6 +432,10 @@ bool GUI::SaveMeshToVTU(bool onlySaveFirstFrameMesh) {
         else
             meshPoint = markerPointLocArray[i];
         meshPoint.col(2).array() -= layerBegin;
+        // prepare Jacobian
+        Eigen::MatrixXd jacobian;
+        GetJacobian(meshPoint, markerMeshArray, displacement, jacobian);
+        vtuWriter.add_field("jacobian", jacobian);
         // write to VTU
         if (!vtuWriter.write_tet_mesh(vtuFileName, meshPoint, markerMeshArray)) {
             return false;

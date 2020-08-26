@@ -192,10 +192,6 @@ void GUI::DrawStage6() {
                 UpdateRefPointManualAlignment();
                 UpdateRefPointLoc();
             }
-            if (ImGui::InputFloat("Scale", &ICP_scale)) {
-                UpdateRefPointManualAlignment();
-                UpdateRefPointLoc();
-            }
 
             ImGui::PopItemWidth();
             
