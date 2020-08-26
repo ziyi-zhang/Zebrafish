@@ -357,8 +357,9 @@ private:
     // Stage 8 Displacement
     void OptimizeAllFrames();
     void OptimizeOneFrame(int prevFrameIdx);
-    bool SaveMeshToVTU(bool onlySaveFirstFrameMesh);
-    bool SaveImageToTIFF();
+    bool SaveMeshToVTU_point(bool onlySaveFirstFrameMesh, bool saveAccumulativeDisplacement, bool saveAccumulativeDisplacement_relative, bool saveIncrementalDisplacement, bool saveIncrementalDisplacement_relative);
+    bool SaveMeshToVTU_cell(bool onlySaveFirstFrameMesh);
+    bool SaveImageToTIFF(bool saveMarkerImage, bool saveCellImage, int cellChannel);
 };
 
 }  // namespace zebrafish

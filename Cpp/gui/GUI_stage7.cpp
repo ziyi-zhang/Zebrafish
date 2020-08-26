@@ -73,7 +73,7 @@ void GUI::DrawStage7() {
         const float inputWidth = ImGui::GetWindowWidth() / 3.0;
         ImGui::PushItemWidth(inputWidth);
 
-        ImGui::SliderInt("Desired #frame", &desiredFrames, 2, ttlFrames, "%d frames");
+        ImGui::SliderInt("Desired #frames", &desiredFrames, 2, ttlFrames, "%d frames");
         if (ImGui::Button("Prepare all frames")) {
             LoadSubsequentFrames();
             ComputeBsplineForAllFrames();
