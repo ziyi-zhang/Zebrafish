@@ -984,13 +984,22 @@ void GUI::MarkerDepthCorrection(int frameIdx, int num, double gap) {
         }
     });  // end of tbb::parallel_for
 
+    //////////////////////////////////////////////////////////////////////////////
+
     // find min for each marker
-    int minColIdx;
+    int minColIdx, correctedCount = 0;
     double minEnergy;
+    const double thresDist = 3.0;  // cannot move over "thresDist" pixels in xy plane
     for (int i=0; i<N; i++) {
-        
+
         minEnergy = 1.0;  // reset
         for (int j=0; j<M; j++) {
+
+            // valid?
+            Eigen::Vector2d xyDist;
+            xyDist << x_cache(i, j)-markerArray[frameIdx].loc(i, 0), y_cache(i, j)-markerArray[frameIdx].loc(i, 1);
+            if (xyDist.norm() > thresDist) continue;
+            // does this trial lead to a smaller energy?
             if (energy_cache(i, j) < minEnergy) {
                 minEnergy = energy_cache(i, j);
                 minColIdx = j;
@@ -1004,9 +1013,12 @@ void GUI::MarkerDepthCorrection(int frameIdx, int num, double gap) {
         } else {
             if (minColIdx != num) {
                 // if not the original z
+                /*
                 logger().debug("frameIdx = {} | old x={} y={} z={} r={} e={} | new x={} y={} z={} r={} e={}", 
                         frameIdx, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2), markerArray[frameIdx].loc(i, 3), markerArray[frameIdx].energy(i), 
                         x_cache(i, minColIdx), y_cache(i, minColIdx), z_cache(i, minColIdx), r_cache(i, minColIdx), energy_cache(i, minColIdx));
+                */
+                correctedCount++;
             }
 
             markerArray[frameIdx].loc(i, 0) = x_cache(i, minColIdx);
@@ -1016,6 +1028,7 @@ void GUI::MarkerDepthCorrection(int frameIdx, int num, double gap) {
             markerArray[frameIdx].energy(i) = energy_cache(i, minColIdx);
         }
     }
+    logger().info("Depth correction: {} markers modified", correctedCount);
 }
 
 

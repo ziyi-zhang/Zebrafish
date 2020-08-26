@@ -123,7 +123,7 @@ void GetJacobian(const Eigen::MatrixXd &meshPoint, const Eigen::MatrixXi &marker
         GetPerpendicularVector(meshPoint, v2, v3, v1, Vij_perp);
         area = GetTriArea(meshPoint, v1, v2, v3);
         // DEBUG PURPOSE
-        /*
+        
         using namespace std;
         cout << "-->>" << endl;
         cout << meshPoint.row(v1) << endl;
@@ -132,7 +132,7 @@ void GetJacobian(const Eigen::MatrixXd &meshPoint, const Eigen::MatrixXi &marker
         cout << Vki_perp.transpose() << endl;
         cout << Vij_perp.transpose() << endl;
         cout << area << endl;
-        */
+        
         // DEBUG PURPOSE
 
         for (int dim=0; dim<3; dim++) {  // x, y, z
