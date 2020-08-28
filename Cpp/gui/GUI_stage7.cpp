@@ -55,8 +55,8 @@ void GUI::DrawStage7() {
         Eigen::MatrixXd tempLoc;
         tempLoc.resize(3, 3);
         tempLoc << 0, 0, 1, 
-                   imgCols, imgRows, 1, 
-                   imgCols-1, imgRows-1, 1;
+                   imgCols, imgRows, layerPerImg, 
+                   imgCols-1, imgRows-1, layerPerImg-1;
         Eigen::MatrixXd debugPointColor(1, 3);
         debugPointColor << 0.33, 0.83, 0.33;
         viewer.data().add_points(tempLoc, debugPointColor);
@@ -73,7 +73,7 @@ void GUI::DrawStage7() {
         const float inputWidth = ImGui::GetWindowWidth() / 3.0;
         ImGui::PushItemWidth(inputWidth);
 
-        ImGui::SliderInt("Desired #frames", &desiredFrames, 2, ttlFrames, "%d frames");
+        ImGui::SliderInt("Desired #frames", &desiredFrames, 1, ttlFrames, "%d frames");
         if (ImGui::Button("Prepare all frames")) {
             LoadSubsequentFrames();
             ComputeBsplineForAllFrames();

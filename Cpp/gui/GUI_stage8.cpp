@@ -13,6 +13,7 @@
 #include <LBFGS.h>
 #include <string>
 #include <ctime>
+#include <stdio.h>
 
 
 namespace zebrafish {
@@ -123,7 +124,7 @@ void GetJacobian(const Eigen::MatrixXd &meshPoint, const Eigen::MatrixXi &marker
         GetPerpendicularVector(meshPoint, v2, v3, v1, Vij_perp);
         area = GetTriArea(meshPoint, v1, v2, v3);
         // DEBUG PURPOSE
-        
+        /*
         using namespace std;
         cout << "-->>" << endl;
         cout << meshPoint.row(v1) << endl;
@@ -132,7 +133,7 @@ void GetJacobian(const Eigen::MatrixXd &meshPoint, const Eigen::MatrixXi &marker
         cout << Vki_perp.transpose() << endl;
         cout << Vij_perp.transpose() << endl;
         cout << area << endl;
-        
+        */
         // DEBUG PURPOSE
 
         for (int dim=0; dim<3; dim++) {  // x, y, z
@@ -181,8 +182,8 @@ void GUI::DrawStage8() {
         Eigen::MatrixXd tempLoc;
         tempLoc.resize(3, 3);
         tempLoc << 0, 0, 1, 
-                   imgCols, imgRows, 1, 
-                   imgCols-1, imgRows-1, 1;
+                   imgCols, imgRows, layerPerImg, 
+                   imgCols-1, imgRows-1, layerPerImg-1;
         Eigen::MatrixXd debugPointColor(1, 3);
         debugPointColor << 0.33, 0.83, 0.33;
         viewer.data().add_points(tempLoc, debugPointColor);
@@ -237,10 +238,16 @@ void GUI::DrawStage8() {
             ImGui::Separator();
         }
 
+        static std::string calcDispStr = "";
         if (ImGui::Button("Calculate Displacement")) {
-            OptimizeAllFrames();
+            if (OptimizeAllFrames())
+                calcDispStr = "Successful";
+            else
+                calcDispStr = "Failed";
             logger().debug("   <button> Calculate Displacement");
         }
+        ImGui::SameLine();
+        ImGui::Text("%s", calcDispStr.c_str());
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Calculate displacement for all loaded frames");
         }
@@ -269,7 +276,7 @@ void GUI::DrawStage8() {
     static bool saveIncrementalDisplacement = true;
     static bool saveIncrementalDisplacement_relative = true;
     static bool saveMarkerImage = true;
-    static bool saveCellImage = true;
+    static bool saveCellImage = false;
     static int cellChannel = -1;
     if (cellChannel < 0) {
         // make a guess
@@ -354,6 +361,15 @@ void GUI::DrawStage8() {
                 imageSaveFlag = SaveImageToTIFF(saveMarkerImage, saveCellImage, cellChannel);
             }
 
+            /////////////////////////////////////
+
+            if (ImGui::Button("Export to OBJ")) {
+                SaveMeshToOBJ();
+            }
+            if (ImGui::Button("Export displacement to TXT")) {
+                SaveDisplacementToTXT();
+            }
+
             ImGui::TreePop();
             ImGui::Separator();
         }
@@ -365,19 +381,25 @@ void GUI::DrawStage8() {
 // Optimization
 
 
-void GUI::OptimizeAllFrames() {
+bool GUI::OptimizeAllFrames() {
 
+    bool res = true;
     int currentFrame;
 
     for (currentFrame=0; currentFrame<currentLoadedFrames-1; currentFrame++) {
 
         OptimizeOneFrame(currentFrame);
         // depth correction for the frame that was just updated
-        MarkerDepthCorrection(currentFrame + 1, depthCorrectionNum, depthCorrectionGap);
+        if (!MarkerDepthCorrection(currentFrame + 1, depthCorrectionNum, depthCorrectionGap)) {
+            res = false;
+            logger().warn("Depth correction failure: frame {}", currentFrame + 1);
+        }
     }
 
     // update visualization variable
     UpdateMarkerPointLocArray();
+
+    return res;
 }
 
 
@@ -581,6 +603,57 @@ bool GUI::SaveImageToTIFF(bool saveMarkerImage, bool saveCellImage, int cellChan
     }
 
     return true;
+}
+
+
+void GUI::SaveMeshToOBJ() {
+
+    std::string objFileName;
+    Eigen::MatrixXd meshPoint;
+
+    for (int i=0; i<currentLoadedFrames; i++) {
+
+        // prepare filename
+        objFileName = GetFileName(imagePath, i, ".obj", "marker");
+
+        // prepare mesh point array
+        meshPoint = markerPointLocArray[i];
+        meshPoint.col(2).array() -= layerBegin;
+
+        // write to OBJ
+        if (!igl::writeOBJ(objFileName, meshPoint, markerMeshArray)) {
+            logger().warn("Write to OBJ failed");
+        }
+    }
+}
+
+
+void GUI::SaveDisplacementToTXT() {
+
+    FILE *pFile;
+    std::string fileName;
+    Eigen::MatrixXd displacement;
+
+    fileName = GetFileName(imagePath, 0, ".txt", "displacement");
+    pFile = fopen(fileName.c_str(), "w+");
+
+    for (int i=0; i<currentLoadedFrames; i++) {
+
+        GetDisplacement(markerPointLocArray, i, false, displacement);
+
+        fprintf(pFile, "## Frame %d\n", i);
+        for (int r=0; r<displacement.rows(); r++) {
+            for (int c=0; c<displacement.cols(); c++) {
+
+                fprintf(pFile, "%f ", displacement(r, c));
+            }
+            fprintf(pFile, "\n");
+        }
+
+        fprintf(pFile, "\n");
+    }
+
+    fclose(pFile);
 }
 
 }  // namespace zebrafish

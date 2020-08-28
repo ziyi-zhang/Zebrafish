@@ -289,7 +289,7 @@ private:
     void ComputeCompressedTextureMax(const image_t &img_, int index);
     void ComputeCompressedTextureForAllLoadedFrames();
     void UpdateMarkerPointLocArray();
-    void MarkerDepthCorrection(int frameIdx, int num = 2, double gap = 0.5);
+    bool MarkerDepthCorrection(int frameIdx, int num = 2, double gap = 0.5);
     void NormalizeImage(image_t &image, double thres);
 
     //////////////////////////////////////////////////
@@ -355,11 +355,13 @@ private:
 
     //////////////////////////////////////////////////
     // Stage 8 Displacement
-    void OptimizeAllFrames();
+    bool OptimizeAllFrames();
     void OptimizeOneFrame(int prevFrameIdx);
     bool SaveMeshToVTU_point(bool onlySaveFirstFrameMesh, bool saveAccumulativeDisplacement, bool saveAccumulativeDisplacement_relative, bool saveIncrementalDisplacement, bool saveIncrementalDisplacement_relative);
     bool SaveMeshToVTU_cell(bool onlySaveFirstFrameMesh);
     bool SaveImageToTIFF(bool saveMarkerImage, bool saveCellImage, int cellChannel);
+    void SaveMeshToOBJ();
+    void SaveDisplacementToTXT();
 };
 
 }  // namespace zebrafish

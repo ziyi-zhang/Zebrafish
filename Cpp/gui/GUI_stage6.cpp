@@ -52,8 +52,8 @@ void GUI::DrawStage6() {
         Eigen::MatrixXd tempLoc;
         tempLoc.resize(3, 3);
         tempLoc << 0, 0, 1, 
-                   imgCols, imgRows, 1, 
-                   imgCols-1, imgRows-1, 1;
+                   imgCols, imgRows, layerPerImg, 
+                   imgCols-1, imgRows-1, layerPerImg-1;
         Eigen::MatrixXd debugPointColor(1, 3);
         debugPointColor << 0.33, 0.83, 0.33;
         viewer.data().add_points(tempLoc, debugPointColor);
@@ -248,6 +248,29 @@ void GUI::GenerateICPPattern() {
 
     refV.resize(ICP_patternRows * ICP_patternCols, 3);
     int count = 0;
+
+    // Estimate ICP_patternSpacing
+    const int N = markerPointLocArray[0].rows();
+    if (N > 2) {
+
+        const Eigen::MatrixXd &loc = markerPointLocArray[0];
+        double sumDist = 0.0, dist, minDist;
+        for (int i=0; i<N; i++) {
+
+            minDist = std::numeric_limits<double>::max();
+            for (int j=0; j<N; j++) {
+
+                if (i==j) continue;
+                dist = (loc.row(i) - loc.row(j)).norm();
+                if (dist < minDist) minDist = dist;
+            }
+            sumDist += minDist;
+        }
+
+        ICP_patternSpacing = sumDist / double(N);
+        logger().debug("ICP pattern spacing estimated as {}", ICP_patternSpacing);
+    }
+
     for (int row=0; row<ICP_patternRows; row++)
         for (int col=0; col<ICP_patternCols; col++) {
 
@@ -359,8 +382,6 @@ void GUI::PreprocessPatternLoc() {
     refV.col(0).array() -= refV.col(0).minCoeff();  // x
     refV.col(1).array() -= refV.col(1).minCoeff();  // y
     refV.col(2) = Eigen::MatrixXd::Ones(refV.rows(), 1);  // force "z" to be 1
-
-    // FIXME: should we scale here?
 
     // save a copy to "refV_aligned"
     refV_aligned = refV;

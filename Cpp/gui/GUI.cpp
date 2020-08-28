@@ -899,12 +899,12 @@ void GUI::UpdateMarkerPointLocArray() {
 }
 
 
-void GUI::MarkerDepthCorrection(int frameIdx, int num, double gap) {
+bool GUI::MarkerDepthCorrection(int frameIdx, int num, double gap) {
 // try different z's and pick the one with minimal energy
 
     const int N = markerArray[frameIdx].num;
     const int M = num * 2 + 1;
-    if (N == 0) return;
+    if (N == 0) return true;
 
     /////////////////////////////////////////////////
     // prepare LBFGS
@@ -987,6 +987,7 @@ void GUI::MarkerDepthCorrection(int frameIdx, int num, double gap) {
     //////////////////////////////////////////////////////////////////////////////
 
     // find min for each marker
+    bool res = true;
     int minColIdx, correctedCount = 0;
     double minEnergy;
     const double thresDist = 3.0;  // cannot move over "thresDist" pixels in xy plane
@@ -1008,8 +1009,8 @@ void GUI::MarkerDepthCorrection(int frameIdx, int num, double gap) {
 
         if (minEnergy == 1.0) {
             // this should not happen
-            logger().error("[fatal error] Depth correction encountered 1.0 minError");
-            assert(false);
+            logger().error("[fatal error] Depth correction encountered 1.0 minError. Marker index {}.", i);
+            res = false;
         } else {
             if (minColIdx != num) {
                 // if not the original z
@@ -1029,6 +1030,8 @@ void GUI::MarkerDepthCorrection(int frameIdx, int num, double gap) {
         }
     }
     logger().info("Depth correction: {} markers modified", correctedCount);
+
+    return res;
 }
 
 
@@ -1063,9 +1066,9 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     reverseColor = false;
 
     // image (imageData)
-    layerPerImg = 40;  // a random guess to preview the image file
-    channelPerSlice = 2;  // a random guess to preview the image file
-    ttlFrames = 5;
+    layerPerImg = 1;  // a random guess to preview the image file
+    channelPerSlice = 1;  // a random guess to preview the image file
+    ttlFrames = 1;
     channelToLoad = 0;
     layerBegin = 0;
     layerEnd = layerPerImg - 1;

@@ -202,8 +202,8 @@ void GUI::DrawStage1() {
 
 void GUI::ImageReadReset() {
 
-    layerPerImg = 40;
-    channelPerSlice = 2;
+    layerPerImg = 1;
+    channelPerSlice = 1;
     channelToLoad = 0;
     layerBegin = 0;
     layerEnd = layerPerImg - 1;
