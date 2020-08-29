@@ -246,6 +246,12 @@ private:
     bool stage4to5Flag;
     bool stage5to6Flag;
 
+    //////////////////////////////////////////////////
+    // stage lock
+    bool stage1Lock;
+    bool stage2Lock;
+    bool stage3Lock;
+    bool stage4Lock;
 public:
     std::ostringstream oss;
 
@@ -289,7 +295,7 @@ private:
     void ComputeCompressedTextureMax(const image_t &img_, int index);
     void ComputeCompressedTextureForAllLoadedFrames();
     void UpdateMarkerPointLocArray();
-    bool MarkerDepthCorrection(int frameIdx, int num = 2, double gap = 0.5);
+    bool MarkerDepthCorrection(int frameIdx, int num, double gap, bool logEnergy = false);
     void NormalizeImage(image_t &image, double thres);
 
     //////////////////////////////////////////////////
@@ -355,7 +361,7 @@ private:
 
     //////////////////////////////////////////////////
     // Stage 8 Displacement
-    bool OptimizeAllFrames();
+    bool OptimizeAllFrames(bool logEnergy);
     void OptimizeOneFrame(int prevFrameIdx);
     bool SaveMeshToVTU_point(bool onlySaveFirstFrameMesh, bool saveAccumulativeDisplacement, bool saveAccumulativeDisplacement_relative, bool saveIncrementalDisplacement, bool saveIncrementalDisplacement_relative);
     bool SaveMeshToVTU_cell(bool onlySaveFirstFrameMesh);

@@ -166,31 +166,38 @@ void GUI::DrawStage1() {
                      // only entry is through "File" - "Open"
         }
         logger().info("Re-load image {}", imagePath);
-        if (ReadTifFirstFrame(imagePath, layerPerImg, channelPerSlice, imgData[0], r0, c0, r1, c1, channelToLoad)) {
-            imgRows = imgData[0][0].rows();
-            imgCols = imgData[0][0].cols();
-            currentLoadedFrames = 1;
-            desiredFrames = ttlFrames;
-            sliceToShow = layerBegin;  // do not start with slice 0 anymore
 
-            // brightness
-            // re-compute compressed image texture
-            switch (imageViewerCompressType) {
-                case COMPRESS_AVG:
-                    ComputeCompressedTextureAvg(imgData[0], 0);
-                    break;
-                case COMPRESS_MAX:
-                    ComputeCompressedTextureMax(imgData[0], 0);
-                    break;
-                default:
-                    assert(false);
-                    break;
+        try {
+            if (ReadTifFirstFrame(imagePath, layerPerImg, channelPerSlice, imgData[0], r0, c0, r1, c1, channelToLoad)) {
+                imgRows = imgData[0][0].rows();
+                imgCols = imgData[0][0].cols();
+                currentLoadedFrames = 1;
+                desiredFrames = ttlFrames;
+                sliceToShow = layerBegin;  // do not start with slice 0 anymore
+
+                // brightness
+                // re-compute compressed image texture
+                switch (imageViewerCompressType) {
+                    case COMPRESS_AVG:
+                        ComputeCompressedTextureAvg(imgData[0], 0);
+                        break;
+                    case COMPRESS_MAX:
+                        ComputeCompressedTextureMax(imgData[0], 0);
+                        break;
+                    default:
+                        assert(false);
+                        break;
+                }
+
+                stage1Lock = true;  // allowed to proceed to stage 2
+                logger().info("Image reloaded");
+            } else {
+                logger().error("Error open tiff image (reload)");
+                std::cerr << "Error open tiff image (reload)" << std::endl;
             }
-
-            logger().info("Image reloaded");
-        } else {
-            logger().error("Error open tiff image (reload)");
-            std::cerr << "Error open tiff image (reload)" << std::endl;
+        } catch (const std::exception &e) {
+            logger().error("   <button> [Apply] Fatal error when trying to re-load the image. This is often due to wrong metadata like incorrect number of channels or slices.");
+            std::cerr << "   <button> [Apply] Fatal error when trying to re-load the image. This is often due to wrong metadata like incorrect number of channels or slices." << std::endl;
         }
         logger().debug("   <button> Apply");
     }

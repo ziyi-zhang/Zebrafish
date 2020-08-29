@@ -317,7 +317,14 @@ void GUI::Draw3DImage() {
             // if depth crop has updated
             // Note: only frame 0 in stage 1 could reach here
 
-            ComputeCompressedTextureMax(imgData[0], 0);
+            const int num = imgData[0].size();
+            // the user could provide false metadata
+            try {
+                ComputeCompressedTextureMax(imgData[0], 0);
+            } catch (const std::exception &e) {
+                logger().warn("Failed when drawing 3D image. This is often due to wrong metadata like incorrect number of channels or slices.");
+                std::cerr << "Failed when drawing 3D image. This is often due to wrong metadata like incorrect number of channels or slices." << std::endl;
+            }
             layerBegin_cache = layerBegin;
             layerEnd_cache = layerEnd;
         }
@@ -386,12 +393,24 @@ void GUI::DrawZebrafishPanel() {
         stage = std::max(1, stage);
     }
     if (ImGui::Button("Next Stage", ImVec2(zebrafishWidth / 2.0, 0))) {
-        stage++;
-        stage = std::min(stage, stageMax);
 
-        if (stage == 2) stage1to2Flag = true;
-        if (stage == 5) stage4to5Flag = true;
-        if (stage == 6) stage5to6Flag = true;
+        // stage lock
+        bool lock = true;
+        if (stage == 1) lock = stage1Lock;
+        if (stage == 2) lock = stage2Lock;
+        if (stage == 3) lock = stage3Lock;
+        if (stage == 4) lock = stage4Lock;
+
+        if (lock) {
+            stage++;
+            stage = std::min(stage, stageMax);
+
+            if (stage == 2) stage1to2Flag = true;
+            if (stage == 5) stage4to5Flag = true;
+            if (stage == 6) stage5to6Flag = true;
+        } else {
+            logger().warn("[Stage lock] Cannot proceed to the next stage. At least one mandatory step is not finished.");
+        }
     }
     switch (stage) {
     case 1:
@@ -830,10 +849,24 @@ void GUI::ComputeCompressedTextureMax(const image_t &img_, int index) {
 /// Flatten by taking the max of all slices
 
     const int num = img_.size();
+    /*
     assert(num > 0);
     assert(layerBegin >= 0 && layerBegin < num);
     assert(layerEnd >=0 && layerEnd < num);
     assert(layerBegin <= layerEnd);
+    */
+    if (!(num > 0)) {
+        std::cerr << "ERROR: assert(num > 0)" << std::endl;
+        return;
+    }
+    if (!(layerBegin >= 0 && layerBegin < num)) {
+        std::cerr << "ERROR: assert(layerBegin >= 0 && layerBegin < num)" << std::endl;
+        return;
+    }
+    if (!(layerEnd >=0 && layerEnd < num)) {
+        std::cerr << "ERROR: assert(layerEnd >=0 && layerEnd < num)" << std::endl;
+        return;
+    }
     const int imgRows_ = img_[0].rows();
     const int imgCols_ = img_[0].cols();
 
@@ -899,7 +932,7 @@ void GUI::UpdateMarkerPointLocArray() {
 }
 
 
-bool GUI::MarkerDepthCorrection(int frameIdx, int num, double gap) {
+bool GUI::MarkerDepthCorrection(int frameIdx, int num, double gap, bool logEnergy) {
 // try different z's and pick the one with minimal energy
 
     const int N = markerArray[frameIdx].num;
@@ -923,7 +956,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int num, double gap) {
     for (int i=-num; i<=num; i++) {
         depthArray[i+num] = gap * i;
     }
-    logger().info("Depth correction for markers in frame {}  #starting points = {}", frameIdx, N);
+    logger().info("Depth correction for markers in frame {}  #starting points = {}, searching gap = {}, searching num = {}", frameIdx, N, gap, num);
 
     // Optimization
     tbb::parallel_for( tbb::blocked_range<int>(0, N),
@@ -985,14 +1018,23 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int num, double gap) {
     });  // end of tbb::parallel_for
 
     //////////////////////////////////////////////////////////////////////////////
-
     // find min for each marker
+
     bool res = true;
     int minColIdx, correctedCount = 0;
     double minEnergy;
-    const double thresDist = 3.0;  // cannot move over "thresDist" pixels in xy plane
+
+    // DEBUG PURPOSE
+    if (logEnergy) {
+        using namespace std;
+        cout << " >>>>>>> energy_cache >>>>>>>" << endl;
+        cout << "Frame = " << frameIdx << endl << endl;
+        cout << energy_cache << endl << endl;
+    }
+
     for (int i=0; i<N; i++) {
 
+        const double thresDist = markerArray[frameIdx].loc(i, 3);  // cannot move over "thresDist" pixels in xy plane
         minEnergy = 1.0;  // reset
         for (int j=0; j<M; j++) {
 
@@ -1000,7 +1042,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int num, double gap) {
             Eigen::Vector2d xyDist;
             xyDist << x_cache(i, j)-markerArray[frameIdx].loc(i, 0), y_cache(i, j)-markerArray[frameIdx].loc(i, 1);
             if (xyDist.norm() > thresDist) continue;
-            // does this trial lead to a smaller energy?
+            // does this depth lead to a smaller energy?
             if (energy_cache(i, j) < minEnergy) {
                 minEnergy = energy_cache(i, j);
                 minColIdx = j;
@@ -1009,7 +1051,8 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int num, double gap) {
 
         if (minEnergy == 1.0) {
             // this should not happen
-            logger().error("[fatal error] Depth correction encountered 1.0 minError. Marker index {}.", i);
+            logger().error("[warning] Depth correction encountered 1.0 minError. Marker index {}. Frame index {}", i, frameIdx);
+            std::cerr << "[warning] Depth correction encountered 1.0 minError. Marker index " << i << ". Frame index " << frameIdx << std::endl;
             res = false;
         } else {
             if (minColIdx != num) {
@@ -1019,7 +1062,10 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int num, double gap) {
                         frameIdx, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2), markerArray[frameIdx].loc(i, 3), markerArray[frameIdx].energy(i), 
                         x_cache(i, minColIdx), y_cache(i, minColIdx), z_cache(i, minColIdx), r_cache(i, minColIdx), energy_cache(i, minColIdx));
                 */
-                correctedCount++;
+                // correctedCount++;
+            }
+            if (minColIdx == 0 || minColIdx == M-1) {
+                logger().warn("Reached depth correction search range limit. Consider using a larger search range.");
             }
 
             markerArray[frameIdx].loc(i, 0) = x_cache(i, minColIdx);
@@ -1029,7 +1075,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int num, double gap) {
             markerArray[frameIdx].energy(i) = energy_cache(i, minColIdx);
         }
     }
-    logger().info("Depth correction: {} markers modified", correctedCount);
+    // logger().info("Depth correction: {} markers modified", correctedCount);
 
     return res;
 }
@@ -1143,13 +1189,13 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 
     // Optical Flow
     desiredFrames = 0;
-    opticalFlowAlpha = 0.2;
-    opticalFlowIter = 60;
+    opticalFlowAlpha = 0.05;
+    opticalFlowIter = 30;
     showOpticalFlow = false;
 
     // Displacement
-    depthCorrectionNum = 8;
-    depthCorrectionGap = 0.15;
+    depthCorrectionNum = 30;
+    depthCorrectionGap = 0.1;
 
     // 3D image viewer
     V.resize(4, 3);
@@ -1210,6 +1256,12 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     stage1to2Flag = false;
     stage4to5Flag = false;
     stage5to6Flag = false;
+
+    // stage lock
+    stage1Lock = false;
+    stage2Lock = false;
+    stage3Lock = false;
+    stage4Lock = false;
 }
 
 
@@ -1231,13 +1283,7 @@ void GUI::init(std::string imagePath_, int debugMode) {
         // debug helper
         show_log = true;
         show_3DImage_viewer = true;
-        show_property_editor = true;
-        layerBegin = 15;
-        layerEnd = 60;
-        r0 = 419;
-        c0 = 516;
-        r1 = 499;
-        c1 = 589;
+        show_property_editor = false;
     }
 
     // Debug mode

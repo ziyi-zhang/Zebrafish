@@ -104,7 +104,7 @@ bool GetDescription(const std::string &path, int &layerPerImg, int &numChannel, 
 }
 
 bool ReadTifFirstFrame(const std::string &path, const int layerPerImg, const int numChannel, image_t &img, int r0, int c0, int r1, int c1, int channelToLoad) {
-/// This function only read one channel from the first frame 3D image
+/// This function only reads one channel from the first frame 3D image
 
     std::vector<bool> channelVec(numChannel, false);
     assert(channelToLoad < numChannel);
@@ -114,7 +114,8 @@ bool ReadTifFirstFrame(const std::string &path, const int layerPerImg, const int
     bool ok;
 
     ok = ReadTif(path, layerPerImg, channelVec, 1, imgData_, r0, c0, r1, c1);
-    
+
+    logger().info(" exiting ReadTifFirstFrame() with status {}", ok);
     if (ok) img = imgData_[0];
     return ok;
 }
@@ -214,7 +215,7 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
         free(buffer32);
 
         if (countSlice < targetSlices) {
-        // The tiff image is very small, even small than the default guess
+        // The tiff image is very small, even smaller than the default guess
 
             if (img.empty()) 
                 ok = false;

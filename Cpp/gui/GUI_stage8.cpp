@@ -218,18 +218,23 @@ void GUI::DrawStage8() {
 
     if (ImGui::CollapsingHeader("Displacement", ImGuiTreeNodeFlags_DefaultOpen)) {
 
+        static bool logEnergy = false;
         if (ImGui::TreeNode("Advanced depth correction")) {
 
             const float inputWidth = ImGui::GetWindowWidth() / 3.0;
             ImGui::PushItemWidth(inputWidth);
 
-            ImGui::SliderFloat("DC gap", &depthCorrectionGap, 0, 0.5, "%.3f pixels");
+            ImGui::SliderFloat("DC gap", &depthCorrectionGap, 0, 0.3, "%.3f pixels");
             if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Depth correction gap in pixels");
             }
-            ImGui::SliderInt("DC trial numbers", &depthCorrectionNum, 0, 16, "%d * gap");
+            ImGui::SliderInt("DC trial numbers", &depthCorrectionNum, 0, 50, "%d * gap");
             if (showTooltip && ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Depth correction trial numbers. A vertical interval of length [range]x[gap] pixels will be searched to determine whether the depth should be corrected.");
+                ImGui::SetTooltip("Depth correction trial numbers. A vertical interval of length [2*num+1]x[gap] pixels will be searched to determine whether the depth should be modified.");
+            }
+            ImGui::Checkbox("Log energy matrix", &logEnergy);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Debug purpose: whether log the energy for all depth trials");
             }
 
             ImGui::PopItemWidth();
@@ -240,17 +245,17 @@ void GUI::DrawStage8() {
 
         static std::string calcDispStr = "";
         if (ImGui::Button("Calculate Displacement")) {
-            if (OptimizeAllFrames())
+            if (OptimizeAllFrames(logEnergy))
                 calcDispStr = "Successful";
             else
-                calcDispStr = "Failed";
+                calcDispStr = "exception: see log";
             logger().debug("   <button> Calculate Displacement");
         }
-        ImGui::SameLine();
-        ImGui::Text("%s", calcDispStr.c_str());
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Calculate displacement for all loaded frames");
         }
+        ImGui::SameLine();
+        ImGui::Text("%s", calcDispStr.c_str());
     }
 
     if (ImGui::TreeNode("Advanced visualization  ")) {
@@ -275,6 +280,7 @@ void GUI::DrawStage8() {
     static bool saveAccumulativeDisplacement_relative = true;
     static bool saveIncrementalDisplacement = true;
     static bool saveIncrementalDisplacement_relative = true;
+    static bool saveMeshVTU = false;
     static bool saveMarkerImage = true;
     static bool saveCellImage = false;
     static int cellChannel = -1;
@@ -304,7 +310,8 @@ void GUI::DrawStage8() {
             // Save mesh to VTU (point data)
             meshPointSaveFlag = SaveMeshToVTU_point(onlySaveFirstFrameMesh, saveAccumulativeDisplacement, saveAccumulativeDisplacement_relative, saveIncrementalDisplacement, saveIncrementalDisplacement_relative);
             // Save mesh to VTU (cell data)
-            meshCellSaveFlag = SaveMeshToVTU_cell(onlySaveFirstFrameMesh);
+            if (saveMeshVTU)
+                meshCellSaveFlag = SaveMeshToVTU_cell(onlySaveFirstFrameMesh);
             // Save image to TIFF
             imageSaveFlag = SaveImageToTIFF(saveMarkerImage, saveCellImage, cellChannel);
 
@@ -340,6 +347,10 @@ void GUI::DrawStage8() {
             ImGui::Checkbox("Save incremental displacement (relative)", &saveIncrementalDisplacement);
             if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Save the displacement relative to the previous frame. The mean of all the displacements in one frame will be subtracted.");
+            }
+            ImGui::Checkbox("Save jacobian", &saveMeshVTU);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Save the jacobian of the moving mesh to VTU file");
             }
             ImGui::Separator();
             ImGui::Checkbox("Save cropped image (marker channel)", &saveMarkerImage);
@@ -381,7 +392,7 @@ void GUI::DrawStage8() {
 // Optimization
 
 
-bool GUI::OptimizeAllFrames() {
+bool GUI::OptimizeAllFrames(bool logEnergy) {
 
     bool res = true;
     int currentFrame;
@@ -390,7 +401,7 @@ bool GUI::OptimizeAllFrames() {
 
         OptimizeOneFrame(currentFrame);
         // depth correction for the frame that was just updated
-        if (!MarkerDepthCorrection(currentFrame + 1, depthCorrectionNum, depthCorrectionGap)) {
+        if (!MarkerDepthCorrection(currentFrame + 1, depthCorrectionNum, depthCorrectionGap, logEnergy)) {
             res = false;
             logger().warn("Depth correction failure: frame {}", currentFrame + 1);
         }

@@ -101,7 +101,7 @@ void GUI::DrawStage4() {
             );
             drawList->PopClipRect();
             ImGui::PopItemWidth();
-            
+
             ImGui::TreePop();
             ImGui::Separator();
         }
@@ -111,6 +111,7 @@ void GUI::DrawStage4() {
             Optimization();
             UpdateOptimPointLoc();
             UpdateOptimEnergyHist();
+            stage4Lock = true;
 
             logger().debug("   <button> Optimization");
         }

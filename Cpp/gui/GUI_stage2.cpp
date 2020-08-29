@@ -16,11 +16,13 @@ namespace {
 void GUI::DrawStage2() {
 
     static bool updateNormalizedTexture;
+    static std::string bsplineStr = "";
     if (stage1to2Flag) {
 
         showCropArea = false;
         ComputeImgHist(imgData[0]);
         updateNormalizedTexture = true;
+        bsplineStr = "";
         stage1to2Flag = false;
     }
 
@@ -126,11 +128,15 @@ void GUI::DrawStage2() {
             const int bsplineDegree = 2;
             bsplineArray[0].SetResolution(resolutionX, resolutionY, resolutionZ);
             bsplineArray[0].CalcControlPts(imgData[0], bsp_xratio, bsp_yratio, bsp_zratio, bsplineDegree);
+            bsplineStr = "done";
+            stage2Lock = true;
             logger().debug("   <button> Compute B-spline");
         }
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Compute B-spline control points for the first frame. This may take some time.\nNote: If the brightness threshold changes, the B-spline must be re-computed.");
         }
+        ImGui::SameLine();
+        ImGui::Text("%s", bsplineStr.c_str());
     }
 }
 
