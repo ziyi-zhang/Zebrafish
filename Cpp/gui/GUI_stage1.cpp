@@ -151,6 +151,7 @@ void GUI::DrawStage1() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
+    static std::string applyStr = "";
     if (ImGui::Button("Reset")) {
         ImageReadReset();
         logger().debug("   <button> Reset");
@@ -190,20 +191,25 @@ void GUI::DrawStage1() {
                 }
 
                 stage1Lock = true;  // allowed to proceed to stage 2
+                applyStr = "Done";
                 logger().info("Image reloaded");
             } else {
                 logger().error("Error open tiff image (reload)");
                 std::cerr << "Error open tiff image (reload)" << std::endl;
+                applyStr = "Failed";
             }
         } catch (const std::exception &e) {
             logger().error("   <button> [Apply] Fatal error when trying to re-load the image. This is often due to wrong metadata like incorrect number of channels or slices.");
             std::cerr << "   <button> [Apply] Fatal error when trying to re-load the image. This is often due to wrong metadata like incorrect number of channels or slices." << std::endl;
+            applyStr = "Failed";
         }
         logger().debug("   <button> Apply");
     }
     if (showTooltip && ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Preview the image with the parameters entered in this page.\nThis will be the image used by upcoming stages.");
     }
+    ImGui::SameLine();
+    ImGui::Text("%s", applyStr.c_str());
 }
 
 

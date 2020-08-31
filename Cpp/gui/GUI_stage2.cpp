@@ -128,7 +128,7 @@ void GUI::DrawStage2() {
             const int bsplineDegree = 2;
             bsplineArray[0].SetResolution(resolutionX, resolutionY, resolutionZ);
             bsplineArray[0].CalcControlPts(imgData[0], bsp_xratio, bsp_yratio, bsp_zratio, bsplineDegree);
-            bsplineStr = "done";
+            bsplineStr = "Done";
             stage2Lock = true;
             logger().debug("   <button> Compute B-spline");
         }

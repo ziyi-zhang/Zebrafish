@@ -15,30 +15,6 @@ namespace zebrafish {
 
 namespace {
 
-bool ValidGridSearchPoint(const image_t &image, int layerBegin, int layerEnd, const bspline &bsp, double x, double y, double z, double r) {
-
-    static const double thres = QuantileImage(image, 0.85, layerBegin, layerEnd);
-
-    // valid cylinder
-    if (!cylinder::IsValid(bsp, x, y, z, r, 3.0)) return false;
-    // membrane
-    const double d1 = round(r * 1.2), d2 = round(r * 0.85);
-    const Eigen::MatrixXd &layer = image[round(z)];
-    int count = 0;
-    if (layer(x-d2, y-d2) > thres) count++;
-    if (layer(x-d1, y   ) > thres) count++;
-    if (layer(x-d2, y+d2) > thres) count++;
-    if (layer(x   , y+d1) > thres) count++;
-    if (layer(x+d2, y+d2) > thres) count++;
-    if (layer(x+d1, y   ) > thres) count++;
-    if (layer(x+d2, y-d2) > thres) count++;
-    if (layer(x   , y-d1) > thres) count++;
-    if (count < 7) return false;
-
-    return true;
-}
-
-
 std::string Vec2Str(const Eigen::VectorXd &vec) {
 
     std::stringstream sstr;
@@ -52,6 +28,12 @@ std::string Vec2Str(const Eigen::VectorXd &vec) {
 // Stage 3: Grid Search
 
 void GUI::DrawStage3() {
+
+    if (stage2to3Flag) {
+
+        membraneThres = QuantileImage(imgData[0], 0.85, layerBegin, layerEnd);
+        stage2to3Flag = false;
+    }
 
     // Visualize promising starting points
     static int gridSearchPointSize = 7;
@@ -106,6 +88,13 @@ void GUI::DrawStage3() {
             ImGui::InputDouble("rArray gap", &rArrayGap_grid, 0.0, 0.0, "%.2f");
 
             ImGui::Checkbox("Reverse color", &reverseColor);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("By default the markers should have darker color. If checked, the program will search for light color markers.");
+            }
+            ImGui::Checkbox("Skip membrane area check", &skipMembrane);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("By default only cylinders in the membrane area will be used.");
+            }
             ImGui::PopItemWidth();
             
             ImGui::TreePop();
@@ -212,7 +201,7 @@ void GUI::GridSearch() {
                     yy = iy * gapY_grid;
                     zz = iz * gapZ_grid;
                     rr = rArray(ir);
-                    if (!ValidGridSearchPoint(imgData[0], layerBegin, layerEnd, bsplineArray[0], xx, yy, zz, rr)) continue;
+                    if (!ValidGridSearchPoint(imgData[0], bsplineArray[0], skipMembrane, membraneThres, xx, yy, zz, rr)) continue;
 
                     gridSampleInput(sampleCount, 0) = xx;
                     gridSampleInput(sampleCount, 1) = yy;
@@ -237,6 +226,43 @@ void GUI::GridSearch() {
             }
         });
     logger().info("<<<<<<<<<< After grid search <<<<<<<<<<");
+}
+
+
+bool GUI::InMembraneArea(const image_t &image, const double thres, double x, double y, double z, double r) {
+// Is the cylinder in the membrane area?
+// Check this by sampling 8 nearby locations. They must have light color.
+
+    // assume cylinder height 3, peripheral sqrt(2)*r
+    const double d1 = round(r * 1.2), d2 = round(r * 0.85);
+    const Eigen::MatrixXd &layer = image[round(z + 1.5)];
+    // if (layer(x, y) > thres) return false;  // center must be dark
+    int count = 0;
+    if (layer(x-d2, y-d2) > thres) count++;
+    if (layer(x-d1, y   ) > thres) count++;
+    if (layer(x-d2, y+d2) > thres) count++;
+    if (layer(x   , y+d1) > thres) count++;
+    if (layer(x+d2, y+d2) > thres) count++;
+    if (layer(x+d1, y   ) > thres) count++;
+    if (layer(x+d2, y-d2) > thres) count++;
+    if (layer(x   , y-d1) > thres) count++;
+    
+    if (count < 7) 
+        return false;
+    else
+        return true;
+}
+
+
+bool GUI::ValidGridSearchPoint(const image_t &image, const bspline &bsp, bool skipMembrane, double membraneThres, double x, double y, double z, double r) {
+
+    // valid cylinder
+    if (!cylinder::IsValid(bsp, x, y, z, r, 3.0)) return false;
+    // whether in membrane area
+    if (!skipMembrane)
+        if (!InMembraneArea(image, membraneThres, x, y, z, r)) return false;
+
+    return true;
 }
 
 

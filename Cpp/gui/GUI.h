@@ -123,7 +123,9 @@ private:
     double gapX_grid, gapY_grid, gapZ_grid;
     double rArrayMin_grid, rArrayMax_grid, rArrayGap_grid;
     float gridEnergyThres;  // energy threshold to decide whether a starting point is worth optimizing
+    double membraneThres;  // brightness threshold to decide whether a point is in the membrane area
     bool showPromisingPoints;
+    bool skipMembrane;
     Eigen::MatrixXd promisingPointLoc;  // visualization purpose
     // Hist
     hist_t gridEnergyHist;
@@ -243,6 +245,7 @@ private:
     //////////////////////////////////////////////////
     // bool flag indicating moving from a stage to another
     bool stage1to2Flag;
+    bool stage2to3Flag;
     bool stage4to5Flag;
     bool stage5to6Flag;
 
@@ -311,6 +314,8 @@ private:
     //////////////////////////////////////////////////
     // Stage 3 Grid Search
     void GridSearch();
+    bool InMembraneArea(const image_t &image, const double thres, double x, double y, double z, double r);
+    bool ValidGridSearchPoint(const image_t &image, const bspline &bsp, bool skipMembrane, double membraneThres, double x, double y, double z, double r);
     void UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen::MatrixXd &gridSampleOutput);
         /// This function will clear "pointRecord" and intialize it 
         /// with grid search results

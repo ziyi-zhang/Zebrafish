@@ -406,6 +406,7 @@ void GUI::DrawZebrafishPanel() {
             stage = std::min(stage, stageMax);
 
             if (stage == 2) stage1to2Flag = true;
+            if (stage == 3) stage2to3Flag = true;
             if (stage == 5) stage4to5Flag = true;
             if (stage == 6) stage5to6Flag = true;
         } else {
@@ -1138,6 +1139,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     rArrayMax_grid = 6.0;
     rArrayGap_grid = 1.0;
     showPromisingPoints = true;
+    skipMembrane = false;
     gridEnergyThres = -0.1;
     promisingPointLoc.resize(1, 3);
     gridEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
@@ -1247,13 +1249,14 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     markerPointColor << 0.93, 0.32, 0.15;
 
     // bool flag indicating whether the panel is being rendered
-    show_log = false;
+    show_log = true;
     show_3DImage_viewer = true;
     show_property_editor = false;
     show_graphics = false;
 
     // bool flag indicating moving from a stage to another
     stage1to2Flag = false;
+    stage2to3Flag = false;
     stage4to5Flag = false;
     stage5to6Flag = false;
 
