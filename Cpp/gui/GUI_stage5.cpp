@@ -692,7 +692,7 @@ void GUI::UpdateClusterPointLoc() {
 void GUI::UpdateClusterSizeHist() {
 
     Eigen::Matrix<int, Eigen::Dynamic, 1> sizeCol = clusterRecord.size;
-    int minValue = 0;
+    int minValue = 1;
     int maxValue = sizeCol.maxCoeff();
     const int N = clusterRecord.num;
     assert(N > 0);

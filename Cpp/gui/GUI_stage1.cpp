@@ -206,7 +206,7 @@ void GUI::DrawStage1() {
         logger().debug("   <button> Apply");
     }
     if (showTooltip && ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Preview the image with the parameters entered in this page.\nThis will be the image used by upcoming stages.");
+        ImGui::SetTooltip("Preview the image with the parameters in this page.\nThe result will be the image used by upcoming stages.");
     }
     ImGui::SameLine();
     ImGui::Text("%s", applyStr.c_str());
@@ -274,6 +274,22 @@ void GUI::CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype) {
             c1 = std::round(currentLoc(0));
             r0 = imgRows - std::round(baseLoc(1));
             r1 = imgRows - std::round(currentLoc(1));
+
+            // [r0, c0] must be upper-left, [r1, c1] must be lower-right
+            if (r0 > r1 && c0 > c1) {
+                // cropping from lower-right to upper-left, need to swap
+                int t;
+                t = c0; c0 = c1; c1 = t;
+                t = r0; r0 = r1; r1 = t;
+            }
+            if (!(r1 > r0 && c1 > c0)) {
+                // invalid
+                r0 = -1;
+                c0 = -1;
+                r1 = -1;
+                c1 = -1;
+                logger().info("Mouse up invalid: has been reset to -1");
+            }
         } else if (mousetype == MOUSEMOVE) {
             currentLoc = loc;
         }

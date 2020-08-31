@@ -19,14 +19,12 @@ namespace {
         uint32_t width = TinyTIFFReader_getWidth(tiffr);
         uint32_t height = TinyTIFFReader_getHeight(tiffr);
 
-        logger().debug("L22 width={} height={}", width, height);
         if(!image)
             image = (T *)calloc(width * height, sizeof(T));
         bool ok = TinyTIFFReader_getSampleData(tiffr, image, 0);
 
         //image in (ROW-MAJOR!)
         if (ok) {
-            logger().debug("L29 read_mem_to_eigen OK");
             Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> tmp;
             tmp = Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> >(image, width, height);
 
@@ -35,7 +33,6 @@ namespace {
             // double max = tmp.maxCoeff();
 
             // img = ((tmp.template cast<double>().array() - min) / (max - min)).rowwise().reverse();
-            logger().debug("L38 tmp mapped");
             tmp.transposeInPlace();
             img = tmp.template cast<double>();
         }
@@ -143,8 +140,6 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
         imgData.resize(targetNumImg);
         int currentImgCount = 0;
 
-        logger().debug("L146");
-
         const uint32_t ttlSlices = TinyTIFFReader_countFrames(tiffr);
         const uint32_t channelNum = channelVec.size();
         const uint32_t slicePerImg = channelNum * layerPerImg;
@@ -153,7 +148,6 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
             // Each 3D image has "layerPerImg" layers
             // Each layer (a 2D matrix) has "channelNum" copies with different channels
 
-        logger().debug("L156");
         uint32_t countSlice = 0;
 
         image_t img;  // vector of sliceMat
@@ -164,7 +158,6 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
         uint32_t *buffer32 = nullptr;
 
         do {
-            logger().debug("L167 do while start");
             // prepare to read this slice
             ok = true;
             ++countSlice;
@@ -172,7 +165,6 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
             // Is this a desired channel?
             if (channelVec[(countSlice-1) % channelNum]) {
 
-                logger().debug("L175 Desired channel");
                 // read data to "sliceMat"
                 uint16_t samples = TinyTIFFReader_getBitsPerSample(tiffr);
                 if(samples == 8) {
@@ -197,23 +189,26 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
                     break;
                 }
 
-                logger().debug("L200");
                 // push a slice to "img"
-                if (r0 >=0 && c0 >= 0 && r1 >=0 && c1 >= 0)
-                    img.push_back(sliceMat.block(r0, c0, r1-r0+1, c1-c0+1));
-                else
+                if (r0 >=0 && c0 >= 0 && r1 >=0 && c1 >= 0) {
+                    const int rows = sliceMat.rows();
+                    const int cols = sliceMat.cols();
+                    if (r0 >= r1 || c0 >= c1 || r1 >= rows || c1 >= cols) {
+                        img.push_back(sliceMat);
+                        logger().error("Crop error: r0={} c0={} r1={} c1={} imgRows={} imgCols={}", r0, c0, r1, c1, rows, cols);
+                    } else
+                        img.push_back(sliceMat.block(r0, c0, r1-r0+1, c1-c0+1));
+                } else
                     img.push_back(sliceMat);
             }
 
             // This needs to be executed even if this is not a desired channel
             // if "img" is a full 3D image, push to "imgData"
-            logger().debug("L210");
             if (countSlice % slicePerImg == 0) {
                 imgData[currentImgCount++] = img;
                 img.clear();
             }
 
-            logger().debug("L216");
             // progress
             if (countSlice % 50 == 0) {
                 logger().trace("Processed {} slices / {} slices (total {})", countSlice, targetSlices, ttlSlices);
@@ -221,7 +216,6 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
 
         } while (TinyTIFFReader_readNext(tiffr) && (countSlice < targetSlices));
 
-        logger().debug("L224");
         free(buffer8);
         free(buffer16);
         free(buffer32);
@@ -232,14 +226,12 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
             if (img.empty()) 
                 ok = false;
             else {
-                logger().debug("L235 TOO SMALL");
                 imgData[currentImgCount++] = img;
                 img.clear();
             }
         }
     }
-    
-    logger().debug("L242 close");
+
     TinyTIFFReader_close(tiffr);
 
     return ok;

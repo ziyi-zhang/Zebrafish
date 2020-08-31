@@ -267,7 +267,7 @@ void GUI::GenerateICPPattern() {
             sumDist += minDist;
         }
 
-        ICP_patternSpacing = sumDist / double(N);
+        ICP_patternSpacing = sumDist / double(N) * 1.1;
         logger().debug("ICP pattern spacing estimated as {}", ICP_patternSpacing);
     }
 
