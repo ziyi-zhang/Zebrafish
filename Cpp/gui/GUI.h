@@ -144,6 +144,7 @@ private:
     float cylinderEnergyThres, cylinderRadiusThres;
     int cylinderIterThres;
     bool showCylFilterPoints;
+    bool cylFilterMembraneCheck;
     Eigen::MatrixXd cylPointLoc;  // visualization purpose
     // Hist
     hist_t cylEnergyHist, cylRadiusHist, cylIterHist;

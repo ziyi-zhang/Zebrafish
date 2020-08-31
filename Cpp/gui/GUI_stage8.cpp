@@ -490,10 +490,39 @@ void GUI::OptimizeOneFrame(int prevFrameIdx) {
 // Export
 
 
+void GetPhysicalLocation(const std::vector<Eigen::MatrixXd> &locArray, double resolutionX, double resolutionY, double resolutionZ, std::vector<Eigen::MatrixXd> &locArray_out) {
+
+    const int N = locArray.size();
+    locArray_out.resize(N);
+    bool physical;
+
+    if (resolutionX > 0 && resolutionY > 0 && resolutionZ > 0) {
+        physical = true;
+        logger().info("Using physical unit. Row dist = {}, col dist = {}, depth dist = {}", resolutionX, resolutionY, resolutionZ);
+    } else {
+        physical = false;  // the user does not input valid physical resolution
+        logger().info("Physical resolution invalid. Using pixel as unit.");
+    }
+
+    for (int i=0; i<locArray.size(); i++) {
+
+        // Note: locArray has inverted XY
+        locArray_out[i] = locArray[i];
+        if (physical) {
+            locArray_out[i].col(0) *= resolutionY;
+            locArray_out[i].col(1) *= resolutionX;
+            locArray_out[i].col(2) *= resolutionZ;
+        }
+    }
+}
+
+
 bool GUI::SaveMeshToVTU_point(bool onlySaveFirstFrameMesh, bool saveAccumulativeDisplacement, bool saveAccumulativeDisplacement_relative, bool saveIncrementalDisplacement, bool saveIncrementalDisplacement_relative) {
 // return true if successful
 
     static VTUWriter vtuWriter;
+    std::vector<Eigen::MatrixXd> markerPointLocArray_phy;
+    GetPhysicalLocation(markerPointLocArray, resolutionX, resolutionY, resolutionZ, markerPointLocArray_phy);
 
     for (int i=0; i<currentLoadedFrames; i++) {
 
@@ -505,8 +534,8 @@ bool GUI::SaveMeshToVTU_point(bool onlySaveFirstFrameMesh, bool saveAccumulative
             vtuFileName = GetFileName(imagePath, i, ".vtu", "MovingMesh-point");
         // prepare absolute displacement
         Eigen::MatrixXd accumulativeDisplacement, incrementalDisplacement;
-        GetDisplacement(markerPointLocArray, i, false, accumulativeDisplacement);
-        GetDisplacement(markerPointLocArray, i, true, incrementalDisplacement);
+        GetDisplacement(markerPointLocArray_phy, i, false, accumulativeDisplacement);
+        GetDisplacement(markerPointLocArray_phy, i, true, incrementalDisplacement);
         if (saveAccumulativeDisplacement) {
             vtuWriter.add_field("accumulative displacement (absolute)", accumulativeDisplacement);
         }
@@ -528,9 +557,9 @@ bool GUI::SaveMeshToVTU_point(bool onlySaveFirstFrameMesh, bool saveAccumulative
         // prepare mesh point array
         Eigen::MatrixXd meshPoint;
         if (onlySaveFirstFrameMesh)
-            meshPoint = markerPointLocArray[0];
+            meshPoint = markerPointLocArray_phy[0];
         else
-            meshPoint = markerPointLocArray[i];
+            meshPoint = markerPointLocArray_phy[i];
         meshPoint.col(2).array() -= layerBegin;
 
         // write to VTU
@@ -547,6 +576,8 @@ bool GUI::SaveMeshToVTU_cell(bool onlySaveFirstFrameMesh) {
 // return true if successful
 
     static VTUWriter vtuWriter;
+    std::vector<Eigen::MatrixXd> markerPointLocArray_phy;
+    GetPhysicalLocation(markerPointLocArray, resolutionX, resolutionY, resolutionZ, markerPointLocArray_phy);
 
     for (int i=0; i<currentLoadedFrames; i++) {
 
@@ -558,17 +589,17 @@ bool GUI::SaveMeshToVTU_cell(bool onlySaveFirstFrameMesh) {
             vtuFileName = GetFileName(imagePath, i, ".vtu", "MovingMesh-cell");
 
         Eigen::MatrixXd incrementalDisplacement;
-        GetDisplacement(markerPointLocArray, i, true, incrementalDisplacement);
+        GetDisplacement(markerPointLocArray_phy, i, true, incrementalDisplacement);
         // prepare Jacobian
         Eigen::MatrixXd jacobian;
-        GetJacobian(markerPointLocArray[i], markerMeshArray, incrementalDisplacement, jacobian);
+        GetJacobian(markerPointLocArray_phy[i], markerMeshArray, incrementalDisplacement, jacobian);
         vtuWriter.add_field("jacobian", jacobian);
         // prepare mesh point array
         Eigen::MatrixXd meshPoint;
         if (onlySaveFirstFrameMesh)
-            meshPoint = markerPointLocArray[0];
+            meshPoint = markerPointLocArray_phy[0];
         else
-            meshPoint = markerPointLocArray[i];
+            meshPoint = markerPointLocArray_phy[i];
         meshPoint.col(2).array() -= layerBegin;
 
         // write to VTU
@@ -621,6 +652,8 @@ void GUI::SaveMeshToOBJ() {
 
     std::string objFileName;
     Eigen::MatrixXd meshPoint;
+    std::vector<Eigen::MatrixXd> markerPointLocArray_phy;
+    GetPhysicalLocation(markerPointLocArray, resolutionX, resolutionY, resolutionZ, markerPointLocArray_phy);
 
     for (int i=0; i<currentLoadedFrames; i++) {
 
@@ -628,7 +661,7 @@ void GUI::SaveMeshToOBJ() {
         objFileName = GetFileName(imagePath, i, ".obj", "marker");
 
         // prepare mesh point array
-        meshPoint = markerPointLocArray[i];
+        meshPoint = markerPointLocArray_phy[i];
         meshPoint.col(2).array() -= layerBegin;
 
         // write to OBJ
@@ -644,13 +677,15 @@ void GUI::SaveDisplacementToTXT() {
     FILE *pFile;
     std::string fileName;
     Eigen::MatrixXd displacement;
+    std::vector<Eigen::MatrixXd> markerPointLocArray_phy;
+    GetPhysicalLocation(markerPointLocArray, resolutionX, resolutionY, resolutionZ, markerPointLocArray_phy);
 
     fileName = GetFileName(imagePath, 0, ".txt", "displacement");
     pFile = fopen(fileName.c_str(), "w+");
 
     for (int i=0; i<currentLoadedFrames; i++) {
 
-        GetDisplacement(markerPointLocArray, i, false, displacement);
+        GetDisplacement(markerPointLocArray_phy, i, false, displacement);
 
         fprintf(pFile, "## Frame %d\n", i);
         for (int r=0; r<displacement.rows(); r++) {

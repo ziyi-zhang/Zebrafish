@@ -904,6 +904,7 @@ void GUI::ComputeCompressedTextureForAllLoadedFrames() {
 
 
 void GUI::UpdateMarkerPointLocArray() {
+// Critical marker location visualization array
 
     markerPointLocArray.resize(currentLoadedFrames);
     markerPointStatusArray.resize(currentLoadedFrames, 1);
@@ -929,7 +930,7 @@ void GUI::UpdateMarkerPointLocArray() {
         markerPointLocArray[i].col(2) = tempLoc.col(2);
     }
 
-    logger().info("   [Visualization] Marker location array updated: frames = {}", currentLoadedFrames);
+    logger().info("   [Vis & Critical] Marker location array updated: frames = {}", currentLoadedFrames);
 }
 
 
@@ -1156,6 +1157,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     cylinderRadiusThres = 5.0;
     cylinderIterThres = optimMaxIt;
     showCylFilterPoints = true;
+    cylFilterMembraneCheck = true;
     cylPointLoc.resize(1, 3);
     cylEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
     cylRadiusHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
@@ -1223,7 +1225,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     rejectHit = false;
     rejectMode = REJECT_AREA;
     rejectHitIndex.resize(1, 1);
-    mousePickDistSquareThres = 2.0 * 2.0;  // 2 pixels by default
+    mousePickDistSquareThres = 3.0 * 3.0;  // 3 pixels by default
 
     // property editor
     propertyListType = 0;

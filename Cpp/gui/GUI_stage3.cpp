@@ -83,9 +83,12 @@ void GUI::DrawStage3() {
             ImGui::InputDouble("Gap Y", &gapY_grid, 0.0, 0.0, "%.2f");
             ImGui::InputDouble("Gap Z", &gapZ_grid, 0.0, 0.0, "%.2f");
 
-            ImGui::InputDouble("rArray min", &rArrayMin_grid, 0.0, 0.0, "%.2f");
-            ImGui::InputDouble("rArray max", &rArrayMax_grid, 0.0, 0.0, "%.2f");
-            ImGui::InputDouble("rArray gap", &rArrayGap_grid, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Radius min", &rArrayMin_grid, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Radius max", &rArrayMax_grid, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Radius gap", &rArrayGap_grid, 0.0, 0.0, "%.2f");
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("The following array of radii will be searched\n[R_min R_min+R_gap R_min+2*R_gap ... R_max]");
+            }
 
             ImGui::Checkbox("Reverse color", &reverseColor);
             if (showTooltip && ImGui::IsItemHovered()) {

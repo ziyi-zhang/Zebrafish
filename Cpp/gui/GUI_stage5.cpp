@@ -60,9 +60,11 @@ void GUI::DrawStage5() {
         static float cylinderEnergyThres_cache = -1;
         static float cylinderRadiusThres_cache = -1;
         static int   cylinderIterThres_cache = -1;
+        static bool  cylFilterMembraneCheck_cache = false;
         if (cylinderEnergyThres != cylinderEnergyThres_cache ||
             cylinderRadiusThres != cylinderRadiusThres_cache ||
-            cylinderIterThres   != cylinderIterThres_cache) {
+            cylinderIterThres   != cylinderIterThres_cache   ||
+            cylFilterMembraneCheck != cylFilterMembraneCheck_cache) {
             // Update the points to visualize when the three thresholds have changed
 
             CylinderFilter();
@@ -71,6 +73,7 @@ void GUI::DrawStage5() {
             cylinderEnergyThres_cache = cylinderEnergyThres;
             cylinderRadiusThres_cache = cylinderRadiusThres;
             cylinderIterThres_cache   = cylinderIterThres;
+            cylFilterMembraneCheck_cache = cylFilterMembraneCheck;
         }
 
         viewer.data().point_size = filterPointSize;
@@ -246,6 +249,13 @@ void GUI::DrawStage5() {
                 ImGui::SetTooltip("Maximum iteration. Cylinders that failed to converge within the iteration limit will be discarded.");
             }
 
+            ImGui::Separator(); /////////////////////////////////////////
+
+            ImGui::Checkbox("Membrane area check", &cylFilterMembraneCheck);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Whether the optimized cylinders are (likely to be) in the membrane area");
+            }
+
             // more
             ImGui::Text("More filters to be implemented...");
 
@@ -405,6 +415,16 @@ void GUI::CylinderFilter() {
             (pointRecord.optimization(i, 4) < cylinderEnergyThres) &&
             (pointRecord.optimization(i, 3) < cylinderRadiusThres) &&
             (pointRecord.optimization(i, 5) < cylinderIterThres);
+
+        if (cylFilterMembraneCheck && pointRecord.alive(i)) {
+            bool membrane = InMembraneArea(imgData[0], membraneThres, pointRecord.grid_search(i, 0), pointRecord.grid_search(i, 1), pointRecord.grid_search(i, 2), pointRecord.grid_search(i, 3));
+            if (!membrane) {
+                pointRecord.alive(i) = false;
+                // DEBUG PURPOSE
+                // logger().debug("cyl membrane {}", i);
+                // DEBUG PURPOSE
+            }
+        }
     }
 }
 

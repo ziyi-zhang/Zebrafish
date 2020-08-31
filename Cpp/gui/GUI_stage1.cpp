@@ -146,7 +146,7 @@ void GUI::DrawStage1() {
         ImGui::PopItemWidth();
     }
     if (showTooltip && ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("The physical distance of one pixel (in micrometers).\nResolution Z is the vertical distance between two frames.");
+        ImGui::SetTooltip("The physical distance of one pixel (in micrometers).\nResolution X is the distance between two rows; resolution Y is the distance between two columns; resolution Z is the vertical distance between two z-slices.");
     }
 
     ImGui::Separator(); /////////////////////////////////////////
