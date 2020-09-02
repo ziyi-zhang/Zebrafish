@@ -109,6 +109,7 @@ private:
     int layerBegin, layerEnd;  // only slices in this interval in each 3D image will be computed and visualized
     double resolutionX, resolutionY, resolutionZ;
     float normalizeQuantile, normalizeQuantileRes;
+    float stage1contrast;
     // Hist
     hist_t imgHist;
 

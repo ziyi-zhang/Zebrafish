@@ -151,6 +151,20 @@ void GUI::DrawStage1() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
+    if (ImGui::TreeNode("Advanced visualization")) {
+
+        ImGui::PushItemWidth(zebrafishWidth / 2.0);
+        ImGui::SliderFloat("Enhance contrast", &stage1contrast, 1.0, 4.0, "%.2f");
+        ImGui::PopItemWidth();
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Enhance the contrast of the image. This will only take effect in stage one.");
+        }
+        ImGui::TreePop();
+        ImGui::Separator();
+    }
+
+    ImGui::Separator(); /////////////////////////////////////////
+
     static std::string applyStr = "";
     if (ImGui::Button("Reset")) {
         ImageReadReset();

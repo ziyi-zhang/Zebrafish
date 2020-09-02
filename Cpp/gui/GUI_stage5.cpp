@@ -538,6 +538,7 @@ void GUI::UpdateCylIterHist() {
 // cluster
 
 void GUI::Cluster() {
+// First round cluster: cluster optimized cylinders into groups
 // Note: This step may take a few seconds
 
     const int N = pointRecord.num;  // total number of cylinders

@@ -329,6 +329,15 @@ void GUI::Draw3DImage() {
             layerEnd_cache = layerEnd;
         }
         texture = compressedImgTextureArray[frameToShow];
+        if (stage == 1) {
+            // special contrast enhencement for stage 1
+            for (int r=0; r<texture.rows(); r++)
+                for (int c=0; c<texture.cols(); c++)
+                    if (texture(r, c) * stage1contrast < 255) 
+                        texture(r, c) *= stage1contrast;
+                    else 
+                        texture(r, c) = 255;
+        }
     } else {
         // per slice view
 
@@ -1124,6 +1133,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     resolutionY = 0;
     resolutionZ = 0;
     normalizeQuantile = 0.995;
+    stage1contrast = 1.0;
     imgHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
 
     // B-spline

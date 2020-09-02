@@ -9,5 +9,6 @@ function [] = PlotDepthCorrection(mat)
     imagesc(mat);
     colorbar
     hold on
-    scatter(minIdx, 1:size(mat, 1), 'red', 'x');
+    scatter(minIdx, 1:size(mat, 1), 'red', 'o', 'filled');
+    title("Energy for markers optimized with different depths", 'FontSize', 15);
 end
