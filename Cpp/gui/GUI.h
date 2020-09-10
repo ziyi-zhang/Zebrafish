@@ -214,6 +214,14 @@ private:
     Eigen::VectorXi rejectHitIndex;
 
     //////////////////////////////////////////////////
+    // [mouse pick] manually drag markers
+    bool markerDragActive;
+    bool markerDragHit;  // whether there is a hit with a marker
+    bool markerDragFocused;  // whether a marker has been chosen
+    int markerDragHitIndex;
+    Eigen::Vector2f markerDragLoc;
+
+    //////////////////////////////////////////////////
     // property editor
     int propertyListType;
 
@@ -302,6 +310,13 @@ private:
     void UpdateMarkerPointLocArray();
     bool MarkerDepthCorrection(int frameIdx, int num, double gap, bool logEnergy = false);
     void NormalizeImage(image_t &image, double thres);
+
+    // marker drag
+    void RenderMarkerDragGUI();
+    void MouseSelectMarker(const Eigen::Vector2f &mouse);
+    void MarkerDragSelect();
+    void MarkerDragSetNewLoc();
+    void MarkerDragVisualization();
 
     //////////////////////////////////////////////////
     // Stage 1 Image Read

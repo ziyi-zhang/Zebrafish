@@ -226,6 +226,15 @@ bool GUI::MouseDownCallback(igl::opengl::glfw::Viewer &viewer, int button, int m
         // do not block default mouse_down
     }
 
+    if (markerDragActive) {
+
+        if (markerDragHit)
+            MarkerDragSelect();
+
+        // disable ligigl default mouse_down
+        return true;
+    }
+
     return false;
 }
 
@@ -235,11 +244,17 @@ bool GUI::MouseUpCallback(igl::opengl::glfw::Viewer &viewer, int button, int mod
     if (cropActive) {
 
         Eigen::Vector2f mouse;
-        mouse << viewer.down_mouse_x, viewer.down_mouse_y;
+        mouse << viewer.down_mouse_x, viewer.down_mouse_y;  // this will not be used
         CropImage(mouse, MOUSEUP);
 
-        // disable ligigl default mouse_up
-        return true;
+        // do not block default mouse_up
+    }
+
+    if (markerDragActive && markerDragFocused) {
+
+        MarkerDragSetNewLoc();
+
+        // do not block default mouse_up
     }
 
     return false;
@@ -263,6 +278,15 @@ bool GUI::MouseMoveCallback(igl::opengl::glfw::Viewer &viewer, int mouse_x, int 
         Eigen::Vector2f mouse;
         mouse << mouse_x, mouse_y;
         MouseSelectCluster(mouse);
+
+        // do not block default mouse_move
+    }
+
+    if (markerDragActive) {
+
+        Eigen::Vector2f mouse;
+        mouse << mouse_x, mouse_y;
+        MouseSelectMarker(mouse);
 
         // do not block default mouse_move
     }
@@ -916,6 +940,7 @@ void GUI::UpdateMarkerPointLocArray() {
 // Critical marker location visualization array
 
     markerPointLocArray.resize(currentLoadedFrames);
+    // only show the markers in one frame
     markerPointStatusArray.resize(currentLoadedFrames, 1);
     for (int i=0; i<markerPointStatusArray.rows(); i++)
         markerPointStatusArray(i) = false;
@@ -939,7 +964,7 @@ void GUI::UpdateMarkerPointLocArray() {
         markerPointLocArray[i].col(2) = tempLoc.col(2);
     }
 
-    logger().info("   [Vis & Critical] Marker location array updated: frames = {}", currentLoadedFrames);
+    logger().trace("   [Vis & Critical] Marker point location array updated: frames = {}", currentLoadedFrames);
 }
 
 
@@ -1219,7 +1244,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     imageViewerDarkenFactor_avg = 1.0;
     imageViewerDarkenFactor_max = 1.4;
 
-    // crop image
+    // [mouse pick] crop image
     cropActive = false;
     downClicked = false;
     showCropArea = true;
@@ -1230,12 +1255,15 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     r1 = -1;
     c1 = -1;
 
-    // manually reject clusters
+    // [mouse pick] manually reject clusters
     rejectActive = false;
     rejectHit = false;
     rejectMode = REJECT_AREA;
     rejectHitIndex.resize(1, 1);
     mousePickDistSquareThres = 3.0 * 3.0;  // 3 pixels by default
+
+    // [mouse pick] manually drag markers
+    markerDragActive = false;
 
     // property editor
     propertyListType = 0;

@@ -47,17 +47,6 @@ void GUI::DrawStage6() {
                 markerPointColor
             );
         }
-
-        ////// DEBUG ONLY //////
-        Eigen::MatrixXd tempLoc;
-        tempLoc.resize(3, 3);
-        tempLoc << 0, 0, 1, 
-                   imgCols, imgRows, layerPerImg, 
-                   imgCols-1, imgRows-1, layerPerImg-1;
-        Eigen::MatrixXd debugPointColor(1, 3);
-        debugPointColor << 0.33, 0.83, 0.33;
-        viewer.data().add_points(tempLoc, debugPointColor);
-        ////// DEBUG ONLY //////
     }
 
     // Visualize meshes
@@ -77,23 +66,26 @@ void GUI::DrawStage6() {
                 pointColor
             );
         }
-
-        ////// DEBUG ONLY //////
-        Eigen::MatrixXd tempLoc;
-        tempLoc.resize(3, 3);
-        tempLoc << 0, 0, 1, 
-                   imgCols, imgRows, 1, 
-                   imgCols-1, imgRows-1, 1;
-        Eigen::MatrixXd debugPointColor(1, 3);
-        debugPointColor << 0.33, 0.83, 0.33;
-        viewer.data().add_points(tempLoc, debugPointColor);
-        ////// DEBUG ONLY //////
     }
 
     if (showICPLines) {
         if (!markerPointLocArray.empty() && refPointLoc.rows()>0)
             DrawICPLines();
     }
+
+    // manual marker drag code
+    MarkerDragVisualization();
+
+    ////// DEBUG ONLY //////
+    Eigen::MatrixXd tempLoc;
+    tempLoc.resize(3, 3);
+    tempLoc << 0, 0, 1, 
+                imgCols, imgRows, layerPerImg, 
+                imgCols-1, imgRows-1, layerPerImg-1;
+    Eigen::MatrixXd debugPointColor(1, 3);
+    debugPointColor << 0.33, 0.83, 0.33;
+    viewer.data().add_points(tempLoc, debugPointColor);
+    ////// DEBUG ONLY //////
 
     ImGui::Separator(); /////////////////////////////////////////
 
@@ -227,6 +219,10 @@ void GUI::DrawStage6() {
             ImGui::TreePop();
             ImGui::Separator();
         }
+
+        // this loads the code to render the GUI about mouse draging
+        ImGui::Separator();  /////////////////////////////////////////
+        RenderMarkerDragGUI();
     }
 }
 
