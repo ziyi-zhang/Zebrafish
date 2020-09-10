@@ -73,7 +73,7 @@ void GUI::DrawStage6() {
             DrawICPLines();
     }
 
-    // manual marker drag code
+    // Visualize manual marker drag code
     MarkerDragVisualization();
 
     ////// DEBUG ONLY //////

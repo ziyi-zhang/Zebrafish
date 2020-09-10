@@ -310,12 +310,14 @@ private:
     void UpdateMarkerPointLocArray();
     bool MarkerDepthCorrection(int frameIdx, int num, double gap, bool logEnergy = false);
     void NormalizeImage(image_t &image, double thres);
+    void StateChangeReset();
 
     // marker drag
     void RenderMarkerDragGUI();
     void MouseSelectMarker(const Eigen::Vector2f &mouse);
     void MarkerDragSelect();
     void MarkerDragSetNewLoc();
+    void MarkerDragReset();
     void MarkerDragVisualization();
 
     //////////////////////////////////////////////////

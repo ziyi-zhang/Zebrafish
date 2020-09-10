@@ -87,7 +87,8 @@ double ICP::RunICP(const Eigen::MatrixXd &p, const Eigen::MatrixXd &q, RMat_t &R
     R_res = Eigen::MatrixXd::Identity(3, 3);
     T_res = Eigen::MatrixXd::Zero(3, 1);
 
-    const int maxIt = 10;
+    double lastRMSe = -1;
+    const int maxIt = 50;
     printf("====== ICP ======\n");
     for (iter=0; iter<maxIt; iter++) {
 
@@ -113,7 +114,11 @@ double ICP::RunICP(const Eigen::MatrixXd &p, const Eigen::MatrixXd &q, RMat_t &R
         // calculate error
         RMSe = std::sqrt( distSqVec.sum() / distSqVec.size() );
         printf("iter = %d   RMSE = %f\n", iter, RMSe);
+        if (fabs(lastRMSe - RMSe) < 0.000001) break;
+        lastRMSe = RMSe;
     }
+
+    printf("\n");
 
     return RMSe;
 }

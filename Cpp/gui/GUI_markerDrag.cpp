@@ -15,11 +15,23 @@ namespace {
 
 void GUI::RenderMarkerDragGUI() {
 
-    if (ImGui::TreeNode("Manual move markers")) {
+    if (ImGui::TreeNode("Manually move markers")) {
 
         const float inputWidth = ImGui::GetWindowWidth() / 3.0;
         ImGui::PushItemWidth(inputWidth);
-        ImGui::Checkbox("Mouse move markers", &markerDragActive);
+        ImGui::Checkbox("[Mouse] Move markers", &markerDragActive);
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Manually change the XY location of the markers using mouse.\nCheck this box and move close to a marker. Click and hold to select one marker. Drag it to a new location and release button.");
+        }
+        if (ImGui::Button("Optimize this frame")) {
+            MarkerDragReset();
+            MarkerDepthCorrection(frameToShow, 0, 0, false);
+            // update visualization variable
+            UpdateMarkerPointLocArray();
+        }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Optimize the markers in this frame again. This is optional.\nIf any marker has been manually moved, it is suggested to optimize the location again.");
+        }
         ImGui::PopItemWidth();
 
         ImGui::TreePop();
@@ -111,6 +123,15 @@ void GUI::MarkerDragSetNewLoc() {
 
     // update visualization
     UpdateMarkerPointLocArray();
+}
+
+
+void GUI::MarkerDragReset() {
+
+    markerDragActive = false;
+    markerDragHit = false;
+    markerDragFocused = false;
+    markerDragHitIndex = -1;
 }
 
 

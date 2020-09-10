@@ -50,21 +50,24 @@ void GUI::DrawStage7() {
                 }
             }
         }
-
-        ////// DEBUG ONLY //////
-        Eigen::MatrixXd tempLoc;
-        tempLoc.resize(3, 3);
-        tempLoc << 0, 0, 1, 
-                   imgCols, imgRows, layerPerImg, 
-                   imgCols-1, imgRows-1, layerPerImg-1;
-        Eigen::MatrixXd debugPointColor(1, 3);
-        debugPointColor << 0.33, 0.83, 0.33;
-        viewer.data().add_points(tempLoc, debugPointColor);
-        ////// DEBUG ONLY //////
     }
 
     // Visualize meshes
     DrawMarkerMesh();
+
+    // Visualize manual marker drag code
+    MarkerDragVisualization();
+
+    ////// DEBUG ONLY //////
+    Eigen::MatrixXd tempLoc;
+    tempLoc.resize(3, 3);
+    tempLoc << 0, 0, 1, 
+                imgCols, imgRows, layerPerImg, 
+                imgCols-1, imgRows-1, layerPerImg-1;
+    Eigen::MatrixXd debugPointColor(1, 3);
+    debugPointColor << 0.33, 0.83, 0.33;
+    viewer.data().add_points(tempLoc, debugPointColor);
+    ////// DEBUG ONLY //////
 
     ImGui::Separator(); /////////////////////////////////////////
 
@@ -102,7 +105,7 @@ void GUI::DrawStage7() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    if (ImGui::CollapsingHeader("Optical Flow", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("Optical Flow")) {
 
         const float inputWidth = ImGui::GetWindowWidth() / 3.0;
         ImGui::PushItemWidth(inputWidth);
@@ -142,11 +145,15 @@ void GUI::DrawStage7() {
         ImGui::TreePop();
         ImGui::Separator();
     }
+
+    // this loads the code to render the GUI about mouse draging
+    ImGui::Separator();  /////////////////////////////////////////
+    RenderMarkerDragGUI();
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Load heler
+// Load helper
 
 
 void GUI::LoadSubsequentFrames() {
