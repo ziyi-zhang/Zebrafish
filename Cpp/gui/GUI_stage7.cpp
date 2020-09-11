@@ -110,21 +110,36 @@ void GUI::DrawStage7() {
         const float inputWidth = ImGui::GetWindowWidth() / 3.0;
         ImGui::PushItemWidth(inputWidth);
 
-        ImGui::InputDouble("alpha", &opticalFlowAlpha, 0.0, 0.0, "%.2f");
+        static std::string opticalFlowStr = "";
+        if (ImGui::InputDouble("alpha", &opticalFlowAlpha, 0.0, 0.0, "%.2f")) {
+            opticalFlowStr = "";
+        }
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Weighting factor in Horn Schunck optical flow. The square of this value will be used in the energy function.\nLarger weighting factor will make the flow field smoother.");
         }
-        ImGui::SliderInt("iteration", &opticalFlowIter, 1, 200);
+        if (ImGui::SliderInt("iteration", &opticalFlowIter, 1, 200)) {
+            opticalFlowStr = "";
+        }
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("The number of iterations used when solving optical flow.\nA large number will make optical flow correction more accurate.\nA small number will make the computation faster.");
         }
+
         if (ImGui::Button("Start Optical Flow")) {
-            RunOpticalFlow();
+            try {
+                RunOpticalFlow();
+                opticalFlowStr = "Done";
+            } catch (const std::exception &e) {
+                logger().error("   <button> [Optical Flow] Fatal error encountered.");
+                std::cerr << "   <button> [Optical Flow] Fatal error encountered." << std::endl;
+                opticalFlowStr = "Failed";
+            }
             logger().debug("   <button> Start Optical Flow");
         }
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Run optical flow. This may take some time.\nNote optical flow is **optional**. It only makes the pipeline more stable, but sometimes it is OK to proceed without optical flow.");
         }
+        ImGui::SameLine();
+        ImGui::Text("%s", opticalFlowStr.c_str());
 
         ImGui::PopItemWidth();
     }
