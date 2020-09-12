@@ -118,7 +118,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
     // DEBUG PURPOSE
     if (logEnergy) {
         using namespace std;
-        cout << " >>>>>>> energy_cache >>>>>>>" << endl;
+        cout << " >>>>>>> depth correction energy_cache >>>>>>>" << endl;
         cout << "Frame = " << frameIdx << endl << endl;
         cout << energy_cache << endl << endl;
     }
@@ -126,7 +126,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
 
     for (int i=0; i<N; i++) {
 
-        const double thresDist = markerArray[frameIdx].loc(i, 3);  // cannot move over "thresDist" pixels in xy plane
+        const double thresDist = optimMaxXYDisp;  // cannot move over "thresDist" pixels in xy plane
         minEnergy = 1.0;  // reset
         for (int j=0; j<M; j++) {
 
@@ -143,8 +143,10 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
 
         if (minEnergy == 1.0) {
             // this should not happen
-            logger().error("[warning] Depth correction encountered 1.0 minError. Marker index {}. Frame index {}", i, frameIdx);
-            std::cerr << "[warning] Depth correction encountered 1.0 minError. Marker index " << i << ". Frame index " << frameIdx << std::endl;
+            char errorMsg[100];
+            std::sprintf(errorMsg, "[warning] Depth correction exception: Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
+            logger().warn(errorMsg);
+            std::cerr << errorMsg << std::endl;
             res = false;
         } else {
             if (minColIdx != depthNum) {

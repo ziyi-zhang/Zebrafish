@@ -118,7 +118,7 @@ double ICP::RunICP(const Eigen::MatrixXd &p, const Eigen::MatrixXd &q, RMat_t &R
         lastRMSe = RMSe;
     }
 
-    printf("\n");
+    printf("=================\n");
 
     return RMSe;
 }

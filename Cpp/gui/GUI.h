@@ -188,6 +188,7 @@ private:
     // Displacement
     int depthCorrectionNum;
     float depthCorrectionGap;
+    float optimMaxXYDisp;  // max XY displacement during optimization
 
     //////////////////////////////////////////////////
     // 3D image viewer
@@ -386,6 +387,7 @@ private:
     //////////////////////////////////////////////////
     // Stage 8 Displacement
     bool OptimizeAllFrames(bool logEnergy);
+    void ApplyOpticalFlow(int prevFrameIdx);
     void OptimizeOneFrame(int prevFrameIdx);
     bool SaveMeshToVTU_point(bool onlySaveFirstFrameMesh, bool saveAccumulativeDisplacement, bool saveAccumulativeDisplacement_relative, bool saveIncrementalDisplacement, bool saveIncrementalDisplacement_relative);
     bool SaveMeshToVTU_cell(bool onlySaveFirstFrameMesh);

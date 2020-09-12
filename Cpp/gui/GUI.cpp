@@ -1094,6 +1094,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     // Displacement
     depthCorrectionNum = 30;
     depthCorrectionGap = 0.1;
+    optimMaxXYDisp = 5.0;
 
     // 3D image viewer
     V.resize(4, 3);

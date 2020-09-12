@@ -222,22 +222,33 @@ void GUI::DrawStage8() {
     if (ImGui::CollapsingHeader("Displacement", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         static bool logEnergy = false;
+        static std::string calcDispStr = "";
         if (ImGui::TreeNode("Advanced depth correction")) {
 
             const float inputWidth = ImGui::GetWindowWidth() / 3.0;
             ImGui::PushItemWidth(inputWidth);
 
-            ImGui::SliderFloat("DC gap", &depthCorrectionGap, 0, 0.3, "%.3f pixels");
+            if (ImGui::SliderFloat("DC gap", &depthCorrectionGap, 0, 0.3, "%.3f pixels")) {
+                calcDispStr = "";
+            }
             if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Depth correction gap in pixels");
             }
-            ImGui::SliderInt("DC trial numbers", &depthCorrectionNum, 0, 50, "%d * gap");
+            if (ImGui::SliderInt("DC trial numbers", &depthCorrectionNum, 0, 50, "%d * gap")) {
+                calcDispStr = "";
+            }
             if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Depth correction trial numbers. A vertical interval of length [2*num+1]x[gap] pixels will be searched to determine whether the depth should be modified.");
             }
+            if (ImGui::SliderFloat("Max XY displacement", &optimMaxXYDisp, 0.5, 9, "%.2f pixels")) {
+                calcDispStr = "";
+            }
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Maximum displacement in XY plane during optimization");
+            }
             ImGui::Checkbox("Log energy matrix", &logEnergy);
             if (showTooltip && ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Debug purpose: whether log the energy for all depth trials");
+                ImGui::SetTooltip("[Debug purpose] whether log the energy for all depth trials");
             }
 
             ImGui::PopItemWidth();
@@ -246,13 +257,18 @@ void GUI::DrawStage8() {
             ImGui::Separator();
         }
 
-        static std::string calcDispStr = "";
         if (ImGui::Button("Calculate Displacement")) {
-            if (OptimizeAllFrames(logEnergy))
-                calcDispStr = "Successful";
-            else
-                calcDispStr = "exception: see log";
-            logger().debug("   <button> Calculate Displacement");
+            try {
+                if (OptimizeAllFrames(logEnergy))
+                    calcDispStr = "Successful";
+                else
+                    calcDispStr = "exception: see log";
+                logger().debug("   <button> Calculate Displacement");
+            } catch (const std::exception &e) {
+                logger().error("   <button> [Calculate Displacement] Fatal error encountered.");
+                std::cerr << "   <button> [Calculate Displacement] Fatal error encountered." << std::endl;
+                calcDispStr = "Fatal error";
+            }
         }
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Calculate displacement for all loaded frames");
@@ -406,7 +422,14 @@ bool GUI::OptimizeAllFrames(bool logEnergy) {
 
     for (currentFrame=0; currentFrame<currentLoadedFrames-1; currentFrame++) {
 
-        OptimizeOneFrame(currentFrame);
+        // OptimizeOneFrame(currentFrame);
+            /// Note: why don't we optimize here anymore?
+            /// Experiments show that there are rare cases where the optimization may
+            /// diverge to somewhere wrong. This is potentially due to wrong depth.
+
+        // apply optical flow result on the next frame
+        ApplyOpticalFlow(currentFrame);
+
         // depth correction for the frame that was just updated
         if (!MarkerDepthCorrection(currentFrame + 1, depthCorrectionNum, depthCorrectionGap, logEnergy)) {
             res = false;
@@ -418,6 +441,20 @@ bool GUI::OptimizeAllFrames(bool logEnergy) {
     UpdateMarkerPointLocArray();
 
     return res;
+}
+
+
+void GUI::ApplyOpticalFlow(int prevFrameIdx) {
+// Apply optical flow results to this frame
+
+    const int N = markerArray[prevFrameIdx].num;
+
+    for (int i=0; i<N; i++) {
+
+        markerArray[prevFrameIdx+1].loc(i, 0) =  markerArray[prevFrameIdx].loc(i, 0) + opticalFlowCorrection[prevFrameIdx](i, 0);  // x
+        markerArray[prevFrameIdx+1].loc(i, 1) =  markerArray[prevFrameIdx].loc(i, 1) + opticalFlowCorrection[prevFrameIdx](i, 1);  // y
+        markerArray[prevFrameIdx+1].loc(i, 2) =  markerArray[prevFrameIdx].loc(i, 2) + opticalFlowCorrection[prevFrameIdx](i, 2);  // z
+    }
 }
 
 
