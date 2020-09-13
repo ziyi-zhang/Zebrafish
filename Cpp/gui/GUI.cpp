@@ -1048,7 +1048,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 
     // cylinder filter
     cylinderEnergyThres = -0.1;
-    cylinderRadiusThres = 5.0;
+    cylinderRadiusThres = 6.0;
     cylinderIterThres = optimMaxIt;
     showCylFilterPoints = true;
     cylFilterMembraneCheck = true;

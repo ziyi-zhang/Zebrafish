@@ -121,6 +121,12 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
         cout << " >>>>>>> depth correction energy_cache >>>>>>>" << endl;
         cout << "Frame = " << frameIdx << endl << endl;
         cout << energy_cache << endl << endl;
+        /*
+        cout << "x cache" << endl << x_cache << endl;
+        cout << "y cache" << endl << y_cache << endl;
+        cout << "z cache" << endl << z_cache << endl;
+        cout << "r cache" << endl << r_cache << endl;
+        */
     }
     // DEBUG PURPOSE
 
