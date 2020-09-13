@@ -999,6 +999,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     // shared
     bsplineArray.resize(1);
     imgData.resize(1);
+    cylinderHeight = 2.5;
     stage = 1;
     histBars = 50;
     showBackgroundImage = true;
@@ -1087,7 +1088,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 
     // Optical Flow
     desiredFrames = 0;
-    opticalFlowAlpha = 0.05;
+    opticalFlowAlpha = 0.1;
     opticalFlowIter = 30;
     showOpticalFlow = false;
 

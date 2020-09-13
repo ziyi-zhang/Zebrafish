@@ -76,6 +76,7 @@ private:
     // shared
     igl::opengl::glfw::Viewer viewer;
     imageData_t imgData;
+    double cylinderHeight;  // unit cylinder height
     int stage;  // stage in zebrafish_panel
     int histBars;  // number of bars in histogram
     bool showBackgroundImage;

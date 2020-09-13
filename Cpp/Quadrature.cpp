@@ -28,7 +28,7 @@ quadrature::quadrature(int diskQuadMethod) {
     heightLocArray << -0.8611363115940526, -0.3399810435848563, 0.3399810435848563, 0.8611363115940526;
     heightWeightArray << 0.3478548451374538, 0.6521451548625461, 0.6521451548625461, 0.3478548451374538;
     // heightLayers
-    heightLayers = 4;
+    heightLayers = 4;  // NOTE: this is not the cylinder height. This is how many different depths we sample in height.
 }
 
 

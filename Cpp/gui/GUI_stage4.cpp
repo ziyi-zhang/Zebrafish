@@ -166,16 +166,16 @@ void GUI::Optimization() {
                 ///////////////////////////////////
                 // lambda function for optimizer //
                 ///////////////////////////////////
-                auto func = [this/*.grid_search, .bsplineArray[0]*/, ii]
+                auto func = [this/*.grid_search, .bsplineArray[0], .cylinderHeight*/, ii]
                 (const Eigen::VectorXd& x, Eigen::VectorXd& grad) {
 
                         DScalar ans;
 
-                        if (!cylinder::IsValid(bsplineArray[0], x(0), x(1), pointRecord.grid_search(ii, 2), x(2), 3)) {
+                        if (!cylinder::IsValid(bsplineArray[0], x(0), x(1), pointRecord.grid_search(ii, 2), x(2), cylinderHeight)) {
                             grad.setZero();
                             return 1.0;
                         }
-                        cylinder::EvaluateCylinder(bsplineArray[0], DScalar(0, x(0)), DScalar(1, x(1)), pointRecord.grid_search(ii, 2), DScalar(2, x(2)), 3, ans, reverseColor);
+                        cylinder::EvaluateCylinder(bsplineArray[0], DScalar(0, x(0)), DScalar(1, x(1)), pointRecord.grid_search(ii, 2), DScalar(2, x(2)), cylinderHeight, ans, reverseColor);
                         grad.resize(3, 1);
                         grad = ans.getGradient();
                         return ans.getValue();

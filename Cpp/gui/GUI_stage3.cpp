@@ -221,9 +221,8 @@ void GUI::GridSearch() {
     logger().info(">>>>>>>>>> Before grid search >>>>>>>>>>");
     logger().info("Grid search #points = {}", sampleCount);
     tbb::parallel_for( tbb::blocked_range<int>(0, sampleCount),
-        [this/*.bsplineArray[0], .gridSampleInput, .gridSampleOutput*/](const tbb::blocked_range<int> &r) {
+        [this/*.bsplineArray[0], .gridSampleInput, .gridSampleOutput, .cylinderHeight*/](const tbb::blocked_range<int> &r) {
 
-            const double cylinderHeight = 3.0;
             for (int ii = r.begin(); ii != r.end(); ++ii) {
                 cylinder::EvaluateCylinder(bsplineArray[0], gridSampleInput(ii, 0), gridSampleInput(ii, 1), gridSampleInput(ii, 2), gridSampleInput(ii, 3), cylinderHeight, gridSampleOutput(ii), reverseColor);
             }
@@ -260,7 +259,7 @@ bool GUI::InMembraneArea(const image_t &image, const double thres, double x, dou
 bool GUI::ValidGridSearchPoint(const image_t &image, const bspline &bsp, bool skipMembrane, double membraneThres, double x, double y, double z, double r) {
 
     // valid cylinder
-    if (!cylinder::IsValid(bsp, x, y, z, r, 3.0)) return false;
+    if (!cylinder::IsValid(bsp, x, y, z, r, cylinderHeight)) return false;
     // whether in membrane area
     if (!skipMembrane)
         if (!InMembraneArea(image, membraneThres, x, y, z, r)) return false;

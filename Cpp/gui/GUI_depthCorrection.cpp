@@ -18,6 +18,38 @@ namespace zebrafish {
 
 namespace {
 
+double GetMean(const Eigen::MatrixXd &energy, int i, int j) {
+// Find the mean of (2*l+1) consecutive energies, excluding the min and max
+
+    const int l = 2;
+    int t1 = std::max(0, j-l);
+    int t2 = std::min(int(energy.cols()-1), j+l);
+
+    double minE = 1.0, maxE = -1.0, sum = 0.0;
+    for (int t=t1; t<=t2; t++) {
+        if (energy(i, t) > maxE) maxE = energy(i, t);
+        if (energy(i, t) < minE) minE = energy(i, t);
+        sum += energy(i, t);
+    }
+
+    return (sum - minE - maxE) / double(t2-t1-1);
+}
+
+
+void SmoothCurve(Eigen::MatrixXd &energy_cache) {
+
+    const int rows = energy_cache.rows();
+    const int cols = energy_cache.cols();
+    Eigen::MatrixXd tmpEnergy(rows, cols);
+
+    for (int i=0; i<rows; i++)
+        for (int j=0; j<cols; j++) {
+            tmpEnergy(i, j) = GetMean(energy_cache, i, j);
+        }
+
+    energy_cache = tmpEnergy;
+}
+
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -54,7 +86,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
         //////////////////////////////////////
         // lambda function for parallel_for //
         //////////////////////////////////////
-        [this/*.markerArray[frameIdx], .bsplineArray[frameIdx]*/, &param, frameIdx, M, &depthArray, 
+        [this/*.markerArray[frameIdx], .bsplineArray[frameIdx], .cylinderHeight*/, &param, frameIdx, M, &depthArray, 
          &x_cache, &y_cache, &z_cache, &r_cache, &energy_cache]
         (const tbb::blocked_range<int> &r) {
 
@@ -79,17 +111,17 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
                 ///////////////////////////////////
                 // lambda function for optimizer //
                 ///////////////////////////////////
-                auto func = [this/*.markerArray[frameIdx], .bsplineArray[frameIdx]*/, ii, jj, frameIdx, &depthArray]
+                auto func = [this/*.markerArray[frameIdx], .bsplineArray[frameIdx], .cylinderHeight*/, ii, jj, frameIdx, &depthArray]
                 (const Eigen::VectorXd& x, Eigen::VectorXd& grad) {
 
                         DScalar ans;
                         double z_ = markerArray[frameIdx].loc(ii, 2) + depthArray[jj];  // add z correction
 
-                        if (!cylinder::IsValid(bsplineArray[frameIdx], x(0), x(1), z_, x(2), 3)) {
+                        if (!cylinder::IsValid(bsplineArray[frameIdx], x(0), x(1), z_, x(2), cylinderHeight)) {
                             grad.setZero();
                             return 1.0;
                         }
-                        cylinder::EvaluateCylinder(bsplineArray[frameIdx], DScalar(0, x(0)), DScalar(1, x(1)), z_, DScalar(2, x(2)), 3, ans, reverseColor);
+                        cylinder::EvaluateCylinder(bsplineArray[frameIdx], DScalar(0, x(0)), DScalar(1, x(1)), z_, DScalar(2, x(2)), cylinderHeight, ans, reverseColor);
                         grad.resize(3, 1);
                         grad = ans.getGradient();
                         return ans.getValue();
@@ -129,6 +161,9 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
         */
     }
     // DEBUG PURPOSE
+
+    // smoothen the energy cache
+    SmoothCurve(energy_cache);
 
     for (int i=0; i<N; i++) {
 
