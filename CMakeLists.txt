@@ -27,7 +27,7 @@ option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"                     ON)
 option(LIBIGL_WITH_OPENGL_GLFW_IMGUI "Use ImGui"                    ON)
 option(LIBIGL_WITH_PNG               "Use PNG"                      ON)
 option(LIBIGL_WITH_PYTHON            "Use Python"                   OFF)
-option(LIBIGL_WITH_TETGEN            "Use Tetgen"                   OFF)
+option(LIBIGL_WITH_TETGEN            "Use Tetgen"                   ON)
 option(LIBIGL_WITH_TRIANGLE          "Use Triangle"                 OFF)
 option(LIBIGL_WITH_VIEWER            "Use OpenGL viewer"            ON)
 option(LIBIGL_WITH_XML               "Use XML"                      OFF)
@@ -45,7 +45,13 @@ option(POLYSOLVE_WITH_AMGCL            "Use AMGCL"                         ON)
 option(POLYSOLVE_WITH_SPECTRA          "Enable computing spectrum"         OFF)
 
 
+# option(POLYFEM_NO_UI "" ON)
+option(POLYFEM_WITH_APPS "" OFF)
+# option(POLYFEM_WITH_MISC "" OFF)
+option(POLYFEM_WITH_AMGCL "" OFF)
 
+
+option(ZEBRA_ANALYSIS_RUNNABLE         "Compile main analysis"             ON)
 
 
 ### Configuration
@@ -220,4 +226,39 @@ if(ZEBRA_WITH_UNIT_TESTS)
   include(CTest)
   enable_testing()
   add_subdirectory(tests)
+endif()
+
+
+
+
+
+
+
+
+
+################################################################################
+# Analysis
+################################################################################
+add_library(ZebraFish-Analysis)
+target_include_directories(ZebraFish-Analysis PUBLIC ${PROJECT_BINARY_DIR}/include)
+add_subdirectory(analysis)
+
+
+target_link_libraries(ZebraFish-Analysis PRIVATE warnings::all)
+target_link_libraries(ZebraFish-Analysis PUBLIC polyfem igl::tetgen)
+
+if(ZEBRA_ANALYSIS_RUNNABLE)
+
+  add_executable(ZebraFish-Analysis_bin
+    analysis/main.cpp
+  )
+
+  #cli11
+  if(NOT TARGET CLI11::CLI11)
+    zebra_download_cli11()
+    add_subdirectory(${ZEBRA_EXTERNAL}/cli11)
+  endif()
+
+  target_link_libraries(ZebraFish-Analysis_bin PUBLIC ZebraFish-Analysis)
+  target_link_libraries(ZebraFish-Analysis_bin PUBLIC CLI11::CLI11)
 endif()

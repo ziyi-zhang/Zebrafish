@@ -14,6 +14,10 @@ include(ZebraFishDownloadExternal)
 # Required libraries
 ################################################################################
 
+#Polyfem
+zebra_download_polyfem()
+add_subdirectory(${ZEBRA_EXTERNAL}/polyfem)
+
 # libigl
 if(NOT TARGET igl)
   zebra_download_libigl()
@@ -37,8 +41,10 @@ if(NOT TARGET TinyTiff)
   target_include_directories(TinyTiff SYSTEM INTERFACE ${ZEBRA_EXTERNAL}/TinyTIFF)
 endif()
 
-zebra_download_polysolve()
-add_subdirectory(${ZEBRA_EXTERNAL}/polysolve)
+if(NOT TARGET polysolve)
+  zebra_download_polysolve()
+  add_subdirectory(${ZEBRA_EXTERNAL}/polysolve)
+endif()
 
 
 # spdlog
