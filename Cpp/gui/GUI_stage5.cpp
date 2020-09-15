@@ -92,16 +92,6 @@ void GUI::DrawStage5() {
     // Visualize filtered cluster points
     if (showClusterFilterPoints) {
 
-        static int clusterSizeThres_cache = -1;
-        if (clusterSizeThres != clusterSizeThres_cache) {
-            // Update the cluster points to visualize when the threshold have changed
-
-            ClusterFilter();
-            UpdateClusterPointLoc();
-
-            clusterSizeThres_cache = clusterSizeThres;
-        }
-
         viewer.data().point_size = filterPointSize;
         Eigen::MatrixXd pointColor(1, 3);
         pointColor << 0.99, 0.41, 0.01;
@@ -278,6 +268,10 @@ void GUI::DrawStage5() {
             UpdateClusterPointLoc();
             UpdateClusterSizeHist();
 
+            // apply cluster filter
+            ClusterFilter();
+            UpdateClusterPointLoc();
+
             propertyListType = 1;
             // update visualized points
             showCylFilterPoints = false;
@@ -294,7 +288,7 @@ void GUI::DrawStage5() {
         // Histogram of cluster size
         ImVec2 before, after;
         ImDrawList *drawList = ImGui::GetWindowDrawList();
-        ImGui::Text("Histogram of cluster size");
+        ImGui::Text("Histogram of cluster size per area");
 
         const float width = ImGui::GetWindowWidth() * 0.75f - 2;
         ImGui::PushItemWidth(width + 2);
@@ -315,9 +309,12 @@ void GUI::DrawStage5() {
         );
         drawList->PopClipRect();
         ImGui::PopItemWidth();
-        ImGui::SliderInt("    ", &clusterSizeThres, clusterSizeHist.minValue, std::floor(clusterSizeHist.maxValue / 2.0));
+        if (ImGui::SliderFloat("    ", &clusterSizeThres, clusterSizeHist.minValue, 5.0)) {
+            ClusterFilter();
+            UpdateClusterPointLoc();
+        }
         if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Minimum size. Cluster consisted of fewer cylinders will be discarded.");
+            ImGui::SetTooltip("Clusters consisted of fewer cylinders will be discarded.");
         }
 
         ImGui::Separator(); /////////////////////////////////////////
@@ -638,11 +635,13 @@ void GUI::Cluster() {
 void GUI::ClusterFilter() {
 
     const int N = clusterRecord.num;
+    double areaCorrectionFactor;  // if a cylidner has a small radius, the cluster size will be smaller
 
     for (int i=0; i<N; i++) {
 
+        areaCorrectionFactor = double(clusterRecord.loc(i, 3) * clusterRecord.loc(i, 3));
         clusterRecord.alive(i) = 
-            clusterRecord.size(i) >= clusterSizeThres;
+            clusterRecord.size(i) / areaCorrectionFactor >= clusterSizeThres;
     }
 }
 
@@ -682,10 +681,14 @@ void GUI::UpdateClusterPointLoc() {
 void GUI::UpdateClusterSizeHist() {
 
     Eigen::Matrix<int, Eigen::Dynamic, 1> sizeCol = clusterRecord.size;
-    int minValue = 1;
-    int maxValue = sizeCol.maxCoeff();
     const int N = clusterRecord.num;
     assert(N > 0);
+    Eigen::Matrix<double, Eigen::Dynamic, 1> sizePerArea(N, 1);
+    for (int i=0; i<N; i++) {
+        sizePerArea(i) = double(sizeCol(i)) / (double(clusterRecord.loc(i, 3) * clusterRecord.loc(i, 3)));
+    }
+    int minValue = sizePerArea.minCoeff();
+    int maxValue = sizePerArea.maxCoeff();
 
     const double gap = (double)(maxValue - minValue) / double(histBars);
 
@@ -695,7 +698,7 @@ void GUI::UpdateClusterSizeHist() {
 
     int idx;
     for (int i=0; i<N; i++) {
-        idx = std::floor((double)(sizeCol(i) - minValue)/gap);
+        idx = std::floor((double)(sizePerArea(i) - minValue)/gap);
         if (idx >= histBars) idx = histBars - 1;
         if (idx < 0) idx = 0;
         clusterSizeHist.hist(idx)++;

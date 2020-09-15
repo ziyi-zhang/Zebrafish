@@ -1061,7 +1061,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     // cluster filter
     clusterDistThres = 0.01;
     finalizeClusterDistThres = 2.0;
-    clusterSizeThres = 10;
+    clusterSizeThres = 4;
     showClusterFilterPoints = false;
     clusterPointLoc.resize(1, 3);
     clusterSizeHist.hist = Eigen::MatrixXf::Zero(histBars, 1);

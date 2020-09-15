@@ -200,7 +200,11 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
                 // correctedCount++;
             }
             if (depthNum > 0 && (minColIdx == 0 || minColIdx == M-1)) {
-                logger().warn("Reached depth correction search range limit. Consider using a larger search range.");
+                char errorMsg[200];
+                std::sprintf(errorMsg, "[warning] Reached depth correction search range limit. Consider using a larger search range. Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
+                logger().warn(errorMsg);
+                std::cerr << errorMsg << std::endl;
+                res = false;
             }
 
             markerArray[frameIdx].loc(i, 0) = x_cache(i, minColIdx);

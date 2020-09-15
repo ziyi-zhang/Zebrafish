@@ -154,7 +154,7 @@ private:
     //////////////////////////////////////////////////
     // Cluster Filter
     float clusterDistThres, finalizeClusterDistThres;
-    int clusterSizeThres;
+    float clusterSizeThres;
     bool showClusterFilterPoints;
     Eigen::MatrixXd clusterPointLoc;  // visualization purpose
     // Hist
