@@ -355,6 +355,7 @@ void GUI::DrawStage5() {
         const float inputWidth = ImGui::GetWindowWidth() / 3.0;
         ImGui::PushItemWidth(inputWidth);
 
+        // 2nd round cluster
         ImGui::InputFloat("Finalize cluster dist threshold", &finalizeClusterDistThres);
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Clusters whose xy-plane distance smaller than this threshold will be grouped to calculate the final location of a marker.\nThe unit is in pixels.");
@@ -363,6 +364,24 @@ void GUI::DrawStage5() {
             FinalizeClusterLoc();
             propertyListType = 2;
             logger().debug("   <button> Finalize cluster locations");
+        }
+        // depth correction
+        static bool logEnergy = false;
+        ImGui::SliderFloat("DC gap", &depthCorrectionGap, 0, 0.3, "%.3f pixels");
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Depth correction gap in pixels");
+        }
+        ImGui::SliderInt("DC trial numbers", &depthCorrectionNum, 0, 50, "%d * gap");
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Depth correction trial numbers. A vertical interval of length [2*num+1]x[gap] pixels will be searched to determine whether the depth should be modified.");
+        }
+        ImGui::Checkbox("Log energy matrix", &logEnergy);
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("[Debug purpose] whether log the energy for all depth trials");
+        }
+        if (ImGui::Button("Depth correction")) {
+            // depth correction for the frame that was just updated
+            MarkerDepthCorrection(0, depthCorrectionNum, depthCorrectionGap, logEnergy);
         }
         
         ImGui::PopItemWidth();
@@ -707,6 +726,7 @@ void GUI::UpdateClusterSizeHist() {
 
 
 void GUI::FinalizeClusterLoc() {
+// Second round of cluster
 // Do another round of cluster to get "markerRecord" from "clusterRecord"
 /// FIXME: the code is very similar to "Cluster" but not identical
 /// FIXME: The variables in this function is NOT properly named (copied from "Cluster")

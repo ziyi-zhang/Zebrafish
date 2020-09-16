@@ -24,6 +24,7 @@ void GUI::DrawStage6() {
     if (stage5to6Flag) {
 
         FinalizeClusterLoc();
+        MarkerDepthCorrection(0, depthCorrectionNum, depthCorrectionGap, false);
         UpdateMarkerPointLocArray();
         InitializeICPPattern();
         propertyListType = 2;
