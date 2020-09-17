@@ -129,12 +129,14 @@ if(ZEBRA_TOPLEVEL_PROJECT)
     Cpp/gui/FileDialog.cpp
     Cpp/gui/GUI_markerDrag.cpp
     Cpp/gui/GUI_depthCorrection.cpp
+    analysis/zebra-analysis.cpp
   )
   zebra_copy_headers(Cpp/gui/GUI.h Cpp/gui/FileDialog.h)
 
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC ${PROJECT_NAME})
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC CLI11::CLI11)
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC igl::opengl igl::opengl_glfw igl::opengl_glfw_imgui)
+  target_link_libraries(${PROJECT_NAME}_gui PUBLIC polyfem igl::tetgen)
 
   if(NOT TARGET tinyfiledialogs::tinyfiledialogs)
 	  zebra_download_tinyfiledialogs()

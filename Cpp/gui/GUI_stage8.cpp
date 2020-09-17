@@ -5,6 +5,7 @@
 #include <zebrafish/Logger.hpp>
 #include <zebrafish/VTUwriter.h>
 #include <zebrafish/TiffReader.h>
+#include <zebrafish/zebra-analysis.hpp>
 
 #include <tbb/task_scheduler_init.h>
 #include <tbb/parallel_for.h>
@@ -141,6 +142,33 @@ void GetJacobian(const Eigen::MatrixXd &meshPoint, const Eigen::MatrixXi &marker
             jacobian(i, dim) = (displacement(v2, dim) - displacement(v1, dim)) * Vki_perp(dim) + 
                                (displacement(v3, dim) - displacement(v1, dim)) * Vij_perp(dim);
             jacobian(i, dim) /= (2.0 * area);
+        }
+    }
+}
+
+
+void GetPhysicalLocation(const std::vector<Eigen::MatrixXd> &locArray, double resolutionX, double resolutionY, double resolutionZ, std::vector<Eigen::MatrixXd> &locArray_out) {
+
+    const int N = locArray.size();
+    locArray_out.resize(N);
+    bool physical;
+
+    if (resolutionX > 0 && resolutionY > 0 && resolutionZ > 0) {
+        physical = true;
+        logger().info("Using physical unit. Row dist = {}, col dist = {}, depth dist = {}", resolutionX, resolutionY, resolutionZ);
+    } else {
+        physical = false;  // the user does not input valid physical resolution
+        logger().info("Physical resolution invalid. Using pixel as unit.");
+    }
+
+    for (int i=0; i<locArray.size(); i++) {
+
+        // Note: locArray has inverted XY
+        locArray_out[i] = locArray[i];
+        if (physical) {
+            locArray_out[i].col(0) *= resolutionY;
+            locArray_out[i].col(1) *= resolutionX;
+            locArray_out[i].col(2) *= resolutionZ;
         }
     }
 }
@@ -295,6 +323,85 @@ void GUI::DrawStage8() {
     // this loads the code to render the GUI about mouse draging
     ImGui::Separator();  /////////////////////////////////////////
     RenderMarkerDragGUI();
+
+    ImGui::Separator(); /////////////////////////////////////////
+
+    if (ImGui::CollapsingHeader("Analysis", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+        static double offset = 1;  // Diagonal multiplier for box mesh
+        static double min_area = 500;  // Minimum tet area used by tetgen
+        static double E = 1e-3;  // Young's modulus
+        static double nu = 0.45;  // Poisson's ratio
+        static bool is_linear=true;  // Use non-linear material
+        static int discr_order = 1;  // Analysis discretization order
+        static int n_refs = 0;  // Number of mesh uniform refinements
+        static double vismesh_rel_area = 0.00001;  // Desnsity of the output visualization
+
+        static std::string runAnalysisStr = "";
+        if (ImGui::Button("Run analysis")) {
+            try {
+                // prepare the displacement
+                std::vector<Eigen::MatrixXd> analysisDisplacementVec;
+                std::vector<Eigen::MatrixXd> markerPointLocArray_phy;
+                GetPhysicalLocation(markerPointLocArray, resolutionX, resolutionY, resolutionZ, markerPointLocArray_phy);
+                for (int i=0; i<currentLoadedFrames; i++) {
+
+                    Eigen::MatrixXd accumulativeDisplacement;
+                    GetDisplacement(markerPointLocArray_phy, i, false, accumulativeDisplacement);
+                    Eigen::RowVectorXd meanAccumulativeDisp = accumulativeDisplacement.colwise().mean();
+                    accumulativeDisplacement.rowwise() -= meanAccumulativeDisp;
+                    analysisDisplacementVec.push_back(accumulativeDisplacement);  // want accumulativeDisplacement (relative)
+                }
+
+                // run analysis
+                std::string path = "Analysis_" + imagePath;
+                compute_analysis(analysisDisplacementVec, markerMeshArray, path, E, nu, offset, min_area, discr_order, is_linear, n_refs, vismesh_rel_area);
+
+                runAnalysisStr = "Done";
+            } catch (const std::exception &e) {
+                logger().error("   <button> [Run analysis] Fatal error encountered.");
+                std::cerr << "   <button> [Run analysis] Fatal error encountered." << std::endl;
+                runAnalysisStr = "Fatal error";
+            }
+        }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Run simulation");
+        }
+        ImGui::SameLine();
+        ImGui::Text("%s", runAnalysisStr.c_str());
+
+        /////////////////////////////////////
+
+        if (ImGui::TreeNode("Advanced analysis")) {
+
+            ImGui::InputDouble("offset", &offset);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Diagonal multiplier for box mesh");
+            }
+            ImGui::InputDouble("min tet area", &min_area);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Minimum tet area used by tetgen");
+            }
+            ImGui::InputDouble("E (Young's modulus)", &E);
+            ImGui::InputDouble("nu (Poisson's ratio)", &nu);
+            ImGui::Checkbox("linear material", &is_linear);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Use non-linear material");
+            }
+            ImGui::InputInt("discretization order", &discr_order);
+            ImGui::InputInt("#refine", &n_refs);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Number of mesh uniform refinements");
+            }
+            ImGui::InputDouble("vismesh_rel_area", &vismesh_rel_area);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Desnsity of the output visualization");
+            }
+
+            ImGui::TreePop();
+            ImGui::Separator();
+        }
+    }
 
     ImGui::Separator(); /////////////////////////////////////////
 
@@ -533,33 +640,6 @@ void GUI::OptimizeOneFrame(int prevFrameIdx) {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Export
-
-
-void GetPhysicalLocation(const std::vector<Eigen::MatrixXd> &locArray, double resolutionX, double resolutionY, double resolutionZ, std::vector<Eigen::MatrixXd> &locArray_out) {
-
-    const int N = locArray.size();
-    locArray_out.resize(N);
-    bool physical;
-
-    if (resolutionX > 0 && resolutionY > 0 && resolutionZ > 0) {
-        physical = true;
-        logger().info("Using physical unit. Row dist = {}, col dist = {}, depth dist = {}", resolutionX, resolutionY, resolutionZ);
-    } else {
-        physical = false;  // the user does not input valid physical resolution
-        logger().info("Physical resolution invalid. Using pixel as unit.");
-    }
-
-    for (int i=0; i<locArray.size(); i++) {
-
-        // Note: locArray has inverted XY
-        locArray_out[i] = locArray[i];
-        if (physical) {
-            locArray_out[i].col(0) *= resolutionY;
-            locArray_out[i].col(1) *= resolutionX;
-            locArray_out[i].col(2) *= resolutionZ;
-        }
-    }
-}
 
 
 bool GUI::SaveMeshToVTU_point(bool onlySaveFirstFrameMesh, bool saveAccumulativeDisplacement, bool saveAccumulativeDisplacement_relative, bool saveIncrementalDisplacement, bool saveIncrementalDisplacement_relative) {

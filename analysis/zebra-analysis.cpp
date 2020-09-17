@@ -41,79 +41,6 @@ namespace zebrafish {
             return 0;
         };
 
-        Eigen::MatrixXd box_min = V0.colwise().minCoeff();
-        Eigen::MatrixXd box_max = V0.colwise().maxCoeff();
-        assert(box_min.size() == 3);
-        assert(box_max.size() == 3);
-
-        for(int i = 1; i < V.size(); ++i)
-        {
-            const Eigen::MatrixXd cbox_min = V[i].colwise().minCoeff();
-            const Eigen::MatrixXd cbox_max = V[i].colwise().maxCoeff();
-
-            for(int d = 0; d < 3; ++d)
-            {
-                box_min(d) = std::min(box_min(d), cbox_min(d));
-                box_max(d) = std::max(box_max(d), cbox_max(d));
-            }
-        }
-
-        const double diag = (box_max - box_min).norm();
-        box_min.array() -= offset*diag;
-        box_max.array() += offset*diag;
-
-        Eigen::MatrixXi cube_f(12, 3);
-        cube_f << 4, 2, 0,
-                    2, 7, 3,
-                    6, 5, 7,
-                    1, 7, 5,
-                    0, 3, 1,
-                    4, 1, 5,
-                    4, 6, 2,
-                    2, 6, 7,
-                    6, 4, 5,
-                    1, 3, 7,
-                    0, 2, 3,
-                    4, 0, 1;
-        Eigen::MatrixXd cube_v(8, 3);
-        cube_v << box_max(0), box_max(1), box_max(2),
-                    box_max(0), box_max(1), box_min(2),
-                    box_max(0), box_min(1), box_max(2),
-                    box_max(0), box_min(1), box_min(2),
-                    box_min(0), box_max(1), box_max(2),
-                    box_min(0), box_max(1), box_min(2),
-                    box_min(0), box_min(1), box_max(2),
-                    box_min(0), box_min(1), box_min(2);
-
-        Eigen::MatrixXd mesh_v(cube_v.rows()+V0.rows(), 3);
-        Eigen::MatrixXi mesh_f(cube_f.rows()+F.rows(), 3);
-
-        mesh_v.block(0, 0, cube_v.rows(), 3) = cube_v;
-        mesh_v.block(cube_v.rows(), 0, V0.rows(), 3) = V0;
-
-        mesh_f.block(0, 0, cube_f.rows(), 3) = cube_f;
-        mesh_f.block(cube_f.rows(), 0, F.rows(), 3) = F;
-        mesh_f.block(cube_f.rows(), 0, F.rows(), 3).array() += cube_v.rows();
-
-        Eigen::MatrixXd nodes;
-        Eigen::MatrixXi elem, faces;
-        const std::string switches = "zpq1.414a"+std::to_string(min_area)+"Q";
-        // const std::string switches = "zpq1.414a10000Q";
-        igl::copyleft::tetgen::tetrahedralize(mesh_v, mesh_f, switches, nodes, elem, faces);
-
-        // {
-        // igl::writeMESH("text.mesh", nodes, elem, faces);
-        // }
-
-        polyfem::State state;
-        state.mesh = std::make_unique<polyfem::Mesh3D>();
-        state.mesh->build_from_matrices(nodes, elem);
-		state.args["normalize_mesh"] = false;
-		state.args["n_refs"] = n_refs;
-		state.args["vismesh_rel_area"] = vismesh_rel_area;
-        state.load_mesh();
-        state.mesh->compute_boundary_ids(set_bc);
-
         const auto bc = [&barys, &V0, &F](const Eigen::MatrixXd &currentv, const double x, const double y, const double z)
         {
             const Eigen::Vector3d v(x, y, z);
@@ -155,6 +82,84 @@ namespace zebrafish {
             return res;
         };
 
+        //////////////////////////////////////////////////////////////
+        // get the bounding box for the first V
+        Eigen::MatrixXd box_min = V0.colwise().minCoeff();
+        Eigen::MatrixXd box_max = V0.colwise().maxCoeff();
+        assert(box_min.size() == 3);
+        assert(box_max.size() == 3);
+
+        // get the bounding box for all V's
+        for(int i = 1; i < V.size(); ++i)
+        {
+            const Eigen::MatrixXd cbox_min = V[i].colwise().minCoeff();
+            const Eigen::MatrixXd cbox_max = V[i].colwise().maxCoeff();
+
+            for(int d = 0; d < 3; ++d)
+            {
+                box_min(d) = std::min(box_min(d), cbox_min(d));
+                box_max(d) = std::max(box_max(d), cbox_max(d));
+            }
+        }
+
+        // offset -> larger box
+        const double diag = (box_max - box_min).norm();
+        box_min.array() -= offset * diag;
+        box_max.array() += offset * diag;
+
+        //////////////////////////////////////////////////////////////
+        // generate bounding box mesh
+        Eigen::MatrixXi cube_f(12, 3);
+        cube_f << 4, 2, 0,
+                    2, 7, 3,
+                    6, 5, 7,
+                    1, 7, 5,
+                    0, 3, 1,
+                    4, 1, 5,
+                    4, 6, 2,
+                    2, 6, 7,
+                    6, 4, 5,
+                    1, 3, 7,
+                    0, 2, 3,
+                    4, 0, 1;
+        Eigen::MatrixXd cube_v(8, 3);
+        cube_v << box_max(0), box_max(1), box_max(2),
+                    box_max(0), box_max(1), box_min(2),
+                    box_max(0), box_min(1), box_max(2),
+                    box_max(0), box_min(1), box_min(2),
+                    box_min(0), box_max(1), box_max(2),
+                    box_min(0), box_max(1), box_min(2),
+                    box_min(0), box_min(1), box_max(2),
+                    box_min(0), box_min(1), box_min(2);
+
+        Eigen::MatrixXd mesh_v(cube_v.rows()+V0.rows(), 3);
+        Eigen::MatrixXi mesh_f(cube_f.rows()+F.rows(), 3);
+
+        mesh_v.block(0, 0, cube_v.rows(), 3) = cube_v;
+        mesh_v.block(cube_v.rows(), 0, V0.rows(), 3) = V0;
+
+        mesh_f.block(0, 0, cube_f.rows(), 3) = cube_f;
+        mesh_f.block(cube_f.rows(), 0, F.rows(), 3) = F;
+        mesh_f.block(cube_f.rows(), 0, F.rows(), 3).array() += cube_v.rows();
+
+        //////////////////////////////////////////////////////////////
+        // Generate tet mesh
+        Eigen::MatrixXd nodes;
+        Eigen::MatrixXi elem, faces;
+        const std::string switches = "zpq1.414a"+std::to_string(min_area)+"Q";
+        // const std::string switches = "zpq1.414a10000Q";
+        igl::copyleft::tetgen::tetrahedralize(mesh_v, mesh_f, switches, nodes, elem, faces);
+
+        //////////////////////////////////////////////////////////////
+        // polyfem
+        polyfem::State state;
+        state.mesh = std::make_unique<polyfem::Mesh3D>();
+        state.mesh->build_from_matrices(nodes, elem);
+		state.args["normalize_mesh"] = false;
+		state.args["n_refs"] = n_refs;
+		state.args["vismesh_rel_area"] = vismesh_rel_area;
+        state.load_mesh();
+        state.mesh->compute_boundary_ids(set_bc);
 
         // {
         //     Eigen::MatrixXd points;
@@ -167,7 +172,6 @@ namespace zebrafish {
 
         Eigen::RowVector3d zero(0, 0, 0);
         for(int sim = 1; sim < V.size(); ++sim)
-        // for(int sim = 1; sim < 2; ++sim)
         {
             const json args = {
                 {"tensor_formulation", is_linear ? "LinearElasticity" : "NeoHookean"},
