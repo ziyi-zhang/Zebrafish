@@ -94,7 +94,7 @@ double FindDepthFromMesh(const Eigen::MatrixXi &markerMeshArray, const Eigen::Ma
     std::set<int> indexSet;
 
     for (int i=0; i<N; i++) {
-        
+
         if (markerMeshArray(i, 0) == index || markerMeshArray(i, 1) == index || markerMeshArray(i, 2) == index) {
             // add two adjacent markers' depths
             if (markerMeshArray(i, 0) != index) indexSet.insert(markerMeshArray(i, 0));
@@ -103,15 +103,30 @@ double FindDepthFromMesh(const Eigen::MatrixXi &markerMeshArray, const Eigen::Ma
         }
     }
 
+    /*
+    // DEBUG PURPOSE
+    for (auto it=indexSet.begin(); it!=indexSet.end(); it++) 
+        std::cerr << *it << " ";
+    std::cerr << std::endl;
+    std::cerr << "markerMeshArray size" << std::endl;
+    std::cerr << markerMeshArray.size() << std::endl;
+    std::cerr << "depth Array" << std::endl;
+    std::cerr << depthArray.transpose() << std::endl;
+    */
+
     for (auto it=indexSet.begin(); it!=indexSet.end(); it++) {
         depth += depthArray(*it);
     }
-    depth /= double(indexSet.size());
 
-    if (depth == 0) {
+    if (depth == 0 || indexSet.empty()) {
+        depth = 0;
         logger().warn("No adjacent marker found for a bad marker. Marker index {}", index);
         std::cerr << "No adjacent marker found for a bad marker. Marker index " << index << std::endl;
+    } else {
+        depth /= double(indexSet.size());
+        // do not divide by zero
     }
+
     return depth;
 }
 
@@ -304,18 +319,25 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
 
     /////////////////////////////////////////////////////////////////////
     // Do not trust the depth of the markers whose derivative is abnormal
-    if (badDerivative) {
+        /// Why frameIdx>0? For the first frame, the topology relation has not been inferred yet
+        ///                 It is useless to run "FindDepthFromMesh"
+    if (badDerivative && frameIdx > 0) {
         for (int i=0; i<N; i++) {
 
             if (derivativeTable[i]) continue;  // if this marker's derivative is OK
 
             // replace its depth by the mean of depths of adjacent markers
             double newDepth = FindDepthFromMesh(markerMeshArray, markerArray[frameIdx].loc.col(2), i);
-            markerArray[frameIdx].loc(i, 2) = newDepth;
+            if (newDepth > 0) markerArray[frameIdx].loc(i, 2) = newDepth;
         }
         // optimize all marker with fixed depth
         // this will not be a recursion
-        MarkerDepthCorrection(frameIdx, 0, 0, false);
+        try {
+            MarkerDepthCorrection(frameIdx, 0, 0, false);
+        } catch (const std::exception &e) {
+            logger().error("Fatal error: MarkerDepthCorrection for bad derivative markers");
+            std::cerr << "Fatal error: MarkerDepthCorrection for bad derivative markers" << std::endl;
+        }
     }
 
     return res;

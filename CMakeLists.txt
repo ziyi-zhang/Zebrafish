@@ -72,7 +72,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_BINARY_DIR}/include)
 add_subdirectory(Cpp)
 
 # libigl
-target_link_libraries(${PROJECT_NAME} PUBLIC igl::core igl::png)
+target_link_libraries(${PROJECT_NAME} PUBLIC igl::png)
 
 # Extra warnings
 target_link_libraries(${PROJECT_NAME} PRIVATE warnings::all)

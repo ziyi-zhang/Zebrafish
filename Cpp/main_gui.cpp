@@ -16,7 +16,7 @@
 using namespace zebrafish;
 
 
-DECLARE_DIFFSCALAR_BASE();
+// DECLARE_DIFFSCALAR_BASE();
 
 
 int main(int argc, char **argv) {
