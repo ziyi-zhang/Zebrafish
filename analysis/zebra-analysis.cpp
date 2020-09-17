@@ -195,6 +195,7 @@ namespace zebrafish {
             state.solve();
 
             const std::string out_path = path + std::to_string(sim) + ".vtu";
+            std::cerr << out_path << std::endl;
 			state.save_vtu(out_path, 0);
         }
     }

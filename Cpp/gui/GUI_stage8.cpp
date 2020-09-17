@@ -41,7 +41,8 @@ string GetFileName(const string &imagePath, int index, const string &ext, const 
     fileName += extra;
     // add index
     fileName += "-frame";
-    fileName += std::to_string(index);
+    if (index >= 0)
+        fileName += std::to_string(index);
     // add time
     /*
     char buffer[80];
@@ -346,15 +347,14 @@ void GUI::DrawStage8() {
                 GetPhysicalLocation(markerPointLocArray, resolutionX, resolutionY, resolutionZ, markerPointLocArray_phy);
                 for (int i=0; i<currentLoadedFrames; i++) {
 
-                    Eigen::MatrixXd accumulativeDisplacement;
-                    GetDisplacement(markerPointLocArray_phy, i, false, accumulativeDisplacement);
-                    Eigen::RowVectorXd meanAccumulativeDisp = accumulativeDisplacement.colwise().mean();
-                    accumulativeDisplacement.rowwise() -= meanAccumulativeDisp;
-                    analysisDisplacementVec.push_back(accumulativeDisplacement);  // want accumulativeDisplacement (relative)
+                    Eigen::MatrixXd V_analysis = markerPointLocArray_phy[i];
+                    Eigen::RowVectorXd meanV = V_analysis.colwise().mean();
+                    V_analysis.rowwise() -= meanV;
+                    analysisDisplacementVec.push_back(V_analysis);  // want accumulativeDisplacement (relative)
                 }
 
                 // run analysis
-                std::string path = "Analysis_" + imagePath;
+                std::string path = GetFileName(imagePath, -1, "", "analysis");
                 compute_analysis(analysisDisplacementVec, markerMeshArray, path, E, nu, offset, min_area, discr_order, is_linear, n_refs, vismesh_rel_area);
 
                 runAnalysisStr = "Done";
@@ -685,6 +685,7 @@ bool GUI::SaveMeshToVTU_point(bool onlySaveFirstFrameMesh, bool saveAccumulative
             meshPoint = markerPointLocArray_phy[0];
         else
             meshPoint = markerPointLocArray_phy[i];
+        // correct depth
         meshPoint.col(2).array() -= layerBegin;
 
         // write to VTU
@@ -787,6 +788,7 @@ void GUI::SaveMeshToOBJ() {
 
         // prepare mesh point array
         meshPoint = markerPointLocArray_phy[i];
+        // correct depth
         meshPoint.col(2).array() -= layerBegin;
 
         // write to OBJ
