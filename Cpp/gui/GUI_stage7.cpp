@@ -105,7 +105,7 @@ void GUI::DrawStage7() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    if (ImGui::CollapsingHeader("Optical Flow")) {
+    if (ImGui::CollapsingHeader("Optical Flow", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         const float inputWidth = ImGui::GetWindowWidth() / 3.0;
         ImGui::PushItemWidth(inputWidth);

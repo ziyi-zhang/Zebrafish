@@ -12,6 +12,7 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
+#include <set>
 
 
 namespace zebrafish {
@@ -48,6 +49,70 @@ void SmoothCurve(Eigen::MatrixXd &energy_cache) {
         }
 
     energy_cache = tmpEnergy;
+}
+
+
+void CalcLaplacian(const Eigen::MatrixXd &energy_cache, Eigen::MatrixXd &secondDerivative) {
+
+    const int rows = energy_cache.rows();
+    const int cols = energy_cache.cols();
+
+    for (int i=0; i<rows; i++)
+        for (int j=0; j<cols; j++) {
+
+            if (j==0 || j==cols-1) {
+                secondDerivative(i, j) = 0.0;
+                continue;  // no padding
+            }
+            secondDerivative(i, j) = energy_cache(i, j) * 2.0 - energy_cache(i, j-1) - energy_cache(i, j+1);
+        }
+}
+
+
+bool ValidDerivative(const Eigen::MatrixXd &secondDerivative, int i, int j) {
+// whether the second derivative is small near the minimum point?
+
+    const int cols = secondDerivative.cols();
+    int colStart = std::max(0, j-8);
+    int colEnd = std::min(cols-1, j+8);
+    int count = 0;
+
+    for (int col=colStart; col<=colEnd; col++) {
+        if (std::fabs(secondDerivative(i, col)) > 5e-3) count++;
+    }
+    if (count >= 2)
+        return false;
+    else
+        return true;
+}
+
+
+double FindDepthFromMesh(const Eigen::MatrixXi &markerMeshArray, const Eigen::MatrixXd &depthArray, int index) {
+
+    const int N = markerMeshArray.rows();
+    double depth = 0;
+    std::set<int> indexSet;
+
+    for (int i=0; i<N; i++) {
+        
+        if (markerMeshArray(i, 0) == index || markerMeshArray(i, 1) == index || markerMeshArray(i, 2) == index) {
+            // add two adjacent markers' depths
+            if (markerMeshArray(i, 0) != index) indexSet.insert(markerMeshArray(i, 0));
+            if (markerMeshArray(i, 1) != index) indexSet.insert(markerMeshArray(i, 1));
+            if (markerMeshArray(i, 2) != index) indexSet.insert(markerMeshArray(i, 2));
+        }
+    }
+
+    for (auto it=indexSet.begin(); it!=indexSet.end(); it++) {
+        depth += depthArray(*it);
+    }
+    depth /= double(indexSet.size());
+
+    if (depth == 0) {
+        logger().warn("No adjacent marker found for a bad marker. Marker index {}", index);
+        std::cerr << "No adjacent marker found for a bad marker. Marker index " << index << std::endl;
+    }
+    return depth;
 }
 
 }  // anonymous namespace
@@ -146,6 +211,8 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
     bool res = true;
     int minColIdx, correctedCount = 0;
     double minEnergy;
+    std::vector<bool> derivativeTable(N, true);
+    bool badDerivative = false;
 
     // DEBUG PURPOSE
     if (logEnergy) {
@@ -162,8 +229,15 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
     }
     // DEBUG PURPOSE
 
-    // smoothen the energy cache
+    // smoothen the energy cache twice
+        /// Why twice? This is an empirical decision.
+        /// (1) for most (almost all) cases, do it twice will not change anything
+        /// (2) there are very rare cases where do it once will fail
     SmoothCurve(energy_cache);
+    SmoothCurve(energy_cache);
+    // 2nd derivative
+    Eigen::MatrixXd secondDerivative(energy_cache.rows(), energy_cache.cols());
+    CalcLaplacian(energy_cache, secondDerivative);
 
     for (int i=0; i<N; i++) {
 
@@ -185,11 +259,13 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
         if (minEnergy == 1.0) {
             // this should not happen
             char errorMsg[100];
-            std::sprintf(errorMsg, "[warning] Depth correction exception: Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
+            std::sprintf(errorMsg, "> [warning] Depth correction min energy 1.0 exception: Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
             logger().warn(errorMsg);
             std::cerr << errorMsg << std::endl;
             res = false;
         } else {
+            // minEnergy < 1.0
+
             if (minColIdx != depthNum) {
                 // if not the original z
                 /*
@@ -199,12 +275,23 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
                 */
                 // correctedCount++;
             }
-            if (depthNum > 0 && (minColIdx == 0 || minColIdx == M-1)) {
+
+            // min is at end point?
+            if (depthNum > 0 && (minColIdx == 0 || minColIdx == 1 || minColIdx == M-1 || minColIdx == M-2)) {
                 char errorMsg[200];
-                std::sprintf(errorMsg, "[warning] Reached depth correction search range limit. Consider using a larger search range. Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
+                std::sprintf(errorMsg, "> [warning] Reached depth correction search range limit. Consider using a larger search range. Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
                 logger().warn(errorMsg);
                 std::cerr << errorMsg << std::endl;
                 res = false;
+            }
+            // derivative looks good?
+            if (depthNum > 0 && !ValidDerivative(secondDerivative, i, minColIdx)) {
+                derivativeTable[i] = false;
+                badDerivative = true;
+                char warnMsg[200];
+                std::sprintf(warnMsg, "> [note] This marker's second derivative in depth search is abnormal: Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
+                logger().info(warnMsg);
+                std::cerr << warnMsg << std::endl;
             }
 
             markerArray[frameIdx].loc(i, 0) = x_cache(i, minColIdx);
@@ -213,6 +300,22 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
             markerArray[frameIdx].loc(i, 3) = r_cache(i, minColIdx);
             markerArray[frameIdx].energy(i) = energy_cache(i, minColIdx);
         }
+    }
+
+    /////////////////////////////////////////////////////////////////////
+    // Do not trust the depth of the markers whose derivative is abnormal
+    if (badDerivative) {
+        for (int i=0; i<N; i++) {
+
+            if (derivativeTable[i]) continue;  // if this marker's derivative is OK
+
+            // replace its depth by the mean of depths of adjacent markers
+            double newDepth = FindDepthFromMesh(markerMeshArray, markerArray[frameIdx].loc.col(2), i);
+            markerArray[frameIdx].loc(i, 2) = newDepth;
+        }
+        // optimize all marker with fixed depth
+        // this will not be a recursion
+        MarkerDepthCorrection(frameIdx, 0, 0, false);
     }
 
     return res;
