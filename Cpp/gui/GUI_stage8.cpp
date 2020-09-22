@@ -348,8 +348,9 @@ void GUI::DrawStage8() {
                 for (int i=0; i<currentLoadedFrames; i++) {
 
                     Eigen::MatrixXd V_analysis = markerPointLocArray_phy[i];
-                    Eigen::RowVectorXd meanV = V_analysis.colwise().mean();
-                    V_analysis.rowwise() -= meanV;
+                    // Do not modify this anymore
+                    // Eigen::RowVectorXd meanV = V_analysis.colwise().mean();
+                    // V_analysis.rowwise() -= meanV;
                     analysisDisplacementVec.push_back(V_analysis);  // want accumulativeDisplacement (relative)
                 }
 
