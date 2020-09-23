@@ -348,9 +348,10 @@ void GUI::DrawStage8() {
                 for (int i=0; i<currentLoadedFrames; i++) {
 
                     Eigen::MatrixXd V_analysis = markerPointLocArray_phy[i];
-                    // Do not modify this anymore
-                    // Eigen::RowVectorXd meanV = V_analysis.colwise().mean();
-                    // V_analysis.rowwise() -= meanV;
+                    // remove the global movement
+                    Eigen::RowVectorXd meanV = (V_analysis - markerPointLocArray_phy[0]).colwise().mean();
+                    V_analysis.rowwise() -= meanV;
+                    // push to new analysis vector
                     analysisDisplacementVec.push_back(V_analysis);  // want accumulativeDisplacement (relative)
                 }
 
@@ -366,7 +367,7 @@ void GUI::DrawStage8() {
             }
         }
         if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Run simulation");
+            ImGui::SetTooltip("Run simulation and save result to analysis VTU file");
         }
         ImGui::SameLine();
         ImGui::Text("%s", runAnalysisStr.c_str());
@@ -375,6 +376,8 @@ void GUI::DrawStage8() {
 
         if (ImGui::TreeNode("Advanced analysis")) {
 
+            const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+            ImGui::PushItemWidth(inputWidth);
             ImGui::InputDouble("offset", &offset);
             if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Diagonal multiplier for box mesh");
@@ -398,6 +401,7 @@ void GUI::DrawStage8() {
             if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Desnsity of the output visualization");
             }
+            ImGui::PopItemWidth();
 
             ImGui::TreePop();
             ImGui::Separator();
@@ -413,10 +417,10 @@ void GUI::DrawStage8() {
     static bool saveIncrementalDisplacement_relative = true;
     static bool saveMeshVTU = false;
     static bool saveMarkerImage = true;
-    static bool saveCellImage = false;
+    static bool saveCellImage = true;
     static int cellChannel = -1;
     if (cellChannel < 0) {
-        // make a guess
+        // make a guess of which channle is the cell channel
         if (channelPerSlice < 2) {
             cellChannel = 0;
             saveCellImage = false;
