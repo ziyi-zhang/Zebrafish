@@ -6,8 +6,8 @@ function [cluster, points] = FilterPoints(inMat, image, visPlot)
     end
 
     % filter config
-    fvalThres = -0.1;
-    radiusThres = 6;
+    fvalThres = -0.05;
+    radiusThres = 7;
     iterMax = 15;
     membraneThres = 0.7; % binary threshold
     HistPeriThres = 0.85; % quantile threshold (of peripheral samples' variance)
@@ -36,7 +36,7 @@ function [cluster, points] = FilterPoints(inMat, image, visPlot)
     Filter(mask);
     fprintf("After filter radius:    #points = %d\n", length(x));
     
-    %
+    % want iter <= iterMax
     mask = iter < iterMax;
     Filter(mask);
     fprintf("After iterL #points = %d\n", length(x));

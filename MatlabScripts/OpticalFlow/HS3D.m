@@ -46,14 +46,14 @@ mask(:,:,2) = [0 1 0;1 0 1;0 1 0]/6;
 mask(:,:,3) = mask(:,:,1);
 
 for i=1:iterations
-    uxAvg=convn(ux,mask,'same');
-    uyAvg=convn(uy,mask,'same');
-    uzAvg=convn(uz,mask,'same');
-    ux=uxAvg - ( Ix.*( (Ix.*uxAvg) + (Iy.*uyAvg) + (Iz.*uzAvg) + It))...
+    uxAvg = convn(ux,mask,'same');
+    uyAvg = convn(uy,mask,'same');
+    uzAvg = convn(uz,mask,'same');
+    ux = uxAvg - ( Ix.*( (Ix.*uxAvg) + (Iy.*uyAvg) + (Iz.*uzAvg) + It))...
         ./ ( alpha.^2 + Ix.^2 + Iy.^ 2 + Iz.^ 2);
-    uy=uyAvg - ( Iy.*( (Ix.*uxAvg) + (Iy.*uyAvg) + (Iz.*uzAvg) + It))...
+    uy = uyAvg - ( Iy.*( (Ix.*uxAvg) + (Iy.*uyAvg) + (Iz.*uzAvg) + It))...
         ./ ( alpha.^2 + Ix.^2 + Iy.^ 2 + Iz.^ 2);
-    uz=uzAvg - ( Iz.*( (Ix.*uxAvg) + (Iy.*uyAvg) + (Iz.*uzAvg) + It))...
+    uz = uzAvg - ( Iz.*( (Ix.*uxAvg) + (Iy.*uyAvg) + (Iz.*uzAvg) + It))...
         ./ ( alpha.^2 + Ix.^2 + Iy.^ 2 + Iz.^ 2);
 end
 

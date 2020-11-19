@@ -155,21 +155,21 @@ TT = zeros(3,1, arg.iter+1);
 TR = repmat(eye(3,3), [1,1, arg.iter+1]);
     
 % If Minimize == 'plane', normals are needed
-if (strcmp(arg.Minimize, 'plane') && isempty(arg.Normals))
+if (strcmp(arg.Minimize, 'plane') && isempty(arg.Normals))                       % x
     arg.Normals = lsqnormest(q,4);
 end
 
-% If Matching == 'Delaunay', a triangulation is needed
+% If Matching == 'Delaunay', a triangulation is needed                            % x
 if strcmp(arg.Matching, 'Delaunay')
     DT = DelaunayTri(transpose(q));
 end
 
-% If Matching == 'kDtree', a kD tree should be built (req. Stat. TB >= 7.3)
+% If Matching == 'kDtree', a kD tree should be built (req. Stat. TB >= 7.3)       % x
 if strcmp(arg.Matching, 'kDtree')
     kdOBJ = KDTreeSearcher(transpose(q));
 end
 
-% If edge vertices should be rejected, find edge vertices
+% If edge vertices should be rejected, find edge vertices                         % x
 if arg.EdgeRejection
     if isempty(arg.Boundary)
         bdr = find_bound(q, arg.Triangulation);
@@ -178,7 +178,7 @@ if arg.EdgeRejection
     end
 end
 
-if arg.Extrapolation
+if arg.Extrapolation                                                                  % x
     % Initialize total transform vector (quaternion ; translation vec.)
     qq = [ones(1,arg.iter+1);zeros(6,arg.iter+1)];   
     % Allocate vector for direction change and change angle.
@@ -194,11 +194,11 @@ for k=1:arg.iter
     % Do matching
     switch arg.Matching
         case 'bruteForce'
-            [match mindist] = match_bruteForce(q,pt);
+            [match, mindist] = match_bruteForce(q,pt);
         case 'Delaunay'
-            [match mindist] = match_Delaunay(q,pt,DT);
+            [match, mindist] = match_Delaunay(q,pt,DT);
         case 'kDtree'
-            [match mindist] = match_kDtree(q,pt,kdOBJ);
+            [match, mindist] = match_kDtree(q,pt,kdOBJ);
     end
 
     % If matches to edge vertices should be rejected

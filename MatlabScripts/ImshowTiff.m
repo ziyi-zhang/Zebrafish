@@ -25,7 +25,7 @@ function [] = ImshowTiff(image, index, enhanced, zoomIn)
         warning("Error using imshowTiff.");
         return;
     end
-    
+
     if nargin<4, zoomIn = 1;end
     if nargin<3, enhanced = false;end
     if nargin<2 || isempty(index), index = 1:size(image.image, 3);end
