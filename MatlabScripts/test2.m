@@ -1,21 +1,15 @@
 
-minIdxArray = zeros(size(p, 2), 1);
-distArray = zeros(size(p, 2), 1);
+N = 27;
+energy = zeros(N, 1);
+xResHist = zeros(N, 3);
 
-for i = 1:size(p, 2)
+options = optimoptions(@fminunc,'Display','none','Algorithm','quasi-newton',...
+                            'MaxIterations',10,'MaxFunctionEvaluations',800);
+for z = 1:N
     
-    minDistSq = 1e8;
-    minIdx = 0;
-    for j = 1:size(q, 2)
+    fsigma = @(arr)GaussianFun(img, arr, z);
+    [xRes, fval, exitflag, ~] = fminunc(fsigma, [162, 118, 4], options);
     
-        % distSq = norm( p(:, i) - q(:, j) );
-        distSq = norm( [p(1, i)-q(2, j), p(2, i)-q(1, j), p(3, i)-q(3, j)] );
-        if (distSq < minDistSq)
-            minDistSq = distSq;
-            minIdx = j;
-        end
-    end
-    
-    minIdxArray(i) = minIdx;
-    distArray(i) = minDistSq;
+    energy(z) = fval;
+    xResHist(z, :) = xRes;
 end

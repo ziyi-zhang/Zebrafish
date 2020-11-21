@@ -115,9 +115,11 @@ function [resCyl, resPeri, weight] = SampleCylinder(cyl, mat, visualize, method)
         resPeri = [resPeri; zPeriArray];
         weight = repmat(xyArray.weight, 1, length(zArray));
         weight = weight * (h ./ H);  % equadistant 1D integral (z-dim)
-        weight = weight .* 2 .* (r^2);  % gaussian disk jocabian for extended circle (not density jacobian)
-        weight = weight ./ (r^2*h*pi);  % Vperi
-        % weight = weight ./ h;
+        weight = weight .* (r^2);  % gaussian disk jocabian for extended circle (not density jacobian)
+        weight = weight ./ (r^2*h*pi);  % Vcyl
+        % NOTE: This weight is designed for cyl, not for peri
+        %       the gaussian disk jacobian needs to be multiplied by K^2
+        %       for peri
     end
 
     %% equadistant
