@@ -59,7 +59,7 @@ function [] = ImshowTiff(image, index, enhanced, zoomIn)
         else
             imshow(image.image(xzoomIn(1):xzoomIn(2), yzoomIn(1):yzoomIn(2), index(i)));
         end
-        viscircles([160, 118], 15)
+        % viscircles([160, 118], 15);
         colormap(jet);
         if (isfield(image, 'meta'))
             titleStr = "C:" + image.meta(1, index(i)) + " S:" + image.meta(2, index(i)) + " F:" + image.meta(3, index(i));

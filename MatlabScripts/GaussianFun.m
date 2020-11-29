@@ -33,9 +33,10 @@ function [res] = GaussianFun(mat, cylArray, z)
     evalResPeri = interp3(mat, samplePeri(1, :), samplePeri(2, :), samplePeri(3, :), 'spline');
     
     % res
-    alpha = 3;
-    K = 3;  % K = R/r, radius of peri over radius of cyl
+    alpha = 0.5;
+    K = 2.5;  % K = R/r, radius of peri over radius of cyl
     % Note: The weight here is QaussianWeight*constants*SubtractionSigma
-    res = sum(evalResCyl .* weight) - alpha * sum(evalResPeri .* weight);  % K^2 offsets
+    res = alpha * sum(evalResCyl .* weight) - (1-alpha) * sum(evalResPeri .* weight);  % K^2 offsets
+    res = 2*res + (1-2*alpha);  % normalize res to [-1, 1]
     res = -1 * res;  % if the markers are white
 end
