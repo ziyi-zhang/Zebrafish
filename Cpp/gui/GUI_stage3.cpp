@@ -79,13 +79,13 @@ void GUI::DrawStage3() {
             
             const float inputWidth = ImGui::GetWindowWidth() / 3.0;
             ImGui::PushItemWidth(inputWidth);
-            ImGui::InputDouble("Gap X", &gapX_grid, 0.0, 0.0, "%.2f");
-            ImGui::InputDouble("Gap Y", &gapY_grid, 0.0, 0.0, "%.2f");
-            ImGui::InputDouble("Gap Z", &gapZ_grid, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Gap X (pixel)", &gapX_grid, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Gap Y (pixel)", &gapY_grid, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Gap Z (pixel)", &gapZ_grid, 0.0, 0.0, "%.2f");
 
-            ImGui::InputDouble("Radius min", &rArrayMin_grid, 0.0, 0.0, "%.2f");
-            ImGui::InputDouble("Radius max", &rArrayMax_grid, 0.0, 0.0, "%.2f");
-            ImGui::InputDouble("Radius gap", &rArrayGap_grid, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Radius min (pixel)", &rArrayMin_grid, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Radius max (pixel)", &rArrayMax_grid, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Radius gap (pixel)", &rArrayGap_grid, 0.0, 0.0, "%.2f");
             if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("The following array of radii will be searched\n[R_min R_min+R_gap R_min+2*R_gap ... R_max]");
             }

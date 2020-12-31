@@ -320,7 +320,7 @@ void GUI::DrawStage5() {
         ImGui::Separator(); /////////////////////////////////////////
 
         // Mouse reject
-        ImGui::Checkbox("Mouse reject", &rejectActive);
+        ImGui::Checkbox("Mouse reject clusters", &rejectActive);
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Manually reject unwanted clusters.\nClick this checkbox and move the cursor to the image. Selected clusters will be highlighted. Click the mouse to reject them.");
         }

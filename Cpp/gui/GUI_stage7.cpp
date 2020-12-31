@@ -136,7 +136,7 @@ void GUI::DrawStage7() {
             logger().debug("   <button> Start Optical Flow");
         }
         if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Run optical flow. This may take some time.\nNote optical flow is **optional**. It only makes the pipeline more stable, but sometimes it is OK to proceed without optical flow.");
+            ImGui::SetTooltip("Run optical flow. This may take some time.\nNote optical flow is **optional**. It makes the pipeline more stable, but it is OK to proceed without optical flow if the displcement is small.");
         }
         ImGui::SameLine();
         ImGui::Text("%s", opticalFlowStr.c_str());
