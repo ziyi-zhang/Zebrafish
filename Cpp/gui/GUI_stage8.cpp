@@ -479,7 +479,7 @@ void GUI::DrawStage8() {
             if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Save the displacement relative to the previous frame");
             }
-            ImGui::Checkbox("Save incremental displacement (relative)", &saveIncrementalDisplacement);
+            ImGui::Checkbox("Save incremental displacement (relative)", &saveIncrementalDisplacement_relative);
             if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Save the displacement relative to the previous frame. The mean of all the displacements in one frame will be subtracted.");
             }
