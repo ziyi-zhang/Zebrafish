@@ -80,7 +80,7 @@ function [resCyl, resPeri, weight] = SampleCylinder(cyl, mat, visualize, method)
             if x < r*sqrt(2) || x > size(mat, 2)-r*sqrt(2) || ...
                y < r*sqrt(2) || y > size(mat, 1)-r*sqrt(2) || ...
                z < 1 || z > size(mat, 3)-1 || ...
-               r < 2 || ...
+               r < 2 || r > 5 || ...  % R upper bound used by cellogram2
                z+h > size(mat, 3)
 
                 resCyl = [];
@@ -115,9 +115,11 @@ function [resCyl, resPeri, weight] = SampleCylinder(cyl, mat, visualize, method)
         resPeri = [resPeri; zPeriArray];
         weight = repmat(xyArray.weight, 1, length(zArray));
         weight = weight * (h ./ H);  % equadistant 1D integral (z-dim)
-        weight = weight .* 2 .* (r^2);  % gaussian disk jocabian for extended circle (not density jacobian)
-        weight = weight ./ (r^2*h*pi);  % Vperi
-        % weight = weight ./ h;
+        weight = weight .* (r^2);  % gaussian disk jocabian for extended circle (not density jacobian)
+        weight = weight ./ (r^2*h*pi);  % Vcyl
+        % NOTE: This weight is designed for cyl, not for peri
+        %       the gaussian disk jacobian needs to be multiplied by K^2
+        %       for peri
     end
 
     %% equadistant

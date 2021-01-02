@@ -42,6 +42,7 @@ function [xyCyl, xyPeri, weightCyl, weightPeri] = SampleCylinderHelper(method, n
         weightPeri = weight(~mask);
         %}
         xyCyl = points;
+        K = 2.5;
         xyPeri = points .* K;
         weightCyl = weight;
         weightPeri = weight;

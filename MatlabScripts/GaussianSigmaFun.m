@@ -30,4 +30,5 @@ function [res] = GaussianSigmaFun(mat, cylArray, z)
     
     % res
     res = sum(evalRes .* weight);  % Note: The weight here is QaussianWeight*constants*SubtractionSigma
+    res = -1 * res;  % if the markers are white
 end

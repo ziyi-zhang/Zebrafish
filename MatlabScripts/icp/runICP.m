@@ -34,3 +34,4 @@ if visResult
     scatter3(pp(1, :), pp(2, :), pp(3, :), 'MarkerEdgeColor', [0.8500 0.3250 0.0980]);
     legend('Raw Pattern', 'Calculated Results');
 end
+  

@@ -25,12 +25,12 @@ function [] = ImshowTiff(image, index, enhanced, zoomIn)
         warning("Error using imshowTiff.");
         return;
     end
-    
+
     if nargin<4, zoomIn = 1;end
     if nargin<3, enhanced = false;end
     if nargin<2 || isempty(index), index = 1:size(image.image, 3);end
     N = length(index);
-    ncol = ceil(sqrt(16/9*N));
+    ncol = ceil(sqrt(16/9*N))-1;
     nrow = ceil(N / ncol);
     if (N==1) ncol=1;nrow=1;end
     % zoom in calculation
@@ -59,12 +59,13 @@ function [] = ImshowTiff(image, index, enhanced, zoomIn)
         else
             imshow(image.image(xzoomIn(1):xzoomIn(2), yzoomIn(1):yzoomIn(2), index(i)));
         end
-        colormap(pink);
+        % viscircles([160, 118], 15);
+        colormap(jet);
         if (isfield(image, 'meta'))
             titleStr = "C:" + image.meta(1, index(i)) + " S:" + image.meta(2, index(i)) + " F:" + image.meta(3, index(i));
             title(titleStr);
         else 
-            title(i);
+            title(index(i));
         end 
     end
 end
