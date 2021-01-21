@@ -159,7 +159,7 @@ void GUI::DrawStage3() {
         }
         ImGui::PopItemWidth();
 
-        if (ImGui::TreeNode("Advanced visualization")) {
+        if (ImGui::TreeNode("Advanced visualization ")) {
 
             const float inputWidth = ImGui::GetWindowWidth() / 3.0;
             ImGui::PushItemWidth(inputWidth);

@@ -128,6 +128,7 @@ if(ZEBRA_TOPLEVEL_PROJECT)
     Cpp/gui/GUI_stage8.cpp
     Cpp/gui/FileDialog.cpp
     Cpp/gui/GUI_markerDrag.cpp
+    Cpp/gui/GUI_mask.cpp
     Cpp/gui/GUI_depthCorrection.cpp
     analysis/zebra-analysis.cpp
   )

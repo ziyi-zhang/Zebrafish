@@ -169,7 +169,7 @@ void GUI::DrawStage6() {
             }
 
             // align two point clouds manually
-            if (ImGui::SliderFloat("X displacement", &ICP_xDisp, -0.5 * imgCols, imgRows, "%.2f pixels")) {
+            if (ImGui::SliderFloat("X displacement", &ICP_xDisp, -0.5 * imgCols, imgCols, "%.2f pixels")) {
                 UpdateRefPointManualAlignment();
                 UpdateRefPointLoc();
             }

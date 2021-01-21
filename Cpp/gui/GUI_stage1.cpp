@@ -140,7 +140,7 @@ void GUI::DrawStage1() {
 
     if (ImGui::CollapsingHeader("Mask Crop")) {
         static std::string loadMaskStr = "";
-        if (ImGui::Button("Load mask")) {
+        if (ImGui::Button("Load mask TIFF image")) {
 
             loadMaskStr = "failed";
             if (layerPerImg == 1) {
@@ -160,6 +160,9 @@ void GUI::DrawStage1() {
                         if (ReadTifFirstFrame(maskPath, layerPerImg, channelPerSlice, membraneMask, r0, c0, r1, c1, 0)) {
                             if (imgRows == membraneMask[0].rows() && imgCols == membraneMask[0].cols()) {
                                 loadMaskStr = "success";
+                                membraneMaskLoad = true;
+                                membraneMaskCylApply = true;
+                                membraneMaskClusterApply = true;
                             } else {
                                 logger().error("Row/Col number in each z-slice does not match the image's number");
                                 std::cerr << "Row/Col number in each z-slice does not match the image's number" << std::endl;
@@ -228,6 +231,7 @@ void GUI::DrawStage1() {
         logger().info("Re-load image {}", imagePath);
 
         try {
+            // NOTE: we crop the area [r0, c0]x[r1, c1] when loading the image, but keep the entire z-stack despite the z-crop
             if (ReadTifFirstFrame(imagePath, layerPerImg, channelPerSlice, imgData[0], r0, c0, r1, c1, channelToLoad)) {
                 imgRows = imgData[0][0].rows();
                 imgCols = imgData[0][0].cols();

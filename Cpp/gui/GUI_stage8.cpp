@@ -306,7 +306,7 @@ void GUI::DrawStage8() {
         ImGui::Text("%s", calcDispStr.c_str());
     }
 
-    if (ImGui::TreeNode("Advanced visualization  ")) {
+    if (ImGui::TreeNode("Advanced visualization     ")) {
 
         const float inputWidth = ImGui::GetWindowWidth() / 3.0;
         ImGui::PushItemWidth(inputWidth);

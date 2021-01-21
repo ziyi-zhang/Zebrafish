@@ -106,18 +106,23 @@ void GUI::DrawStage4() {
             ImGui::Separator();
         }
 
+        static std::string startOptimizationStr = "";
         if (ImGui::Button("Start Optimization")) {
 
+            startOptimizationStr = "";
             Optimization();
             UpdateOptimPointLoc();
             UpdateOptimEnergyHist();
             stage4Lock = true;
+            startOptimizationStr = "Done";
 
             logger().debug("   <button> Optimization");
         }
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Start optimization with the specified precision. This may take some time.");
         }
+        ImGui::SameLine();
+        ImGui::Text("%s", startOptimizationStr.c_str());
     }
 }
 

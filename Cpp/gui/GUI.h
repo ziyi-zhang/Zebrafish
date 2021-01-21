@@ -112,9 +112,15 @@ private:
     float normalizeQuantile, normalizeQuantileRes;
     float stage1contrast;
     std::string maskPath;
-    image_t membraneMask;
     // Hist
     hist_t imgHist;
+
+    //////////////////////////////////////////////////
+    // membrane mask
+    image_t membraneMask;
+    bool membraneMaskLoad;
+    bool membraneMaskCylApply;
+    bool membraneMaskClusterApply;
 
     //////////////////////////////////////////////////
     // B-spline
@@ -323,6 +329,9 @@ private:
     void MarkerDragSetNewLoc();
     void MarkerDragReset();
     void MarkerDragVisualization();
+
+    // mask
+    bool PointInMaskArea(double x, double y, double z);
 
     //////////////////////////////////////////////////
     // Stage 1 Image Read

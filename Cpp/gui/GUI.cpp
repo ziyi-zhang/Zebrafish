@@ -444,7 +444,7 @@ void GUI::DrawZebrafishPanel() {
             if (stage == 5) stage4to5Flag = true;
             if (stage == 6) stage5to6Flag = true;
         } else {
-            logger().warn("[Stage lock] Cannot proceed to the next stage. At least one mandatory step is not finished.");
+            logger().warn("[Stage lock] Cannot proceed to the next stage. At least one mandatory step missing.");
         }
         StateChangeReset();
     }
@@ -1019,8 +1019,13 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     resolutionZ = 0;
     normalizeQuantile = 0.995;
     stage1contrast = 1.0;
-    membraneMask.resize(1);
     imgHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
+
+    // membrane mask
+    membraneMask.resize(1);
+    membraneMaskLoad = false;
+    membraneMaskCylApply = false;
+    membraneMaskClusterApply = false;
 
     // B-spline
     bsplineDegree = 2;

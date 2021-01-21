@@ -61,10 +61,13 @@ void GUI::DrawStage5() {
         static float cylinderRadiusThres_cache = -1;
         static int   cylinderIterThres_cache = -1;
         static bool  cylFilterMembraneCheck_cache = false;
+        static bool  membraneMaskCylApply_cache = membraneMaskCylApply;
+
         if (cylinderEnergyThres != cylinderEnergyThres_cache ||
             cylinderRadiusThres != cylinderRadiusThres_cache ||
             cylinderIterThres   != cylinderIterThres_cache   ||
-            cylFilterMembraneCheck != cylFilterMembraneCheck_cache) {
+            cylFilterMembraneCheck != cylFilterMembraneCheck_cache || 
+            membraneMaskCylApply != membraneMaskCylApply_cache) {
             // Update the points to visualize when the three thresholds have changed
 
             CylinderFilter();
@@ -74,6 +77,7 @@ void GUI::DrawStage5() {
             cylinderRadiusThres_cache = cylinderRadiusThres;
             cylinderIterThres_cache   = cylinderIterThres;
             cylFilterMembraneCheck_cache = cylFilterMembraneCheck;
+            membraneMaskCylApply_cache = membraneMaskCylApply;
         }
 
         viewer.data().point_size = filterPointSize;
@@ -201,7 +205,7 @@ void GUI::DrawStage5() {
         ImGui::Separator(); /////////////////////////////////////////
 
         if (ImGui::TreeNode("Advanced cylinder filter")) {
-        
+
             // Histogram of iterations
             ImGui::Text("Histogram of optimization iterations");
 
@@ -235,8 +239,12 @@ void GUI::DrawStage5() {
                 ImGui::SetTooltip("Whether the optimized cylinders are (likely to be) in the membrane area");
             }
 
-            // more
-            ImGui::Text("More filters to be implemented...");
+            ImGui::Separator(); /////////////////////////////////////////
+            if (membraneMaskLoad) {
+                if (ImGui::Checkbox("Apply Mask to Cylinders", &membraneMaskCylApply)) {
+                    logger().debug(" <Checkbox> Apply Mask to Cylinders");
+                }
+            }
 
             ImGui::TreePop();
             ImGui::Separator();
@@ -390,7 +398,7 @@ void GUI::DrawStage5() {
         ImGui::Separator();
     }
 
-    if (ImGui::TreeNode("Advanced visualization")) {
+    if (ImGui::TreeNode("Advanced visualization  ")) {
 
         const float inputWidth = ImGui::GetWindowWidth() / 3.0;
         ImGui::PushItemWidth(inputWidth);
@@ -430,6 +438,13 @@ void GUI::CylinderFilter() {
                 // DEBUG PURPOSE
             }
         }
+
+        if (membraneMaskCylApply && pointRecord.alive(i)) {
+            bool alive = PointInMaskArea(pointRecord.optimization(i, 0), pointRecord.optimization(i, 1), pointRecord.optimization(i, 2));
+            if (!alive) {
+                pointRecord.alive(i) = false;
+            }
+        }
     }
 }
 
@@ -442,7 +457,9 @@ void GUI::UpdateCylPointLoc() {
 
     for (i=0; i<N; i++)
         if (pointRecord.alive(i)) M++;
-    if (M == 0) return;
+    if (M == 0) {
+        logger().warn("No cylinder is valid under the current filter");
+    }
 
     cylPointLoc.resize(M, 3);
     tempLoc.resize(M, 3);
