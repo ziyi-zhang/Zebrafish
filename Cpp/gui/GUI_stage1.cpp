@@ -138,6 +138,50 @@ void GUI::DrawStage1() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
+    if (ImGui::CollapsingHeader("Mask Crop")) {
+        static std::string loadMaskStr = "";
+        if (ImGui::Button("Load mask")) {
+
+            loadMaskStr = "failed";
+            if (layerPerImg == 1) {
+                logger().info("Please first load the image before loading the mask");
+            } else {
+                if (maskPath == "")
+                    maskPath = FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});  // debug mode, pass in through '-m'
+                if (!maskPath.empty()) {
+
+                    int layerPerImg_mask, channelPerSlice_mask, ttlFrames_mask;
+                    GetDescription(maskPath, layerPerImg_mask, channelPerSlice_mask, ttlFrames_mask);
+
+                    if (layerPerImg_mask != layerPerImg) {
+                        logger().error("Z-stack size in the mask does not match with the image");
+                        std::cerr << "Z-stack size in the mask does not match with the image" << std::endl;
+                    } else {
+                        if (ReadTifFirstFrame(maskPath, layerPerImg, channelPerSlice, membraneMask, r0, c0, r1, c1, 0)) {
+                            if (imgRows == membraneMask[0].rows() && imgCols == membraneMask[0].cols()) {
+                                loadMaskStr = "success";
+                            } else {
+                                logger().error("Row/Col number in each z-slice does not match the image's number");
+                                std::cerr << "Row/Col number in each z-slice does not match the image's number" << std::endl;
+                            }
+                        } else {
+                            logger().error("Error open mask tiff image");
+                            std::cerr << "Error open mask tiff image" << std::endl;
+                        }
+                    }
+                }
+            }
+            logger().debug("   <button> Load mask");
+        }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("[Optional] Load a TIFF image as a binary mask of the membrane area.\nThe mask must be of the same dimension as the background image.");
+        }
+        ImGui::SameLine();
+        ImGui::Text("%s", loadMaskStr.c_str());
+    }
+
+    ImGui::Separator(); /////////////////////////////////////////
+
     if (ImGui::CollapsingHeader("Microscope", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         ImGui::PushItemWidth(zebrafishWidth / 3.0);

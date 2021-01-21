@@ -563,7 +563,7 @@ void GUI::DrawMenuFile() {
                 logger().error("Error open tiff image");
                 std::cerr << "Error open tiff image" << std::endl;
             }
-        } 
+        }
     }
 
     ImGui::Separator();
@@ -1019,6 +1019,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     resolutionZ = 0;
     normalizeQuantile = 0.995;
     stage1contrast = 1.0;
+    membraneMask.resize(1);
     imgHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
 
     // B-spline
@@ -1037,7 +1038,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     showPromisingPoints = true;
     skipMembrane = false;
     gridEnergyThres = -0.1;
-    promisingPointLoc.resize(1, 3);
+    promisingPointLoc.resize(0, 3);
     gridEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
 
     // optimization
@@ -1045,7 +1046,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     optimEnergyThres = -0.1;
     optimEpsilon = 1e-4;
     optimMaxIt = 50;
-    optimPointLoc.resize(1, 3);
+    optimPointLoc.resize(0, 3);
 
     // cylinder filter
     cylinderEnergyThres = -0.1;
@@ -1053,7 +1054,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     cylinderIterThres = optimMaxIt;
     showCylFilterPoints = true;
     cylFilterMembraneCheck = true;
-    cylPointLoc.resize(1, 3);
+    cylPointLoc.resize(0, 3);
     cylEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
     cylRadiusHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
     cylIterHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
@@ -1063,7 +1064,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     finalizeClusterDistThres = 2.0;
     clusterSizeThres = 4;
     showClusterFilterPoints = false;
-    clusterPointLoc.resize(1, 3);
+    clusterPointLoc.resize(0, 3);
     clusterSizeHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
 
     // ICP
@@ -1078,10 +1079,10 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     ICP_yDisp = 0.0f;
     ICP_angleRot = 0.0f;
     ICP_scale = 1.0f;
-    refPointLoc.resize(1, 3);
-    refV.resize(1, 3);
-    refV_aligned.resize(1, 3);
-    ICP_matchIdx.resize(1, 1);
+    refPointLoc.resize(0, 3);
+    refV.resize(0, 3);
+    refV_aligned.resize(0, 3);
+    ICP_matchIdx.resize(0, 1);
     markerMeshArray.resize(0, 3);
     ICP_Rmat = Eigen::MatrixXd::Identity(3, 3);
     ICP_Tmat = Eigen::MatrixXd::Zero(3, 1);
@@ -1120,7 +1121,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     rejectActive = false;
     rejectHit = false;
     rejectMode = REJECT_AREA;
-    rejectHitIndex.resize(1, 1);
+    rejectHitIndex.resize(0, 1);
     mousePickDistSquareThres = 3.0 * 3.0;  // 3 pixels by default
 
     // [mouse pick] manually drag markers
@@ -1169,12 +1170,13 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 }
 
 
-void GUI::init(std::string imagePath_, int debugMode) {
+void GUI::init(std::string imagePath_, std::string maskPath_, int debugMode) {
 
     // Debug purpose
     if (!imagePath_.empty()) {
         // only true in debug mode
         imagePath = imagePath_;
+        maskPath = maskPath_;
         GetDescription(imagePath_, layerPerImg, channelPerSlice, ttlFrames);
         ReadTifFirstFrame(imagePath_, layerPerImg, channelPerSlice, imgData[0]);
         imgRows = imgData[0][0].rows();

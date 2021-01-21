@@ -47,7 +47,7 @@ bool GetDescription(const std::string &path, int &layerPerImg, int &numChannel, 
 
     TinyTIFFReaderFile *tiffr = NULL;
     tiffr = TinyTIFFReader_open(path.c_str());
-    logger().info("Trying to phase image description with path {}", path);
+    logger().info("Trying to parse image description with path {}", path);
 
     if (tiffr) {
         // get a random description

@@ -111,6 +111,8 @@ private:
     double resolutionX, resolutionY, resolutionZ;
     float normalizeQuantile, normalizeQuantileRes;
     float stage1contrast;
+    std::string maskPath;
+    image_t membraneMask;
     // Hist
     hist_t imgHist;
 
@@ -271,7 +273,7 @@ public:
     std::ostringstream oss;
 
     GUI();
-    void init(std::string imagePath, int debugMode);
+    void init(std::string imagePath, std::string maskPath, int debugMode);
 
 protected:
     void draw_menu() override;
