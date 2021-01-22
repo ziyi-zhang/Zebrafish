@@ -159,10 +159,24 @@ void GUI::DrawStage1() {
                     } else {
                         if (ReadTifFirstFrame(maskPath, layerPerImg, channelPerSlice, membraneMask, r0, c0, r1, c1, 0)) {
                             if (imgRows == membraneMask[0].rows() && imgCols == membraneMask[0].cols()) {
-                                loadMaskStr = "success";
-                                membraneMaskLoad = true;
-                                membraneMaskCylApply = true;
-                                membraneMaskClusterApply = true;
+
+                                double minValue = std::numeric_limits<double>::max();
+                                double maxValue = std::numeric_limits<double>::min();
+                                for (int i=0; i<membraneMask.size(); i++) {
+                                    if (membraneMask[i].maxCoeff() > maxValue) maxValue = membraneMask[i].maxCoeff();
+                                    if (membraneMask[i].minCoeff() < minValue) minValue = membraneMask[i].minCoeff();
+                                }
+                                if (minValue < 0 || maxValue > 1) {
+                                    logger().error("mask not binary: min={} max={}", minValue, maxValue);
+                                } else if (maxValue == 0) {
+                                    logger().warn("mask max value == 0. Will reject all markers.");
+                                } else {
+                                    logger().info("mask min={} max={}", minValue, maxValue);
+                                    loadMaskStr = "success";
+                                    membraneMaskLoad = true;
+                                    membraneMaskCylApply = true;
+                                    membraneMaskClusterApply = true;
+                                }
                             } else {
                                 logger().error("Row/Col number in each z-slice does not match the image's number");
                                 std::cerr << "Row/Col number in each z-slice does not match the image's number" << std::endl;

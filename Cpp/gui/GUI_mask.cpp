@@ -20,7 +20,8 @@ bool GUI::PointInMaskArea(double x, double y, double z) {
     int xc = std::round(x);
     int yc = std::round(y);
     int zc = std::round(z);
-    int validCnt = 0, ttlCnt = 0;
+    double validCnt = 0;
+    int ttlCnt = 0;
     for (int xi=xc-1; xi<=xc+1; xi++)
         for (int yi=yc-1; yi<=yc+1; yi++)
             for (int zi=zc-1; zi<=zc+1; zi++) {
@@ -31,15 +32,18 @@ bool GUI::PointInMaskArea(double x, double y, double z) {
                 else
                     continue;
                 // whether in mask
-                if (membraneMask[zi](xi, yi) == 1)
-                    validCnt++;
+                validCnt += membraneMask[zi](xi, yi);
+                // validCnt2 += membraneMask[zi](yi, xi);
             }
-    if (validCnt > 0)
-        logger().debug("{}/{} ", validCnt, ttlCnt);
-    if (double(validCnt) / double(ttlCnt) > 1.0/3.0)
+    // if (validCnt / double(ttlCnt) > 0.1)
+    //    logger().debug("xy {}/{} ", validCnt, ttlCnt);
+    //if (validCnt2 / double(ttlCnt) > 0.1)
+    //    logger().debug("yx {}/{} ", validCnt2, ttlCnt);
+    if (double(validCnt) / double(ttlCnt) > 0.1) {
         return true;
-    else
+    } else {
         return false;
+    }
 }
 
 }  // namespace zebrafish
