@@ -138,11 +138,19 @@ void GUI::DrawStage1() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
+    static bool overrideMaskCheck = false;
     if (ImGui::CollapsingHeader("Mask Crop")) {
+        
+        ImGui::Checkbox("Override mask check", &overrideMaskCheck);
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Override mask value validity check. But the size still has to match the image.");
+        }
+        ImGui::SliderFloat("Mask Thres", &maskThres, 0.0, 1.0);
+
         static std::string loadMaskStr = "";
         if (ImGui::Button("Load mask TIFF image")) {
 
-            loadMaskStr = "failed";
+            loadMaskStr = "failed: see log";
             if (layerPerImg == 1) {
                 logger().info("Please first load the image before loading the mask");
             } else {
@@ -157,7 +165,7 @@ void GUI::DrawStage1() {
                         logger().error("Z-stack size in the mask does not match with the image");
                         std::cerr << "Z-stack size in the mask does not match with the image" << std::endl;
                     } else {
-                        if (ReadTifFirstFrame(maskPath, layerPerImg, channelPerSlice, membraneMask, r0, c0, r1, c1, 0)) {
+                        if (ReadTifFirstFrame(maskPath, layerPerImg, 1, membraneMask, r0, c0, r1, c1, 0)) {
                             if (imgRows == membraneMask[0].rows() && imgCols == membraneMask[0].cols()) {
 
                                 double minValue = std::numeric_limits<double>::max();
@@ -166,16 +174,23 @@ void GUI::DrawStage1() {
                                     if (membraneMask[i].maxCoeff() > maxValue) maxValue = membraneMask[i].maxCoeff();
                                     if (membraneMask[i].minCoeff() < minValue) minValue = membraneMask[i].minCoeff();
                                 }
-                                if (minValue < 0 || maxValue > 1) {
-                                    logger().error("mask not binary: min={} max={}", minValue, maxValue);
-                                } else if (maxValue == 0) {
-                                    logger().warn("mask max value == 0. Will reject all markers.");
-                                } else {
-                                    logger().info("mask min={} max={}", minValue, maxValue);
+                                bool ok = false;
+                                if (!overrideMaskCheck) {
+                                    if (minValue < 0 || maxValue > 255) {
+                                        logger().error("mask value not in [0, 255]: min={} max={}", minValue, maxValue);
+                                    } else if (maxValue < 128) {
+                                        logger().warn("mask max value < 128. Very likely to reject all markers.");
+                                    } else {
+                                        ok = true;
+                                    }
+                                }
+                                if (overrideMaskCheck || ok) {
+                                    logger().info("mask value min={} max={}", minValue, maxValue);
                                     loadMaskStr = "success";
                                     membraneMaskLoad = true;
                                     membraneMaskCylApply = true;
                                     membraneMaskClusterApply = true;
+                                    maskMax = maxValue;
                                 }
                             } else {
                                 logger().error("Row/Col number in each z-slice does not match the image's number");

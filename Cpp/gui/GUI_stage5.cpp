@@ -241,7 +241,7 @@ void GUI::DrawStage5() {
 
             ImGui::Separator(); /////////////////////////////////////////
             if (membraneMaskLoad) {
-                if (ImGui::Checkbox("Apply Mask to Cylinders", &membraneMaskCylApply)) {
+                if (ImGui::Checkbox("Apply mask to cylinders", &membraneMaskCylApply)) {
                     logger().debug(" <Checkbox> Apply Mask to Cylinders");
                 }
             }

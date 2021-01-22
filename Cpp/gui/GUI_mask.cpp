@@ -39,7 +39,7 @@ bool GUI::PointInMaskArea(double x, double y, double z) {
     //    logger().debug("xy {}/{} ", validCnt, ttlCnt);
     //if (validCnt2 / double(ttlCnt) > 0.1)
     //    logger().debug("yx {}/{} ", validCnt2, ttlCnt);
-    if (double(validCnt) / double(ttlCnt) > 0.1) {
+    if (double(validCnt) / (double(ttlCnt) * maskMax) > maskThres) {
         return true;
     } else {
         return false;

@@ -1026,6 +1026,8 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     membraneMaskLoad = false;
     membraneMaskCylApply = false;
     membraneMaskClusterApply = false;
+    maskMax = 0.0;
+    maskThres = 0.3;
 
     // B-spline
     bsplineDegree = 2;

@@ -121,6 +121,7 @@ private:
     bool membraneMaskLoad;
     bool membraneMaskCylApply;
     bool membraneMaskClusterApply;
+    float maskMax, maskThres;
 
     //////////////////////////////////////////////////
     // B-spline
