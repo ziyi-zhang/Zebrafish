@@ -96,10 +96,10 @@ function(zebra_download_tbb)
     )
 endfunction()
 
-## Polyfem MIY
+## Polyfem MIT
 function(zebra_download_polyfem)
     zebra_download_project(polyfem
         GIT_REPOSITORY https://github.com/polyfem/polyfem.git
-        GIT_TAG        c84c80427462533fbb6b1c60a2e448fcb79d88e5
+        GIT_TAG        f14be229f2ccb8740e2e8d05e199901bd6161f16
     )
 endfunction()
