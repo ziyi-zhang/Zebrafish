@@ -19,7 +19,7 @@ void GUI::DrawStage2() {
     static std::string bsplineStr = "";
     if (stage1to2Flag) {
 
-        showCropArea = false;
+        imageCrop.showCropArea = false;
         ComputeImgHist(imgData[0]);
         updateNormalizedTexture = true;
         bsplineStr = "";

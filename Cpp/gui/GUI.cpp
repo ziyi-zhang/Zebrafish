@@ -209,11 +209,11 @@ void GUI::post_resize(int w, int h) {
 
 bool GUI::MouseDownCallback(igl::opengl::glfw::Viewer &viewer, int button, int modifier) {
 
-    if (cropActive) {
+    if (imageCrop.cropActive) {
 
         Eigen::Vector2f mouse;
         mouse << viewer.down_mouse_x, viewer.down_mouse_y;
-        CropImage(mouse, MOUSEDOWN);
+        CropImage(mouse, MOUSEDOWN, imageCrop);
 
         // disable ligigl default mouse_down
         return true;
@@ -241,11 +241,11 @@ bool GUI::MouseDownCallback(igl::opengl::glfw::Viewer &viewer, int button, int m
 
 bool GUI::MouseUpCallback(igl::opengl::glfw::Viewer &viewer, int button, int modifier) {
 
-    if (cropActive) {
+    if (imageCrop.cropActive) {
 
         Eigen::Vector2f mouse;
         mouse << viewer.down_mouse_x, viewer.down_mouse_y;  // this will not be used
-        CropImage(mouse, MOUSEUP);
+        CropImage(mouse, MOUSEUP, imageCrop);
 
         // do not block default mouse_up
     }
@@ -263,11 +263,11 @@ bool GUI::MouseUpCallback(igl::opengl::glfw::Viewer &viewer, int button, int mod
 
 bool GUI::MouseMoveCallback(igl::opengl::glfw::Viewer &viewer, int mouse_x, int mouse_y) {
 
-    if (cropActive) {
+    if (imageCrop.cropActive) {
 
         Eigen::Vector2f mouse;
         mouse << mouse_x, mouse_y;
-        CropImage(mouse, MOUSEMOVE);
+        CropImage(mouse, MOUSEMOVE, imageCrop);
 
         // disable ligigl default mouse_move
         return true;
@@ -1113,17 +1113,6 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     imageViewerDarkenFactor_avg = 1.0;
     imageViewerDarkenFactor_max = 1.4;
 
-    // [mouse pick] crop image
-    cropActive = false;
-    downClicked = false;
-    showCropArea = true;
-    baseLoc << 0.0f, 0.0f, 0.0f;
-    currentLoc << 0.0f, 0.0f, 0.0f;
-    r0 = -1;
-    c0 = -1; 
-    r1 = -1;
-    c1 = -1;
-
     // [mouse pick] manually reject clusters
     rejectActive = false;
     rejectHit = false;
@@ -1204,26 +1193,26 @@ void GUI::init(std::string imagePath_, std::string maskPath_, int debugMode) {
         // very small area used by "build"
         layerBegin = 24;
         layerEnd = 40;
-        r0 = 419;
-        c0 = 516;
-        r1 = 469;
-        c1 = 556;
+        imageCrop.r0 = 419;
+        imageCrop.c0 = 516;
+        imageCrop.r1 = 469;
+        imageCrop.c1 = 556;
     } else if (debugMode == 1) {
         // large area
         layerBegin = 24;
         layerEnd = 46;
-        r0 = 356;
-        c0 = 448;
-        r1 = 507;
-        c1 = 596;
+        imageCrop.r0 = 356;
+        imageCrop.c0 = 448;
+        imageCrop.r1 = 507;
+        imageCrop.c1 = 596;
     } else if (debugMode == 2) {
         // large area
         layerBegin = 24;
         layerEnd = 46;
-        r0 = 356;
-        c0 = 448;
-        r1 = 437;
-        c1 = 556;
+        imageCrop.r0 = 356;
+        imageCrop.c0 = 448;
+        imageCrop.r1 = 437;
+        imageCrop.c1 = 556;
     }
 
     // callback

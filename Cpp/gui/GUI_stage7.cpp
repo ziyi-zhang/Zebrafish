@@ -189,7 +189,7 @@ void GUI::LoadSubsequentFrames() {
     std::vector<bool> channelVec(channelPerSlice, false);
     channelVec[channelToLoad] = true;
     // Read all desired frame to "imgData"
-    ReadTif(imagePath, layerPerImg, channelVec, desiredFrames, imgData, r0, c0, r1, c1);
+    ReadTif(imagePath, layerPerImg, channelVec, desiredFrames, imgData, imageCrop.r0, imageCrop.c0, imageCrop.r1, imageCrop.c1);
     currentLoadedFrames = desiredFrames;
     // Update visualization array
     UpdateMarkerPointLocArray();

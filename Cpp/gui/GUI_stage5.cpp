@@ -959,8 +959,8 @@ bool GUI::ClusterNearBorderWarn() {
 
     const int N = clusterRecord.num;
     int i;
-    const int xgap = 6;
-    const int ygap = 6;
+    const int xgap = 8;
+    const int ygap = 8;
     const int zgap = 2;
 
     for (i=0; i<N; i++)

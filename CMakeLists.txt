@@ -158,8 +158,8 @@ if(ZEBRA_TOPLEVEL_PROJECT)
     set_target_properties(${PROJECT_NAME}_gui PROPERTIES MACOSX_BUNDLE_GUI_IDENTIFIER com.im.zebrafish)
     # set_target_properties(${PROJECT_NAME}_gui PROPERTIES MACOSX_BUNDLE_ICON_FILE im.icns)
 
-    set_target_properties(${PROJECT_NAME}_gui PROPERTIES MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1")
-    set_target_properties(${PROJECT_NAME}_gui PROPERTIES MACOSX_BUNDLE_BUNDLE_VERSION "0.1.0")
+    set_target_properties(${PROJECT_NAME}_gui PROPERTIES MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0")
+    set_target_properties(${PROJECT_NAME}_gui PROPERTIES MACOSX_BUNDLE_BUNDLE_VERSION "1.0.0")
     # set_target_properties(${PROJECT_NAME}_gui PROPERTIES MACOSX_BUNDLE_COPYRIGHT "© 2020, ZebraFish")
 
 

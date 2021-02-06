@@ -66,6 +66,21 @@ typedef struct hist_t {
 } hist_t;
 
 
+typedef struct crop_t {
+
+    bool cropActive;  // user use mouse to crop a rectangular area
+    bool downClicked;  // helper variable used by "cropActive"
+    bool showCropArea;  // visualize the current [r0, c0] x [r1, c1] area
+    Eigen::Vector3f baseLoc, currentLoc;
+    int r0, c0, r1, c1;  // upper-left [r0, c0]
+
+    crop_t() : cropActive(false), downClicked(false), showCropArea(true), r0(-1), c0(-1), r1(-1), c1(-1) {
+        baseLoc << 0.0f, 0.0f, 0.0f;
+        currentLoc << 0.0f, 0.0f, 0.0f;
+    }
+} crop_t;
+
+
 ////////////////////////////////////////////////////////
 // GUI
 
@@ -210,11 +225,8 @@ private:
 
     //////////////////////////////////////////////////
     // [mouse pick] crop image
-    bool cropActive;  // user use mouse to crop a rectangular area
-    bool downClicked;  // helper variable used by "cropActive"
-    bool showCropArea;  // visualize the current [r0, c0] x [r1, c1] area
-    Eigen::Vector3f baseLoc, currentLoc;
-    int r0, c0, r1, c1;  // upper-left [r0, c0]
+    crop_t imageCrop;  // stage-1 crop image in XY
+    crop_t meanCrop;  // stage-8 crop image for average displacement area
 
     //////////////////////////////////////////////////
     // [mouse pick] manually reject clusters
@@ -337,7 +349,7 @@ private:
     //////////////////////////////////////////////////
     // Stage 1 Image Read
     void ImageReadReset();
-    void CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype);
+    void CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype, crop_t &cropStruct);
     void DrawRect(double x0, double y0, double x1, double y1, const Eigen::MatrixXd &lineColor);
 
     //////////////////////////////////////////////////

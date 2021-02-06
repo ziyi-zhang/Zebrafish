@@ -21,7 +21,7 @@ namespace {
 void GUI::DrawStage1() {
 
     // cropActive
-    if (cropActive && downClicked) {
+    if (imageCrop.cropActive && imageCrop.downClicked) {
         // crop activated & has been updated (not default value)
         Eigen::MatrixXd lineColor(1, 3);
         lineColor << 0.77, 0.28, 0.24;
@@ -29,15 +29,15 @@ void GUI::DrawStage1() {
 
         // upper-left corner (x0, y0)
         // lower-right corner (x1, y1)
-        float x0 = baseLoc(0);
-        float x1 = std::max(x0, currentLoc(0));
-        float y0 = baseLoc(1);
-        float y1 = std::min(y0, currentLoc(1));
+        float x0 = imageCrop.baseLoc(0);
+        float x1 = std::max(x0, imageCrop.currentLoc(0));
+        float y0 = imageCrop.baseLoc(1);
+        float y1 = std::min(y0, imageCrop.currentLoc(1));
         DrawRect(x0, y0, x1, y1, lineColor);
     }
 
     // showCropArea
-    if (showCropArea && currentLoadedFrames > 0) {
+    if (imageCrop.showCropArea && currentLoadedFrames > 0) {
         // show the area specified by current [r0, c0] x [r1, c1]
         Eigen::MatrixXd lineColor(1, 3);
         lineColor << 0.77, 0.28, 0.24;
@@ -45,10 +45,10 @@ void GUI::DrawStage1() {
 
         // upper-left corner (x0, y0)
         // lower-right corner (x1, y1)
-        float x0 = (c0 == -1) ? 0 : c0;
-        float x1 = (c1 == -1) ? imgCols : c1;
-        float y0 = (r0 == -1) ? imgRows : imgRows - r0;
-        float y1 = (r1 == -1) ? 0 : imgRows - r1;
+        float x0 = (imageCrop.c0 == -1) ? 0 : imageCrop.c0;
+        float x1 = (imageCrop.c1 == -1) ? imgCols : imageCrop.c1;
+        float y0 = (imageCrop.r0 == -1) ? imgRows : imgRows - imageCrop.r0;
+        float y1 = (imageCrop.r1 == -1) ? 0 : imgRows - imageCrop.r1;
         DrawRect(x0, y0, x1, y1, lineColor);
     }
 
@@ -96,22 +96,22 @@ void GUI::DrawStage1() {
 
     if (ImGui::CollapsingHeader("Area Crop", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        if (ImGui::Checkbox("Mouse crop", &cropActive)) {
-            if (!cropActive) 
+        if (ImGui::Checkbox("Mouse crop", &imageCrop.cropActive)) {
+            if (!imageCrop.cropActive) 
                 logger().debug("Mouse crop: de-activated.");
             else {
                 logger().debug("Mouse crop: activated.");
-                showCropArea = true;
+                imageCrop.showCropArea = true;
             }
         }
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Use mouse to select an area of interest.\nClick this once and move the mouse to the image. Click and hold. Drag the mouse to select an area. Release.\nThe area will be highlighted in a red box.");
         }
         if (ImGui::Button("Reset crop area")) {
-            r0 = -1;
-            c0 = -1;
-            r1 = -1;
-            c1 = -1;
+            imageCrop.r0 = -1;
+            imageCrop.c0 = -1;
+            imageCrop.r1 = -1;
+            imageCrop.c1 = -1;
             logger().debug("   <button> Reset crop area");
         }
         if (showTooltip && ImGui::IsItemHovered()) {
@@ -120,14 +120,14 @@ void GUI::DrawStage1() {
 
         if (ImGui::TreeNode("Advanced area crop")) {
 
-            ImGui::Checkbox("Show cropped area", &showCropArea);
+            ImGui::Checkbox("Show cropped area", &imageCrop.showCropArea);
             ImGui::PushItemWidth(80);
-            ImGui::InputInt("R0", &r0);
+            ImGui::InputInt("R0", &imageCrop.r0);
             ImGui::SameLine();
-            ImGui::InputInt("C0", &c0);
-            ImGui::InputInt("R1", &r1);
+            ImGui::InputInt("C0", &imageCrop.c0);
+            ImGui::InputInt("R1", &imageCrop.r1);
             ImGui::SameLine();
-            ImGui::InputInt("C1", &c1);
+            ImGui::InputInt("C1", &imageCrop.c1);
             ImGui::PopItemWidth();
             ImGui::SliderFloat("Line width", &lineWidth, 1, 16);
 
@@ -165,7 +165,7 @@ void GUI::DrawStage1() {
                         logger().error("Z-stack size in the mask does not match with the image");
                         std::cerr << "Z-stack size in the mask does not match with the image" << std::endl;
                     } else {
-                        if (ReadTifFirstFrame(maskPath, layerPerImg, 1, membraneMask, r0, c0, r1, c1, 0)) {
+                        if (ReadTifFirstFrame(maskPath, layerPerImg, 1, membraneMask, imageCrop.r0, imageCrop.c0, imageCrop.r1, imageCrop.c1, 0)) {
                             if (imgRows == membraneMask[0].rows() && imgCols == membraneMask[0].cols()) {
 
                                 double minValue = std::numeric_limits<double>::max();
@@ -261,7 +261,7 @@ void GUI::DrawStage1() {
 
         try {
             // NOTE: we crop the area [r0, c0]x[r1, c1] when loading the image, but keep the entire z-stack despite the z-crop
-            if (ReadTifFirstFrame(imagePath, layerPerImg, channelPerSlice, imgData[0], r0, c0, r1, c1, channelToLoad)) {
+            if (ReadTifFirstFrame(imagePath, layerPerImg, channelPerSlice, imgData[0], imageCrop.r0, imageCrop.c0, imageCrop.r1, imageCrop.c1, channelToLoad)) {
                 imgRows = imgData[0][0].rows();
                 imgCols = imgData[0][0].cols();
                 currentLoadedFrames = 1;
@@ -315,11 +315,11 @@ void GUI::ImageReadReset() {
     resolutionX = 0;
     resolutionY = 0;
     resolutionZ = 0;
-    r0 = -1;
-    c0 = -1;
-    r1 = -1;
-    c1 = -1;
-    showCropArea = true;
+    imageCrop.r0 = -1;
+    imageCrop.c0 = -1;
+    imageCrop.r1 = -1;
+    imageCrop.c1 = -1;
+    imageCrop.showCropArea = true;
 }
 
 
@@ -327,7 +327,7 @@ void GUI::ImageReadReset() {
 // Crop image
 
 
-void GUI::CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype) {
+void GUI::CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype, crop_t &cropStruct) {
 
     static int fid;
     static Eigen::Vector3f bc, loc;
@@ -353,48 +353,48 @@ void GUI::CropImage(const Eigen::Vector2f &mouse, MOUSE_TYPE mousetype) {
         if (mousetype == MOUSEDOWN) {
 
             logger().debug("Mouse down: fid = {} | bc = {:.2f} x {:.2f} x {:.2f} | loc = {:.2f} x {:.2f} x {:.2f}", fid, bc(0), bc(1), bc(2), loc(0), loc(1), loc(2));
-            downClicked = true;
+            cropStruct.downClicked = true;
 
-            baseLoc = loc;
-            currentLoc = loc;
+            cropStruct.baseLoc = loc;
+            cropStruct.currentLoc = loc;
         } else if (mousetype == MOUSEUP) {
             logger().debug("Mouse up:   fid = {} | bc = {:.2f} x {:.2f} x {:.2f} | loc = {:.2f} x {:.2f} x {:.2f}", fid, bc(0), bc(1), bc(2), loc(0), loc(1), loc(2));
-            cropActive = false;
-            downClicked = false;
+            cropStruct.cropActive = false;
+            cropStruct.downClicked = false;
 
-            c0 = std::round(baseLoc(0));
-            c1 = std::round(currentLoc(0));
-            r0 = imgRows - std::round(baseLoc(1));
-            r1 = imgRows - std::round(currentLoc(1));
+            cropStruct.c0 = std::round(cropStruct.baseLoc(0));
+            cropStruct.c1 = std::round(cropStruct.currentLoc(0));
+            cropStruct.r0 = imgRows - std::round(cropStruct.baseLoc(1));
+            cropStruct.r1 = imgRows - std::round(cropStruct.currentLoc(1));
 
             // [r0, c0] must be upper-left, [r1, c1] must be lower-right
-            if (r0 > r1 && c0 > c1) {
+            if (cropStruct.r0 > cropStruct.r1 && cropStruct.c0 > cropStruct.c1) {
                 // cropping from lower-right to upper-left, need to swap
                 int t;
-                t = c0; c0 = c1; c1 = t;
-                t = r0; r0 = r1; r1 = t;
+                t = cropStruct.c0; cropStruct.c0 = cropStruct.c1; cropStruct.c1 = t;
+                t = cropStruct.r0; cropStruct.r0 = cropStruct.r1; cropStruct.r1 = t;
             }
-            if (!(r1 > r0 && c1 > c0)) {
+            if (!(cropStruct.r1 > cropStruct.r0 && cropStruct.c1 > cropStruct.c0)) {
                 // invalid
-                r0 = -1;
-                c0 = -1;
-                r1 = -1;
-                c1 = -1;
+                cropStruct.r0 = -1;
+                cropStruct.c0 = -1;
+                cropStruct.r1 = -1;
+                cropStruct.c1 = -1;
                 logger().info("Mouse up invalid: has been reset to -1");
             }
         } else if (mousetype == MOUSEMOVE) {
-            currentLoc = loc;
+            cropStruct.currentLoc = loc;
         }
     } else {
         // no hit
 
         if (mousetype == MOUSEDOWN) {
             logger().debug("Mouse down: no hit");
-            downClicked = true;
+            cropStruct.downClicked = true;
         } else if (mousetype == MOUSEUP) {
             logger().debug("Mouse up:   no hit");
-            cropActive = false;
-            downClicked = false;
+            cropStruct.cropActive = false;
+            cropStruct.downClicked = false;
         }
     }
 }

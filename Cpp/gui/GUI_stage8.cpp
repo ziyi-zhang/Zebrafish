@@ -338,6 +338,8 @@ void GUI::DrawStage8() {
         static int n_refs = 0;  // Number of mesh uniform refinements
         static double vismesh_rel_area = 0.00001;  // Desnsity of the output visualization
 
+
+
         static std::string runAnalysisStr = "";
         if (ImGui::Button("Run analysis")) {
             try {
@@ -753,7 +755,7 @@ bool GUI::SaveImageToTIFF(bool saveMarkerImage, bool saveCellImage, int cellChan
         std::vector<bool> channelVec(channelPerSlice, false);
         channelVec[cellChannel] = true;
         // Read all desired frame to "imgData"
-        ReadTif(imagePath, layerPerImg, channelVec, desiredFrames, cellImgData, r0, c0, r1, c1);
+        ReadTif(imagePath, layerPerImg, channelVec, desiredFrames, cellImgData, imageCrop.r0, imageCrop.c0, imageCrop.r1, imageCrop.c1);
     }
 
     for (int i=0; i<currentLoadedFrames; i++) {
