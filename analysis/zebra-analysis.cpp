@@ -2,11 +2,13 @@
 
 #include <polyfem/State.hpp>
 #include <polyfem/GenericProblem.hpp>
+#include <polyfem/VTUWriter.hpp>
 
 #include <igl/barycenter.h>
 #include <igl/copyleft/tetgen/tetrahedralize.h>
 #include <igl/writeMESH.h>
 #include <igl/write_triangle_mesh.h>
+#include <igl/remove_unreferenced.h>
 
 namespace zebrafish {
     void compute_analysis(std::vector<Eigen::MatrixXd> &V, Eigen::MatrixXi &F,
@@ -146,7 +148,7 @@ namespace zebrafish {
         // Generate tet mesh
         Eigen::MatrixXd nodes;
         Eigen::MatrixXi elem, faces;
-        const std::string switches = "zpq1.414a"+std::to_string(min_area)+"Q";
+        const std::string switches = "zpq1.414a"+std::to_string(min_area)+"QYY";
         // const std::string switches = "zpq1.414a10000Q";
         igl::copyleft::tetgen::tetrahedralize(mesh_v, mesh_f, switches, nodes, elem, faces);
 
@@ -161,6 +163,7 @@ namespace zebrafish {
         state.load_mesh();
         state.mesh->compute_boundary_ids(set_bc);
 
+
         // {
         //     Eigen::MatrixXd points;
         //     Eigen::MatrixXi faces;
@@ -168,6 +171,7 @@ namespace zebrafish {
 
         //     state.get_sidesets(points, faces, sidesets);
         //     igl::write_triangle_mesh("text.obj", points, faces);
+        //     igl::write_triangle_mesh("text1.obj", V0, F);
         // }
 
         Eigen::RowVector3d zero(0, 0, 0);
@@ -194,9 +198,17 @@ namespace zebrafish {
 
             state.solve();
 
+            Eigen::MatrixXd vals, traction_forces;
+            state.interpolate_boundary_function_at_vertices(V0, F, state.sol, vals);
+			state.interpolate_boundary_tensor_function(V0, F, state.sol, vals, true, traction_forces);
+
             const std::string out_path = path + std::to_string(sim) + ".vtu";
             std::cerr << out_path << std::endl;
 			state.save_vtu(out_path, 0);
+            polyfem::VTUWriter writer;
+            writer.add_field("displacement", vals);
+            writer.add_field("traction_forces", traction_forces);
+            writer.write_mesh("surf_"+out_path, V0, F);
         }
     }
 }
