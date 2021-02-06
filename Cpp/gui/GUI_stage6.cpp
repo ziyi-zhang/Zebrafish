@@ -357,8 +357,8 @@ void GUI::UpdateMarkerMesh() {
 
             // we find a valid triangle
             tempMarkerMeshArray(count, 0) = it1->second;
-            tempMarkerMeshArray(count, 1) = it2->second;
-            tempMarkerMeshArray(count, 2) = it3->second;
+            tempMarkerMeshArray(count, 1) = it3->second;
+            tempMarkerMeshArray(count, 2) = it2->second;  // oriented!
             count++;
     }
 
