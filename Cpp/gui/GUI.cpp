@@ -1216,6 +1216,14 @@ void GUI::init(std::string imagePath_, std::string maskPath_, int debugMode) {
         c0 = 448;
         r1 = 507;
         c1 = 596;
+    } else if (debugMode == 2) {
+        // large area
+        layerBegin = 24;
+        layerEnd = 46;
+        r0 = 356;
+        c0 = 448;
+        r1 = 437;
+        c1 = 556;
     }
 
     // callback

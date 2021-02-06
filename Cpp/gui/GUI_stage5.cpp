@@ -279,6 +279,7 @@ void GUI::DrawStage5() {
             // apply cluster filter
             ClusterFilter();
             UpdateClusterPointLoc();
+            ClusterNearBorderWarn();
 
             propertyListType = 1;
             // update visualized points
@@ -320,6 +321,7 @@ void GUI::DrawStage5() {
         if (ImGui::SliderFloat("    ", &clusterSizeThres, clusterSizeHist.minValue, 5.0)) {
             ClusterFilter();
             UpdateClusterPointLoc();
+            ClusterNearBorderWarn();
         }
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Clusters consisted of fewer cylinders will be discarded.");
@@ -948,7 +950,39 @@ void GUI::MouseRejectCluster() {
 
     rejectHit = false;
     UpdateClusterPointLoc();
+    ClusterNearBorderWarn();
     logger().info("Mouse pick rejected {} clusters", hitCount);
+}
+
+
+bool GUI::ClusterNearBorderWarn() {
+
+    const int N = clusterRecord.num;
+    int i;
+    const int xgap = 6;
+    const int ygap = 6;
+    const int zgap = 2;
+
+    for (i=0; i<N; i++)
+        if (clusterRecord.alive(i)) {
+            int x = clusterRecord.loc(i, 0);
+            int y = clusterRecord.loc(i, 1);
+            int z = clusterRecord.loc(i, 2);
+            if (x<xgap || imgRows-x<xgap) {
+                logger().warn("Cluster {} too close to the border (x-axis). Consider deleting them or crop a larger area.", i);
+                return false;
+            }
+            if (y<ygap || imgCols-y<ygap) {
+                logger().warn("Cluster {} too close to the border (y-axis). Consider deleting them or crop a larger area.", i);
+                return false;
+            }
+            if (z-layerBegin<zgap || layerEnd-z<zgap) {
+                logger().warn("Cluster {} too close to the border (depth z-axis). Consider deleting them or crop a larger area.", i);
+                return false;
+            }
+        }
+
+    return true;
 }
 
 }  // namespace zebrafish

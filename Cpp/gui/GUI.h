@@ -378,6 +378,7 @@ private:
     void FinalizeClusterLoc();
     void MouseSelectCluster(const Eigen::Vector2f &mouse);
     void MouseRejectCluster();
+    bool ClusterNearBorderWarn();
 
     //////////////////////////////////////////////////
     // Stage 6 Iterative Closest Point
