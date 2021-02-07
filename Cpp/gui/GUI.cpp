@@ -626,7 +626,6 @@ void GUI::DrawMenuHelp() {
 ////////////////////////////////////////////////////////////////////////////////////////
 // window: log
 
-
 void GUI::DrawWindowLog() {
 
     ImGui::SetNextWindowPos(ImVec2(zebrafishWidth, windowHeight-logHeight), ImGuiCond_FirstUseEver);
@@ -639,10 +638,21 @@ void GUI::DrawWindowLog() {
     ImGui::Separator();
     ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
+    static ImGuiTextBuffer buf;
+    
+    // std::string log = oss.str();
+    // ImGui::TextUnformatted(log.c_str());
     std::string log = oss.str();
+    oss.str("");
+    oss.clear();
+    // AddLog(log.c_str(), buf);
+    buf.appendf("%s", log.c_str());
 
-    ImGui::TextUnformatted(log.c_str());
-    ImGui::SetScrollHere(1.0f);
+
+    ImGui::TextUnformatted(buf.begin(), buf.end());
+
+    if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+        ImGui::SetScrollHereY(1.0f);
 
     ImGui::EndChild();
     ImGui::End();
