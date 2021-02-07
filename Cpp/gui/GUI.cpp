@@ -219,6 +219,16 @@ bool GUI::MouseDownCallback(igl::opengl::glfw::Viewer &viewer, int button, int m
         return true;
     }
 
+    if (meanCrop.cropActive) {
+
+        Eigen::Vector2f mouse;
+        mouse << viewer.down_mouse_x, viewer.down_mouse_y;
+        CropImage(mouse, MOUSEDOWN, meanCrop);
+
+        // disable ligigl default mouse_down
+        return true;
+    }
+
     if (rejectActive) {
 
         MouseRejectCluster();
@@ -250,6 +260,15 @@ bool GUI::MouseUpCallback(igl::opengl::glfw::Viewer &viewer, int button, int mod
         // do not block default mouse_up
     }
 
+    if (meanCrop.cropActive) {
+
+        Eigen::Vector2f mouse;
+        mouse << viewer.down_mouse_x, viewer.down_mouse_y;  // this will not be used
+        CropImage(mouse, MOUSEUP, meanCrop);
+
+        // do not block default mouse_up
+    }
+
     if (markerDragActive && markerDragFocused) {
 
         MarkerDragSetNewLoc();
@@ -268,6 +287,16 @@ bool GUI::MouseMoveCallback(igl::opengl::glfw::Viewer &viewer, int mouse_x, int 
         Eigen::Vector2f mouse;
         mouse << mouse_x, mouse_y;
         CropImage(mouse, MOUSEMOVE, imageCrop);
+
+        // disable ligigl default mouse_move
+        return true;
+    }
+
+    if (meanCrop.cropActive) {
+
+        Eigen::Vector2f mouse;
+        mouse << mouse_x, mouse_y;
+        CropImage(mouse, MOUSEMOVE, meanCrop);
 
         // disable ligigl default mouse_move
         return true;
@@ -1069,7 +1098,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     // cluster filter
     clusterDistThres = 0.01;
     finalizeClusterDistThres = 2.0;
-    clusterSizeThres = 4;
+    clusterSizeThres = 1;
     showClusterFilterPoints = false;
     clusterPointLoc.resize(0, 3);
     clusterSizeHist.hist = Eigen::MatrixXf::Zero(histBars, 1);

@@ -412,6 +412,7 @@ private:
 
     //////////////////////////////////////////////////
     // Stage 8 Displacement
+    void GetMarkersInAvgDispArea(std::vector<bool> &markerInAvgDispArea);
     bool OptimizeAllFrames(bool logEnergy);
     void ApplyOpticalFlow(int prevFrameIdx);
     void OptimizeOneFrame(int prevFrameIdx);

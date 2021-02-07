@@ -25,7 +25,7 @@ void GUI::DrawStage1() {
         // crop activated & has been updated (not default value)
         Eigen::MatrixXd lineColor(1, 3);
         lineColor << 0.77, 0.28, 0.24;
-        viewer.data().line_width = 1.0f;
+        viewer.data().line_width = 2.0f;
 
         // upper-left corner (x0, y0)
         // lower-right corner (x1, y1)
@@ -41,7 +41,7 @@ void GUI::DrawStage1() {
         // show the area specified by current [r0, c0] x [r1, c1]
         Eigen::MatrixXd lineColor(1, 3);
         lineColor << 0.77, 0.28, 0.24;
-        viewer.data().line_width = 1.0f;
+        viewer.data().line_width = 2.0f;
 
         // upper-left corner (x0, y0)
         // lower-right corner (x1, y1)

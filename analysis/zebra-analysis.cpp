@@ -202,13 +202,13 @@ namespace zebrafish {
             state.interpolate_boundary_function_at_vertices(V0, F, state.sol, vals);
 			state.interpolate_boundary_tensor_function(V0, F, state.sol, vals, true, traction_forces);
 
-            const std::string out_path = path + std::to_string(sim) + ".vtu";
+            const std::string out_path = path + "-frame" + std::to_string(sim) + ".vtu";
             std::cerr << out_path << std::endl;
 			state.save_vtu(out_path, 0);
             polyfem::VTUWriter writer;
             writer.add_field("displacement", vals);
             writer.add_field("traction_forces", traction_forces);
-            writer.write_mesh("surf_"+out_path, V0, F);
+            writer.write_mesh(out_path, V0, F);
         }
     }
 }

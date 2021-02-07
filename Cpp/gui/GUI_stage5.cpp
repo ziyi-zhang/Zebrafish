@@ -297,7 +297,7 @@ void GUI::DrawStage5() {
         // Histogram of cluster size
         ImVec2 before, after;
         ImDrawList *drawList = ImGui::GetWindowDrawList();
-        ImGui::Text("Histogram of cluster size per area");
+        ImGui::Text("Histogram of cluster size in unit area");
 
         const float width = ImGui::GetWindowWidth() * 0.75f - 2;
         ImGui::PushItemWidth(width + 2);
@@ -318,13 +318,21 @@ void GUI::DrawStage5() {
         );
         drawList->PopClipRect();
         ImGui::PopItemWidth();
-        if (ImGui::SliderFloat("    ", &clusterSizeThres, clusterSizeHist.minValue, 5.0)) {
+        if (ImGui::SliderFloat("    ", &clusterSizeThres, clusterSizeHist.minValue, 4.0)) {
             ClusterFilter();
             UpdateClusterPointLoc();
             ClusterNearBorderWarn();
         }
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Clusters consisted of fewer cylinders will be discarded.");
+        }
+        if (ImGui::InputFloat("clusterSizeThres", &clusterSizeThres, 0.0, 0.0, "%.2f")) {
+            ClusterFilter();
+            UpdateClusterPointLoc();
+            ClusterNearBorderWarn();
+        }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("In case we need values larger than 4.0");
         }
 
         ImGui::Separator(); /////////////////////////////////////////

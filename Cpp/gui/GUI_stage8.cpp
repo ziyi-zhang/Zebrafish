@@ -22,7 +22,7 @@ namespace zebrafish {
 namespace {
 
 using std::string;
-string GetFileName(const string &imagePath, int index, const string &ext, const string &extra) {
+string GetFileName(const string &imagePath, int frameindex, const string &ext, const string &extra) {
 
     string fileName;
     // erase extension (.tif / .tiff)
@@ -32,28 +32,28 @@ string GetFileName(const string &imagePath, int index, const string &ext, const 
     else
         fileName = imagePath.substr(0, lastdot);
     // erase path
-    size_t lastDelimiter = fileName.find_last_of("/");
-    if (lastDelimiter != string::npos) fileName.erase(0, lastDelimiter + 1);
-    lastDelimiter = fileName.find_last_of("\\");
-    if (lastDelimiter != string::npos) fileName.erase(0, lastDelimiter + 1);
+    //size_t lastDelimiter = fileName.find_last_of("/");
+    //if (lastDelimiter != string::npos) fileName.erase(0, lastDelimiter + 1);
+    //lastDelimiter = fileName.find_last_of("\\");
+    //if (lastDelimiter != string::npos) fileName.erase(0, lastDelimiter + 1);
     // add extra
     fileName += "-";
     fileName += extra;
-    // add index
-    fileName += "-frame";
-    if (index >= 0)
-        fileName += std::to_string(index);
     // add time
-    /*
     char buffer[80];
     time_t rawTime;
     struct tm *timeInfo;
     time(&rawTime);
     timeInfo = localtime(&rawTime);
-    strftime(buffer, 80, "%Y-%m-%dT%H-%M-%S", timeInfo);
+    strftime(buffer, 80, "%m_%dT%H_%M", timeInfo);
     fileName += "-";
     fileName += buffer;
-    */
+    // add index
+    if (frameindex >= 0) {
+        fileName += "-frame";
+        fileName += std::to_string(frameindex);
+    }
+
     // add extension
     fileName += ext;
 
@@ -180,6 +180,40 @@ void GetPhysicalLocation(const std::vector<Eigen::MatrixXd> &locArray, double re
 // Stage 8: Dispalcement & Export
 
 void GUI::DrawStage8() {
+
+    // cropActive
+    if (meanCrop.cropActive && meanCrop.downClicked) {
+        // crop activated & has been updated (not default value)
+        Eigen::MatrixXd lineColor(1, 3);
+        lineColor << 0.77, 0.28, 0.24;
+        viewer.data().line_width = 2.0f;
+
+        // upper-left corner (x0, y0)
+        // lower-right corner (x1, y1)
+        float x0 = meanCrop.baseLoc(0);
+        float x1 = std::max(x0, meanCrop.currentLoc(0));
+        float y0 = meanCrop.baseLoc(1);
+        float y1 = std::min(y0, meanCrop.currentLoc(1));
+        DrawRect(x0, y0, x1, y1, lineColor);
+    }
+
+    // showCropArea
+    if (meanCrop.showCropArea && currentLoadedFrames > 0) {
+        // show the area specified by current [r0, c0] x [r1, c1]
+        Eigen::MatrixXd lineColor(1, 3);
+        lineColor << 0.77, 0.28, 0.24;
+        viewer.data().line_width = 2.0f;
+
+        // upper-left corner (x0, y0)
+        // lower-right corner (x1, y1)
+        float x0 = (meanCrop.c0 == -1) ? 0 : meanCrop.c0;
+        float x1 = (meanCrop.c1 == -1) ? imgCols : meanCrop.c1;
+        float y0 = (meanCrop.r0 == -1) ? imgRows : imgRows - meanCrop.r0;
+        float y1 = (meanCrop.r1 == -1) ? 0 : imgRows - meanCrop.r1;
+        DrawRect(x0, y0, x1, y1, lineColor);
+    }
+
+    ImGui::Separator(); /////////////////////////////////////////
 
     // Visualize marker cluster points
     static int pointSize = 7;
@@ -338,7 +372,18 @@ void GUI::DrawStage8() {
         static int n_refs = 0;  // Number of mesh uniform refinements
         static double vismesh_rel_area = 0.00001;  // Desnsity of the output visualization
 
-
+        // average displacement area crop
+        if (ImGui::Checkbox("[Mouse] avg disp area", &meanCrop.cropActive)) {
+            if (!meanCrop.cropActive) 
+                logger().debug("[Mouse] avg disp area: de-activated.");
+            else {
+                logger().debug("[Mouse] avg disp area: activated.");
+                meanCrop.showCropArea = true;
+            }
+        }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("The selected area will be used to calculate the global displacement. By default we use the entire image.");
+        }
 
         static std::string runAnalysisStr = "";
         if (ImGui::Button("Run analysis")) {
@@ -347,11 +392,25 @@ void GUI::DrawStage8() {
                 std::vector<Eigen::MatrixXd> analysisDisplacementVec;
                 std::vector<Eigen::MatrixXd> markerPointLocArray_phy;
                 GetPhysicalLocation(markerPointLocArray, resolutionX, resolutionY, resolutionZ, markerPointLocArray_phy);
+                // determine markers that are used to compute global displacement
+                std::vector<bool> markerInAvgDispArea;
+                GetMarkersInAvgDispArea(markerInAvgDispArea);
+                // remove global displacement
                 for (int i=0; i<currentLoadedFrames; i++) {
 
                     Eigen::MatrixXd V_analysis = markerPointLocArray_phy[i];
                     // remove the global movement
-                    Eigen::RowVectorXd meanV = (V_analysis - markerPointLocArray_phy[0]).colwise().mean();
+                    Eigen::RowVectorXd meanV(1, 3);  // (V_analysis - markerPointLocArray_phy[0]).colwise().mean();
+                    meanV << 0.0f, 0.0f, 0.0f;
+                    int count = 0;
+                    for (int j=0; j<markerInAvgDispArea.size(); j++) {
+                        if (!markerInAvgDispArea[j]) continue;
+                        meanV += V_analysis.row(j) - markerPointLocArray_phy[0].row(j);
+                        count += 1;
+                    }
+                    meanV /= double(count);
+                    logger().debug("Avg global displacement in frame {}: {} {} {}", i, meanV(0), meanV(1), meanV(2));
+
                     V_analysis.rowwise() -= meanV;
                     // push to new analysis vector
                     analysisDisplacementVec.push_back(V_analysis);  // want accumulativeDisplacement (relative)
@@ -417,9 +476,10 @@ void GUI::DrawStage8() {
     static bool saveAccumulativeDisplacement_relative = true;
     static bool saveIncrementalDisplacement = true;
     static bool saveIncrementalDisplacement_relative = true;
-    static bool saveMeshVTU = false;
-    static bool saveMarkerImage = true;
-    static bool saveCellImage = true;
+    static bool saveMeshPoint = false;  // vtu
+    static bool saveMeshCell = false;  // vtu
+    static bool saveMarkerImage = true;  // tif
+    static bool saveCellImage = true;  // tif
     static int cellChannel = -1;
     if (cellChannel < 0) {
         // make a guess of which channle is the cell channel
@@ -438,16 +498,17 @@ void GUI::DrawStage8() {
 
         static std::string saveStr;
         static bool meshPointSaveFlag, meshCellSaveFlag, imageSaveFlag;
-        if (ImGui::Button("Export VTU and TIFF")) {
+        if (ImGui::Button("Export TIFF (and VTU)")) {
 
             meshPointSaveFlag = true;
             meshCellSaveFlag = true;
             imageSaveFlag = true;
 
             // Save mesh to VTU (point data)
-            meshPointSaveFlag = SaveMeshToVTU_point(onlySaveFirstFrameMesh, saveAccumulativeDisplacement, saveAccumulativeDisplacement_relative, saveIncrementalDisplacement, saveIncrementalDisplacement_relative);
+            if (saveMeshPoint)
+                meshPointSaveFlag = SaveMeshToVTU_point(onlySaveFirstFrameMesh, saveAccumulativeDisplacement, saveAccumulativeDisplacement_relative, saveIncrementalDisplacement, saveIncrementalDisplacement_relative);
             // Save mesh to VTU (cell data)
-            if (saveMeshVTU)
+            if (saveMeshCell)
                 meshCellSaveFlag = SaveMeshToVTU_cell(onlySaveFirstFrameMesh);
             // Save image to TIFF
             imageSaveFlag = SaveImageToTIFF(saveMarkerImage, saveCellImage, cellChannel);
@@ -457,39 +518,13 @@ void GUI::DrawStage8() {
             logger().debug("   <button> Export VTU & TIFF");
         }
         if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Export the displacements and the gradient of the displacement. The cropped may also be saved as new TIFF images.");
+            ImGui::SetTooltip("Export the cropped area as new TIFF images. (Optional) Save the raw displacements and the moving mesh. ");
         }
         ImGui::SameLine();
         ImGui::Text("%s", saveStr.c_str());
 
         if (ImGui::TreeNode("Advanced export")) {
         
-            ImGui::Checkbox("Only save first frame mesh", &onlySaveFirstFrameMesh);
-            if (showTooltip && ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("If checked, the exported VTU will save the first frame mesh location for all frames.\nOtherwise different frames will have their corresponding meshes.");
-            }
-            ImGui::Separator();
-            ImGui::Checkbox("Save accumulative displacement (absolute)", &saveAccumulativeDisplacement);
-            if (showTooltip && ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Save the displacement relative to the first frame");
-            }
-            ImGui::Checkbox("Save accumulative displacement (relative)", &saveAccumulativeDisplacement_relative);
-            if (showTooltip && ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Save the displacement relative to the first frame. The mean of all the displacements in one frame will be subtracted.");
-            }
-            ImGui::Checkbox("Save incremental displacement (absolute)", &saveIncrementalDisplacement);
-            if (showTooltip && ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Save the displacement relative to the previous frame");
-            }
-            ImGui::Checkbox("Save incremental displacement (relative)", &saveIncrementalDisplacement_relative);
-            if (showTooltip && ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Save the displacement relative to the previous frame. The mean of all the displacements in one frame will be subtracted.");
-            }
-            ImGui::Checkbox("Save jacobian", &saveMeshVTU);
-            if (showTooltip && ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Save the jacobian of the moving mesh to VTU file");
-            }
-            ImGui::Separator();
             ImGui::Checkbox("Save cropped image (marker channel)", &saveMarkerImage);
             ImGui::Checkbox("Save cropped image (cell channel)", &saveCellImage);
             ImGui::SliderInt("Cell channel", &cellChannel, 0, channelPerSlice-1);
@@ -497,6 +532,43 @@ void GUI::DrawStage8() {
                 ImGui::SetTooltip("The channel with cell image.\nNote: the loaded channel is the one with marker information.");
             }
 
+            ImGui::Separator();
+            /////////////////////////////////////
+
+            ImGui::Checkbox("Save mesh as VTU", &saveMeshPoint);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("If checked, save the mesh (moving or fixed) as VTU along with any combination of displacement configurations as shown below.");
+            }
+            ImGui::Separator();
+            /////////////////////////////////////
+
+            ImGui::Checkbox("Only save first frame mesh", &onlySaveFirstFrameMesh);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("If checked, VTU file will always use the first-frame mesh location for all frames.\nOtherwise the mesh will move in different frames.");
+            }
+
+            ImGui::Checkbox("Save accumulative displacement (absolute)", &saveAccumulativeDisplacement);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Save the displacement relative to the first frame");
+            }
+            ImGui::Checkbox("Save accumulative displacement (relative)", &saveAccumulativeDisplacement_relative);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Save the displacement relative to the first frame. The mean of all the displacements will be subtracted.");
+            }
+            ImGui::Checkbox("Save incremental displacement (absolute)", &saveIncrementalDisplacement);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Save the displacement relative to the previous frame");
+            }
+            ImGui::Checkbox("Save incremental displacement (relative)", &saveIncrementalDisplacement_relative);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Save the displacement relative to the previous frame. The mean of all the displacements will be subtracted.");
+            }
+            ImGui::Checkbox("Save jacobian", &saveMeshCell);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Save the jacobian of the moving mesh to VTU file (DEBUG ONLY)");
+            }
+
+            ImGui::Separator();
             /////////////////////////////////////
 
             if (ImGui::Button("SaveMeshToVTU (point data)")) {
@@ -514,8 +586,14 @@ void GUI::DrawStage8() {
             if (ImGui::Button("Export to OBJ")) {
                 SaveMeshToOBJ();
             }
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("(DEBUG ONLY)");
+            }
             if (ImGui::Button("Export displacement to TXT")) {
                 SaveDisplacementToTXT();
+            }
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Raw displacement w.r.t. the first frame, without subtracting mean global movement. (DEBUG ONLY)");
             }
 
             ImGui::TreePop();
@@ -527,6 +605,30 @@ void GUI::DrawStage8() {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Optimization
+
+
+void GUI::GetMarkersInAvgDispArea(std::vector<bool> &markerInAvgDispArea) {
+
+    const int N = markerArray[0].num;
+    markerInAvgDispArea.resize(N);
+    int count = 0;
+
+    int x0 = (meanCrop.r0 == -1) ? 0 : meanCrop.r0;
+    int x1 = (meanCrop.r1 == -1) ? imgRows : meanCrop.r1;
+    int y0 = (meanCrop.c0 == -1) ? 0 : meanCrop.c0;
+    int y1 = (meanCrop.c1 == -1) ? imgCols : meanCrop.c1;
+
+    for (int i=0; i<N; i++) {
+        if (markerArray[0].loc(i, 0) > x0 && markerArray[0].loc(i, 0) < x1 &&
+            markerArray[0].loc(i, 1) > y0 && markerArray[0].loc(i, 1) < y1) {
+                markerInAvgDispArea[i] = true;
+                count += 1;
+            } else {
+                markerInAvgDispArea[i] = false;
+            }
+    }
+    logger().info("#markerInAvgDispArea = {}", count);
+}
 
 
 bool GUI::OptimizeAllFrames(bool logEnergy) {
@@ -656,12 +758,16 @@ bool GUI::SaveMeshToVTU_point(bool onlySaveFirstFrameMesh, bool saveAccumulative
     std::vector<Eigen::MatrixXd> markerPointLocArray_phy;
     GetPhysicalLocation(markerPointLocArray, resolutionX, resolutionY, resolutionZ, markerPointLocArray_phy);
 
+    // determine markers that are used to compute global displacement
+    std::vector<bool> markerInAvgDispArea;
+    GetMarkersInAvgDispArea(markerInAvgDispArea);
+
     for (int i=0; i<currentLoadedFrames; i++) {
 
         // prepare filename
         std::string vtuFileName;
         if (onlySaveFirstFrameMesh)
-            vtuFileName = GetFileName(imagePath, i, ".vtu", "point");
+            vtuFileName = GetFileName(imagePath, i, ".vtu", "FixedMesh-point");
         else
             vtuFileName = GetFileName(imagePath, i, ".vtu", "MovingMesh-point");
         // prepare absolute displacement
@@ -676,13 +782,31 @@ bool GUI::SaveMeshToVTU_point(bool onlySaveFirstFrameMesh, bool saveAccumulative
         }
         // prepare relative displacement
         if (saveAccumulativeDisplacement_relative) {
-            Eigen::RowVectorXd meanAccumulativeDisp = accumulativeDisplacement.colwise().mean();
-            accumulativeDisplacement.rowwise() -= meanAccumulativeDisp;
+            Eigen::RowVectorXd meanDisp(1, 3);
+            meanDisp << 0.0f, 0.0f, 0.0f;
+            int count = 0;
+            for (int j=0; j<markerInAvgDispArea.size(); j++) {
+                if (!markerInAvgDispArea[j]) continue;
+                meanDisp += accumulativeDisplacement.row(j);
+                count += 1;
+            }
+            meanDisp /= double(count);
+
+            accumulativeDisplacement.rowwise() -= meanDisp;
             vtuWriter.add_field("accumulative displacement (relative)", accumulativeDisplacement);
         }
         if (saveIncrementalDisplacement_relative) {
-            Eigen::RowVectorXd meanIncrementalDisp = incrementalDisplacement.colwise().mean();
-            incrementalDisplacement.rowwise() -= meanIncrementalDisp;
+            Eigen::RowVectorXd meanDisp(1, 3);
+            meanDisp << 0.0f, 0.0f, 0.0f;
+            int count = 0;
+            for (int j=0; j<markerInAvgDispArea.size(); j++) {
+                if (!markerInAvgDispArea[j]) continue;
+                meanDisp += incrementalDisplacement.row(j);
+                count += 1;
+            }
+            meanDisp /= double(count);
+
+            incrementalDisplacement.rowwise() -= meanDisp;
             vtuWriter.add_field("incremental displacement (relative)", incrementalDisplacement);
         }
 
@@ -717,7 +841,7 @@ bool GUI::SaveMeshToVTU_cell(bool onlySaveFirstFrameMesh) {
         // prepare filename
         std::string vtuFileName;
         if (onlySaveFirstFrameMesh)
-            vtuFileName = GetFileName(imagePath, i, ".vtu", "cell");
+            vtuFileName = GetFileName(imagePath, i, ".vtu", "FixedMesh-cell");
         else
             vtuFileName = GetFileName(imagePath, i, ".vtu", "MovingMesh-cell");
 
@@ -762,7 +886,7 @@ bool GUI::SaveImageToTIFF(bool saveMarkerImage, bool saveCellImage, int cellChan
 
         if (saveMarkerImage) {
 
-            std::string tifFileName = GetFileName(imagePath, i, ".tif", "image-marker");
+            std::string tifFileName = GetFileName(imagePath, i, ".tif", "marker_channel");
             if (!WriteTif(tifFileName, imgData[i], layerBegin, layerEnd)) {
                 return false;
             }
@@ -770,7 +894,7 @@ bool GUI::SaveImageToTIFF(bool saveMarkerImage, bool saveCellImage, int cellChan
 
         if (saveCellImage) {
             
-            std::string tifFileName = GetFileName(imagePath, i, ".tif", "image-cell");
+            std::string tifFileName = GetFileName(imagePath, i, ".tif", "cell_channel");
             if (!WriteTif(tifFileName, cellImgData[i], layerBegin, layerEnd)) {
                 return false;
             }
@@ -821,6 +945,7 @@ void GUI::SaveDisplacementToTXT() {
 
         GetDisplacement(markerPointLocArray_phy, i, false, displacement);
 
+        fprintf(pFile, "## Raw displacement with respective to the first frame, without subtracting mean global displacement\n");
         fprintf(pFile, "## Frame %d\n", i);
         for (int r=0; r<displacement.rows(); r++) {
             for (int c=0; c<displacement.cols(); c++) {
