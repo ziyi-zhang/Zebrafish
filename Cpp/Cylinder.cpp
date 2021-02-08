@@ -105,7 +105,7 @@ template void cylinder::EnergyHelper(const bspline &bsp, const Eigen::Matrix<dou
 template <typename T>
 void cylinder::EvaluateCylinder(const bspline &bsp, T x, T y, double z, T r, double h, T &res, bool reverse/*=false*/) {
 
-    //kill the staic, zArray should be an input
+    // kill the staic, zArray should be an input
     Eigen::Matrix<double, Eigen::Dynamic, 1> zArray;  // store the array of depths
     T resInner, resExt;
     assert(bsp.quad.numDiskPts > 0);  // Quadrature method has been chosen

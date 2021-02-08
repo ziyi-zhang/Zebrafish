@@ -11,7 +11,7 @@ namespace zebrafish {
 
 typedef struct cylinder_t {
 // uniquely defines a cylinder
-    double x, y, z, r, h;  // bottom x(row), y(col), z + radius + height
+    double x, y, z, r, h;  // bottom{ x(row), y(col), z } + radius + height
 } cylinder_t;
 
 
@@ -34,6 +34,10 @@ private:
                       const T &r, const T &x, const T &y, T &resT);
 
 public:
+    static double alpha;  // in [0, 1], how severe we should penalize the peripheral area
+    static double K;  // extended radius / cylinder radius
+    static double H;  // cylinder height (fixed, do not optimize)
+
     template<typename T>
     static bool IsValid(const bspline &bsp, const T &x, const T &y, const double z, const T &r, const double h);
     /// Check if the cylinder [x, y, z, r, h] is a valid cylinder.

@@ -233,7 +233,7 @@ void GUI::ComputeBsplineForAllFrames() {
     logger().debug("reference value = {}", markerArray[0].energy(0));
     double res;
     for (int i=0; i<currentLoadedFrames; i++) {
-        cylinder::EvaluateCylinder(bsplineArray[i], markerArray[0].loc(0, 0), markerArray[0].loc(0, 1), markerArray[0].loc(0, 2), markerArray[0].loc(0, 3), cylinderHeight, res, reverseColor);
+        cylinder::EvaluateCylinder(bsplineArray[i], markerArray[0].loc(0, 0), markerArray[0].loc(0, 1), markerArray[0].loc(0, 2), markerArray[0].loc(0, 3), cylinder::H, res, reverseColor);
         logger().debug("frame {} res = {}", i, res);
     }
     */

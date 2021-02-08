@@ -166,7 +166,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
         //////////////////////////////////////
         // lambda function for parallel_for //
         //////////////////////////////////////
-        [this/*.markerArray[frameIdx], .bsplineArray[frameIdx], .cylinderHeight*/, &param, frameIdx, M, &depthArray, 
+        [this/*.markerArray[frameIdx], .bsplineArray[frameIdx]*/, &param, frameIdx, M, &depthArray, 
          &x_cache, &y_cache, &z_cache, &r_cache, &energy_cache]
         (const tbb::blocked_range<int> &r) {
 
@@ -191,17 +191,17 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
                 ///////////////////////////////////
                 // lambda function for optimizer //
                 ///////////////////////////////////
-                auto func = [this/*.markerArray[frameIdx], .bsplineArray[frameIdx], .cylinderHeight*/, ii, jj, frameIdx, &depthArray]
+                auto func = [this/*.markerArray[frameIdx], .bsplineArray[frameIdx]*/, ii, jj, frameIdx, &depthArray]
                 (const Eigen::VectorXd& x, Eigen::VectorXd& grad) {
 
                         DScalar ans;
                         double z_ = markerArray[frameIdx].loc(ii, 2) + depthArray[jj];  // add z correction
 
-                        if (!cylinder::IsValid(bsplineArray[frameIdx], x(0), x(1), z_, x(2), cylinderHeight)) {
+                        if (!cylinder::IsValid(bsplineArray[frameIdx], x(0), x(1), z_, x(2), cylinder::H)) {
                             grad.setZero();
                             return 1.0;
                         }
-                        cylinder::EvaluateCylinder(bsplineArray[frameIdx], DScalar(0, x(0)), DScalar(1, x(1)), z_, DScalar(2, x(2)), cylinderHeight, ans, reverseColor);
+                        cylinder::EvaluateCylinder(bsplineArray[frameIdx], DScalar(0, x(0)), DScalar(1, x(1)), z_, DScalar(2, x(2)), cylinder::H, ans, reverseColor);
                         grad.resize(3, 1);
                         grad = ans.getGradient();
                         return ans.getValue();

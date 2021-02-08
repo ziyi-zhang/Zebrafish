@@ -1032,13 +1032,19 @@ void GUI::StateChangeReset() {
 ////////////////////////////////////////////////////////////////////////////////////////
 // maintenance methods
 
+// definition of "cylinder" class static variables
+double cylinder::alpha;
+double cylinder::K;
+double cylinder::H;
 
 GUI::GUI() : pointRecord(), clusterRecord() {
 
     // shared
     bsplineArray.resize(1);
     imgData.resize(1);
-    cylinderHeight = 2.5;
+    cylinder::alpha = 0.5;
+    cylinder::K = std::sqrt(2);
+    cylinder::H = 2.5;
     stage = 1;
     histBars = 50;
     showBackgroundImage = true;
