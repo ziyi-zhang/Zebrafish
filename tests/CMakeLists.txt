@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.1)
 
 set(test_sources
 	main.cpp
-	test.cpp
+	CylinderTest.cpp
 	InterpTest.cpp
 )
 

@@ -132,9 +132,9 @@ void interpolate(const Func &func, int &degree, double &mean_error, double &medi
 
 /////////////////////////////////////////////////////
 
-TEST_CASE("test_linear", "[interp_test]") {
+TEST_CASE("linear_interp", "[InterpTest]") {
 
-    int degree;
+    int degree = 2;
     double mean_error;
     double median_error;
     double min_error;
@@ -142,7 +142,10 @@ TEST_CASE("test_linear", "[interp_test]") {
 
     interpolate(func_linear, degree, mean_error, median_error, min_error, max_error);
 
-    //TODO: add requires like REQUIRE(mean_error < 1e-10);
+    REQUIRE(mean_error < 1e-10);
+    REQUIRE(median_error < 1e-10);
+    REQUIRE(min_error < 1e-10);
+    REQUIRE(max_error < 1e-10);
     cout << "Degree = " << degree << endl;
     cout << "Mean error = " << mean_error << endl;
     cout << "Median error = " << median_error << endl;
@@ -151,9 +154,9 @@ TEST_CASE("test_linear", "[interp_test]") {
 }
 
 
-TEST_CASE("test_quadratic", "[interp_test]") {
+TEST_CASE("quadra_interp", "[InterpTest]") {
 
-    int degree;
+    int degree = 2;
     double mean_error;
     double median_error;
     double min_error;
@@ -161,7 +164,10 @@ TEST_CASE("test_quadratic", "[interp_test]") {
 
     interpolate(func_quad, degree, mean_error, median_error, min_error, max_error);
 
-    //TODO: add requires like REQUIRE(mean_error < 1e-10);
+    REQUIRE(mean_error < 1e-10);
+    REQUIRE(median_error < 1e-10);
+    REQUIRE(min_error < 1e-10);
+    REQUIRE(max_error < 1e-10);
     cout << "Degree = " << degree << endl;
     cout << "Mean error = " << mean_error << endl;
     cout << "Median error = " << median_error << endl;
