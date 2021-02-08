@@ -2,6 +2,7 @@
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
+#include <zebrafish/Logger.hpp>
 
 #include <catch.hpp>
 
@@ -66,6 +67,7 @@ void interpolate(const Func &func, int &degree, double &mean_error, double &medi
 
     // prepare B-spline
     const int bsplineDegree = degree;
+    spdlog::set_level(spdlog::level::warn);
     bspline bsplineSolver;
     bsplineSolver.SetResolution(0.325, 0.325, 0.5);
     bsplineSolver.CalcControlPts_um(image, 0.6, 0.6, 0.6, bsplineDegree);
@@ -146,11 +148,13 @@ TEST_CASE("linear_interp", "[InterpTest]") {
     REQUIRE(median_error < 1e-10);
     REQUIRE(min_error < 1e-10);
     REQUIRE(max_error < 1e-10);
+    /*
     cout << "Degree = " << degree << endl;
     cout << "Mean error = " << mean_error << endl;
     cout << "Median error = " << median_error << endl;
     cout << "Min  error = " << min_error << endl;
     cout << "Max  error = " << max_error << endl;
+    */
 }
 
 
@@ -168,9 +172,11 @@ TEST_CASE("quadra_interp", "[InterpTest]") {
     REQUIRE(median_error < 1e-10);
     REQUIRE(min_error < 1e-10);
     REQUIRE(max_error < 1e-10);
+    /*
     cout << "Degree = " << degree << endl;
     cout << "Mean error = " << mean_error << endl;
     cout << "Median error = " << median_error << endl;
     cout << "Min  error = " << min_error << endl;
     cout << "Max  error = " << max_error << endl;
+    */
 }

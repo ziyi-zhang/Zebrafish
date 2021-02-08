@@ -53,7 +53,7 @@ public:
     template <typename T>
     static void EvaluateCylinder(const bspline &bsp, T x, T y, double z, T r, double h, T &res, bool reverse = false);
     /// Calculate sample points for the given cylinder and evaluate the energy.
-    /// This function does not check the cylinder is valid.
+    /// This function does not check whether the cylinder is valid.
     ///
     /// @param[in]   bsp       { a B-spline solver with control points calculated }
     /// @param[in]   x, y, z   { coordinate of the cylinder bottom center }
