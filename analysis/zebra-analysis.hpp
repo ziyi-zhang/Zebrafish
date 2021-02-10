@@ -9,5 +9,6 @@ namespace zebrafish {
     const std::string &path,
     const double E, const double nu,
      const double offset, const double min_area,
-     const double discr_order, const bool is_linear, const int n_refs, const double vismesh_rel_area);
+     const int discr_order, const bool is_linear, const int n_refs, const double vismesh_rel_area,
+     const bool saveinput);
 }

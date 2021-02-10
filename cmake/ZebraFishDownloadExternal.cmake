@@ -103,3 +103,11 @@ function(zebra_download_polyfem)
         GIT_TAG        f14be229f2ccb8740e2e8d05e199901bd6161f16
     )
 endfunction()
+
+## highfive
+function(zerba_download_HighFive)
+    zebra_download_project(HighFive
+        GIT_REPOSITORY https://github.com/BlueBrain/HighFive.git
+        GIT_TAG        v2.2.2
+    )
+endfunction()

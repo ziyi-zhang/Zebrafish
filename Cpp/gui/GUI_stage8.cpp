@@ -388,38 +388,58 @@ void GUI::DrawStage8() {
         static std::string runAnalysisStr = "";
         if (ImGui::Button("Run analysis")) {
             try {
-                // prepare the displacement
-                std::vector<Eigen::MatrixXd> analysisDisplacementVec;
-                std::vector<Eigen::MatrixXd> markerPointLocArray_phy;
-                GetPhysicalLocation(markerPointLocArray, resolutionX, resolutionY, resolutionZ, markerPointLocArray_phy);
-                // determine markers that are used to compute global displacement
-                std::vector<bool> markerInAvgDispArea;
-                GetMarkersInAvgDispArea(markerInAvgDispArea);
-                // remove global displacement
-                for (int i=0; i<currentLoadedFrames; i++) {
+                if (!analysisInputPath.empty()) {
+                    // re-run a previous experiment result
+                    compute_analysis(
+                        analysisPara.V, 
+                        analysisPara.F, 
+                        analysisInputPath, 
+                        analysisPara.E,  // no need to scale here
+                        analysisPara.nu, 
+                        analysisPara.offset, 
+                        analysisPara.min_area, 
+                        analysisPara.discr_order, 
+                        analysisPara.is_linear, 
+                        analysisPara.n_refs, 
+                        analysisPara.vismesh_rel_area,
+                        false
+                    );
+                } else {
 
-                    Eigen::MatrixXd V_analysis = markerPointLocArray_phy[i];
-                    // remove the global movement
-                    Eigen::RowVectorXd meanV(1, 3);  // (V_analysis - markerPointLocArray_phy[0]).colwise().mean();
-                    meanV << 0.0f, 0.0f, 0.0f;
-                    int count = 0;
-                    for (int j=0; j<markerInAvgDispArea.size(); j++) {
-                        if (!markerInAvgDispArea[j]) continue;
-                        meanV += V_analysis.row(j) - markerPointLocArray_phy[0].row(j);
-                        count += 1;
+                    // prepare the displacement
+                    std::vector<Eigen::MatrixXd> analysisDisplacementVec;
+                    std::vector<Eigen::MatrixXd> markerPointLocArray_phy;
+                    GetPhysicalLocation(markerPointLocArray, resolutionX, resolutionY, resolutionZ, markerPointLocArray_phy);
+                    // determine markers that are used to compute global displacement
+                    std::vector<bool> markerInAvgDispArea;
+                    GetMarkersInAvgDispArea(markerInAvgDispArea);
+                    // remove global displacement
+                    for (int i=0; i<currentLoadedFrames; i++) {
+
+                        Eigen::MatrixXd V_analysis = markerPointLocArray_phy[i];
+                        // remove the global movement
+                        Eigen::RowVectorXd meanV(1, 3);  // (V_analysis - markerPointLocArray_phy[0]).colwise().mean();
+                        meanV << 0.0f, 0.0f, 0.0f;
+                        int count = 0;
+                        for (int j=0; j<markerInAvgDispArea.size(); j++) {
+                            if (!markerInAvgDispArea[j]) continue;
+                            meanV += V_analysis.row(j) - markerPointLocArray_phy[0].row(j);
+                            count += 1;
+                        }
+                        meanV /= double(count);
+                        logger().debug("Avg global displacement in frame {}: {} {} {}", i, meanV(0), meanV(1), meanV(2));
+
+                        V_analysis.rowwise() -= meanV;
+                        // push to new analysis vector
+                        analysisDisplacementVec.push_back(V_analysis);  // want accumulativeDisplacement (relative)
                     }
-                    meanV /= double(count);
-                    logger().debug("Avg global displacement in frame {}: {} {} {}", i, meanV(0), meanV(1), meanV(2));
 
-                    V_analysis.rowwise() -= meanV;
-                    // push to new analysis vector
-                    analysisDisplacementVec.push_back(V_analysis);  // want accumulativeDisplacement (relative)
+                    // run analysis
+                    std::string path = GetFileName(imagePath, -1, "", "analysis");
+                    // [NOTE]: E is in unit of [Pascal], displacement is in unit of [um]. So multiply by 1e-6
+                    compute_analysis(
+                        analysisDisplacementVec, markerMeshArray, path, E / double(1e6), nu, offset, min_area, discr_order, is_linear, n_refs, vismesh_rel_area, true);
                 }
-
-                // run analysis
-                std::string path = GetFileName(imagePath, -1, "", "analysis");
-                // [NOTE]: E is in unit of [Pascal], displacement is in unit of [um]. So multiply by 1e-6
-                compute_analysis(analysisDisplacementVec, markerMeshArray, path, E / double(1e6), nu, offset, min_area, discr_order, is_linear, n_refs, vismesh_rel_area);
 
                 runAnalysisStr = "Done";
             } catch (const std::exception &e) {

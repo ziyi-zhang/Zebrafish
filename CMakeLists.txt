@@ -138,6 +138,7 @@ if(ZEBRA_TOPLEVEL_PROJECT)
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC CLI11::CLI11)
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC igl::opengl igl::opengl_glfw igl::opengl_glfw_imgui)
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC polyfem igl::tetgen)
+  target_link_libraries(${PROJECT_NAME}_gui PUBLIC highfive)
 
   if(NOT TARGET tinyfiledialogs::tinyfiledialogs)
 	  zebra_download_tinyfiledialogs()
@@ -249,6 +250,7 @@ add_subdirectory(analysis)
 
 target_link_libraries(ZebraFish-Analysis PRIVATE warnings::all)
 target_link_libraries(ZebraFish-Analysis PUBLIC polyfem igl::tetgen)
+target_link_libraries(ZebraFish-Analysis PUBLIC highfive)
 
 if(ZEBRA_ANALYSIS_RUNNABLE)
 

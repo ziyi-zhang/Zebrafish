@@ -81,6 +81,22 @@ typedef struct crop_t {
 } crop_t;
 
 
+typedef struct analysis_t {
+
+    double offset;  // Diagonal multiplier for box mesh
+    double min_area;  // Minimum tet area used by tetgen
+    double E;  // Young's modulus 566.7Pa
+    double nu;  // Poisson's ratio
+    bool is_linear;  // Use non-linear material
+    int discr_order;  // Analysis discretization order
+    int n_refs;  // Number of mesh uniform refinements
+    double vismesh_rel_area;  // Desnsity of the output visualization
+
+    std::vector<Eigen::MatrixXd> V;  // only used by analysis input file
+    Eigen::MatrixXi F;  // only used by analysis input file
+} analysis_t;
+
+
 ////////////////////////////////////////////////////////
 // GUI
 
@@ -126,6 +142,7 @@ private:
     float normalizeQuantile, normalizeQuantileRes;
     float stage1contrast;
     std::string maskPath;
+    std::string analysisInputPath;
     // Hist
     hist_t imgHist;
 
@@ -215,6 +232,10 @@ private:
     float optimMaxXYDisp;  // max XY displacement during optimization
 
     //////////////////////////////////////////////////
+    // Analysis
+    analysis_t analysisPara;
+
+    //////////////////////////////////////////////////
     // 3D image viewer
     Eigen::MatrixXd V;
     Eigen::MatrixXi F;
@@ -291,7 +312,7 @@ public:
     std::ostringstream oss;
 
     GUI();
-    void init(std::string imagePath, std::string maskPath, int debugMode);
+    void init(std::string imagePath, std::string maskPath, std::string analysisInputPath, int debugMode);
 
 protected:
     void draw_menu() override;

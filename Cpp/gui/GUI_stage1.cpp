@@ -217,9 +217,9 @@ void GUI::DrawStage1() {
     if (ImGui::CollapsingHeader("Microscope", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         ImGui::PushItemWidth(zebrafishWidth / 3.0);
-        ImGui::InputDouble("Resolution X (um)", &resolutionX);
-        ImGui::InputDouble("Resolution Y (um)", &resolutionY);
-        ImGui::InputDouble("Resolution Z (um)", &resolutionZ);
+        ImGui::InputDouble("Resolution X (um)", &resolutionX, 0.0f, 1000.0f, "%.4f");
+        ImGui::InputDouble("Resolution Y (um)", &resolutionY, 0.0f, 1000.0f, "%.4f");
+        ImGui::InputDouble("Resolution Z (um)", &resolutionZ, 0.0f, 1000.0f, "%.4f");
         ImGui::PopItemWidth();
     }
     if (showTooltip && ImGui::IsItemHovered()) {

@@ -9,18 +9,48 @@
 #include <igl/writeMESH.h>
 #include <igl/write_triangle_mesh.h>
 #include <igl/remove_unreferenced.h>
+#include <highfive/H5Easy.hpp>
+
 
 namespace zebrafish {
     void compute_analysis(std::vector<Eigen::MatrixXd> &V, Eigen::MatrixXi &F,
     const std::string &path,
     const double E, const double nu,
      const double offset, const double min_area,
-     const double discr_order, const bool is_linear, const int n_refs, const double vismesh_rel_area)
+     const int discr_order, const bool is_linear, const int n_refs, const double vismesh_rel_area,
+     const bool saveinput)
     {
 
         const Eigen::MatrixXd &V0 = V.front();
         Eigen::MatrixXd barys;
         igl::barycenter(V0, F, barys);
+
+        const auto WriteInputToFile = [&V, &F, &path, &E, &nu, &offset, &min_area, &discr_order, &is_linear, &n_refs, &vismesh_rel_area]() {
+            
+            const int frames = V.size();
+            const int Nverts = V[0].rows();
+            
+            Eigen::MatrixXd V_concatenated(frames * Nverts, 3);
+            for (int i=0; i<frames; i++) {
+                V_concatenated.block(Nverts*i, 0, Nverts, 3) = V[i];
+            }
+
+            std::string fileName = path + "-AnalysisInput" + ".h5";
+            H5Easy::File file(fileName, H5Easy::File::ReadWrite | H5Easy::File::Create);
+            H5Easy::dump(file, "E", E);
+            H5Easy::dump(file, "nu", nu);
+            H5Easy::dump(file, "offset", offset);
+            H5Easy::dump(file, "min_area", min_area);
+            H5Easy::dump(file, "discr_order", discr_order);
+            H5Easy::dump(file, "is_linear", is_linear);
+            H5Easy::dump(file, "n_refs", n_refs);
+            H5Easy::dump(file, "vismesh_rel_area", vismesh_rel_area);
+
+            H5Easy::dump(file, "frames", frames);
+            H5Easy::dump(file, "Nverts", Nverts);
+            H5Easy::dump(file, "V", V_concatenated);
+            H5Easy::dump(file, "F", F);
+        };
 
         const auto set_bc = [&barys](const Eigen::MatrixXd &v, const bool boundary)
         {
@@ -83,6 +113,9 @@ namespace zebrafish {
             res = lambda1*v1+lambda2*v2+lambda3*v3;
             return res;
         };
+
+        if (saveinput)
+            WriteInputToFile();
 
         //////////////////////////////////////////////////////////////
         // get the bounding box for the first V

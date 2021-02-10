@@ -7,6 +7,7 @@
 #include <tbb/task_scheduler_init.h>
 #include <tbb/parallel_for.h>
 #include <tbb/enumerable_thread_specific.h>
+#include <highfive/H5Easy.hpp>
 
 #include <LBFGS.h>
 #include <string>
@@ -1150,6 +1151,16 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     depthCorrectionGap = 0.1;
     optimMaxXYDisp = 5.0;
 
+    // Analysis
+    analysisPara.offset = 1;  // Diagonal multiplier for box mesh
+    analysisPara.min_area = 500;  // Minimum tet area used by tetgen
+    analysisPara.E = 566.7;  // Young's modulus 566.7Pa
+    analysisPara.nu = 0.45;  // Poisson's ratio
+    analysisPara.is_linear=true;  // Use non-linear material
+    analysisPara.discr_order = 1;  // Analysis discretization order
+    analysisPara.n_refs = 0;  // Number of mesh uniform refinements
+    analysisPara.vismesh_rel_area = 0.00001;  // Desnsity of the output visualization
+
     // 3D image viewer
     V.resize(4, 3);
     F.resize(2, 3);
@@ -1211,7 +1222,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 }
 
 
-void GUI::init(std::string imagePath_, std::string maskPath_, int debugMode) {
+void GUI::init(std::string imagePath_, std::string maskPath_, std::string analysisInputPath_,  int debugMode) {
 
     // Debug purpose
     if (!imagePath_.empty()) {
@@ -1259,6 +1270,45 @@ void GUI::init(std::string imagePath_, std::string maskPath_, int debugMode) {
         imageCrop.r1 = 437;
         imageCrop.c1 = 556;
     }
+
+    // Analysis Purpose
+    if (!analysisInputPath_.empty()) {
+        // load the data
+        try {
+            H5Easy::File file(analysisInputPath_, H5Easy::File::ReadOnly);
+            analysisPara.E = H5Easy::load<double>(file, "E");
+            analysisPara.nu = H5Easy::load<double>(file, "nu");
+            analysisPara.offset = H5Easy::load<double>(file, "offset");
+            analysisPara.min_area = H5Easy::load<double>(file, "min_area");
+            analysisPara.discr_order = H5Easy::load<int>(file, "discr_order");
+            analysisPara.is_linear = H5Easy::load<bool>(file, "is_linear");
+            analysisPara.n_refs = H5Easy::load<int>(file, "n_refs");
+            analysisPara.vismesh_rel_area = H5Easy::load<double>(file, "vismesh_rel_area");
+
+            int frames, Nverts;
+            Eigen::MatrixXd V_concatenated;
+            frames = H5Easy::load<int>(file, "frames");
+            Nverts = H5Easy::load<int>(file, "Nverts");
+            V_concatenated = H5Easy::load<Eigen::MatrixXd>(file, "V");
+            analysisPara.F = H5Easy::load<Eigen::MatrixXi>(file, "F");
+            if (frames * Nverts != V_concatenated.rows()) throw 1;
+            analysisPara.V.clear();
+            for (int i=0; i<frames; i++) {
+                analysisPara.V.push_back(V_concatenated.block(Nverts*i, 0, Nverts, 3));
+            }
+
+            analysisInputPath = analysisInputPath_;
+            imagePath = analysisInputPath_;
+            stage = 8;  // jump to analysis stage
+
+            logger().info("Analysis input file loaded.");
+        } catch (const std::exception &e) {
+            logger().error("   Error when loading the analysis input file: {}", analysisInputPath_);
+            std::cerr << "   Error when loading the analysis input file" << std::endl;
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
 
     // callback
     viewer.callback_mouse_down = [this](igl::opengl::glfw::Viewer &viewer, int button, int modifier) {

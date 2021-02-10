@@ -18,6 +18,16 @@ include(ZebraFishDownloadExternal)
 zebra_download_polyfem()
 add_subdirectory(${ZEBRA_EXTERNAL}/polyfem)
 
+# HighFive
+if(NOT TARGET highfive)
+  zerba_download_HighFive()
+	option(HIGHFIVE_USE_EIGEN ON)
+	find_package(HDF5 REQUIRED)
+	add_library(highfive INTERFACE)
+	target_include_directories(highfive SYSTEM INTERFACE ${ZEBRA_EXTERNAL}/HighFive/include/ ${HDF5_INCLUDE_DIRS})
+  target_link_libraries(highfive INTERFACE ${HDF5_LIBRARIES})
+endif()
+
 # libigl
 if(NOT TARGET igl)
   zebra_download_libigl()

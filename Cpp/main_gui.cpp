@@ -22,7 +22,7 @@ using namespace zebrafish;
 int main(int argc, char **argv) {
 
     // parse input
-    std::string imagePath = "", maskPath = "";
+    std::string imagePath = "", maskPath = "", analysisInputPath = "";
     unsigned int num_threads = std::min(32u, std::max(1u, std::thread::hardware_concurrency() - 1));
         // At least 1 thread, at most 32 threads
         // prefer (#TTL - 1)
@@ -34,6 +34,7 @@ int main(int argc, char **argv) {
     command_line.add_option("-n", num_threads, "Input number of threads");
     command_line.add_option("-l", lsMethod, "Input least square solver method");
     command_line.add_option("-b", debugMode);
+    command_line.add_option("-a", analysisInputPath)->check(CLI::ExistingFile);
 
     try {
         command_line.parse(argc, argv);
@@ -58,7 +59,7 @@ int main(int argc, char **argv) {
     logger().info("Desired #threads = {}", num_threads);
 
     // Start GUI
-    gui.init(imagePath, maskPath, debugMode);
+    gui.init(imagePath, maskPath, analysisInputPath, debugMode);
 
     return EXIT_SUCCESS;
 }
