@@ -365,7 +365,7 @@ void GUI::DrawStage8() {
 
         static double offset = 1;  // Diagonal multiplier for box mesh
         static double min_area = 500;  // Minimum tet area used by tetgen
-        static double E = 1e-3;  // Young's modulus
+        static double E = 566.7;  // Young's modulus 566.7Pa
         static double nu = 0.45;  // Poisson's ratio
         static bool is_linear=true;  // Use non-linear material
         static int discr_order = 1;  // Analysis discretization order
@@ -418,7 +418,8 @@ void GUI::DrawStage8() {
 
                 // run analysis
                 std::string path = GetFileName(imagePath, -1, "", "analysis");
-                compute_analysis(analysisDisplacementVec, markerMeshArray, path, E, nu, offset, min_area, discr_order, is_linear, n_refs, vismesh_rel_area);
+                // [NOTE]: E is in unit of [Pascal], displacement is in unit of [um]. So multiply by 1e-6
+                compute_analysis(analysisDisplacementVec, markerMeshArray, path, E / double(1e6), nu, offset, min_area, discr_order, is_linear, n_refs, vismesh_rel_area);
 
                 runAnalysisStr = "Done";
             } catch (const std::exception &e) {
@@ -448,6 +449,9 @@ void GUI::DrawStage8() {
                 ImGui::SetTooltip("Minimum tet area used by tetgen");
             }
             ImGui::InputDouble("E (Young's modulus)", &E);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Young's Modulus [Pascal]");
+            }
             ImGui::InputDouble("nu (Poisson's ratio)", &nu);
             ImGui::Checkbox("linear material", &is_linear);
             if (showTooltip && ImGui::IsItemHovered()) {

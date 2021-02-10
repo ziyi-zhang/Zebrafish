@@ -497,7 +497,7 @@ void GUI::DrawZebrafishPanel() {
         ImGui::Text("Stage 6: Mesh");  // iterative closest point
         break;
     case 7:
-        ImGui::Text("Stage 7: Estimate Movement");  // optical flow
+        ImGui::Text("Stage 7: Displacement Estimation");  // optical flow
         break;
     case 8:
         ImGui::Text("Stage 8: Displacement & Export");
@@ -1061,7 +1061,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     layerEnd = layerPerImg - 1;
     resolutionX = 0.325;
     resolutionY = 0.325;
-    resolutionZ = 0.5;
+    resolutionZ = 0.4;
     normalizeQuantile = 0.995;
     stage1contrast = 1.0;
     imgHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
