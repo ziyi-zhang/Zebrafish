@@ -1059,9 +1059,9 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     channelToLoad = 0;
     layerBegin = 0;
     layerEnd = layerPerImg - 1;
-    resolutionX = 0;
-    resolutionY = 0;
-    resolutionZ = 0;
+    resolutionX = 0.325;
+    resolutionY = 0.325;
+    resolutionZ = 0.5;
     normalizeQuantile = 0.995;
     stage1contrast = 1.0;
     imgHist.hist = Eigen::MatrixXf::Zero(histBars, 1);

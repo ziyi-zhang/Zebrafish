@@ -76,7 +76,7 @@ void GUI::DrawStage3() {
     if (ImGui::CollapsingHeader("Grid Search", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         if (ImGui::TreeNode("Advanced search range")) {
-            
+
             const float inputWidth = ImGui::GetWindowWidth() / 3.0;
             ImGui::PushItemWidth(inputWidth);
             ImGui::InputDouble("Gap X (pixel)", &gapX_grid, 0.0, 0.0, "%.2f");
