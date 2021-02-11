@@ -3,6 +3,7 @@
 #include <zebrafish/FileDialog.h>
 #include <zebrafish/Logger.hpp>
 #include <zebrafish/Quantile.h>
+#include <zebrafish/zebra-analysis.hpp>
 
 #include <tbb/task_scheduler_init.h>
 #include <tbb/parallel_for.h>
@@ -445,7 +446,7 @@ void GUI::DrawZebrafishPanel() {
 // This panel cannot be closed
 
     ImGui::SetNextWindowPos(ImVec2(0.0, mainMenuHeight), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(zebrafishWidth, windowHeight-mainMenuHeight), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(zebrafishWidth, windowHeight-mainMenuHeight));
     ImGui::Begin("Zebrafish Config", NULL, 
         ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
 
@@ -916,7 +917,7 @@ void GUI::ComputeCompressedTextureAvg(const image_t &img_, int index) {
     compressedImgTextureArray[index] = (compressed.array() * (255.0 / double(layerEnd-layerBegin+1) / imageViewerDarkenFactor_avg)).cast<unsigned char>();
     compressedImgTextureArray[index].transposeInPlace();
 
-    logger().info("Compressed (avg) image texture (index = {}) re-computed: slice index {} to {}", index, layerBegin, layerEnd);
+    // logger().info("Compressed (avg) image texture (index = {}) re-computed: slice index {} to {}", index, layerBegin, layerEnd);
 }
 
 
@@ -955,7 +956,7 @@ void GUI::ComputeCompressedTextureMax(const image_t &img_, int index) {
     compressedImgTextureArray[index] = (compressed.array() * 255.0 / imageViewerDarkenFactor_max).cast<unsigned char>();
     compressedImgTextureArray[index].transposeInPlace();
 
-    logger().info("Compressed (max) image texture (index = {}) re-computed: slice index {} to {}", index, layerBegin, layerEnd);
+    // logger().info("Compressed (max) image texture (index = {}) re-computed: slice index {} to {}", index, layerBegin, layerEnd);
 }
 
 
@@ -1222,7 +1223,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 }
 
 
-void GUI::init(std::string imagePath_, std::string maskPath_, std::string analysisInputPath_,  int debugMode) {
+void GUI::init(std::string imagePath_, std::string maskPath_, std::string analysisInputPath_, int debugMode, bool NoGUI) {
 
     // Debug purpose
     if (!imagePath_.empty()) {
@@ -1301,11 +1302,31 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
             imagePath = analysisInputPath_;
             stage = 8;  // jump to analysis stage
 
-            logger().info("Analysis input file loaded.");
+            logger().info("Analysis input file loaded. Please click <Run Analysis> button.");
         } catch (const std::exception &e) {
             logger().error("   Error when loading the analysis input file: {}", analysisInputPath_);
             std::cerr << "   Error when loading the analysis input file" << std::endl;
         }
+    }
+
+    // NO GUI
+    if (NoGUI) {
+        // re-run a previous experiment result
+        compute_analysis(
+            analysisPara.V,
+            analysisPara.F,
+            analysisInputPath,
+            analysisPara.E, // no need to scale here
+            analysisPara.nu,
+            analysisPara.offset,
+            analysisPara.min_area,
+            analysisPara.discr_order,
+            analysisPara.is_linear,
+            analysisPara.n_refs,
+            analysisPara.vismesh_rel_area,
+            false);
+
+        return;
     }
 
     //////////////////////////////////////////////////////////////////////////////

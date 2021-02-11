@@ -312,7 +312,7 @@ public:
     std::ostringstream oss;
 
     GUI();
-    void init(std::string imagePath, std::string maskPath, std::string analysisInputPath, int debugMode);
+    void init(std::string imagePath, std::string maskPath, std::string analysisInputPath, int debugMode, bool NoGUI);
 
 protected:
     void draw_menu() override;
