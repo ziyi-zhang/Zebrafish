@@ -204,8 +204,8 @@ struct PropertyEditorItem {
 void GUI::post_resize(int w, int h) {
 
     const double dpiScale = hidpi_scaling();
-    windowWidth = w / dpiScale;
-    windowHeight = h / dpiScale;
+    UIsize.windowWidth = w / dpiScale;
+    UIsize.windowHeight = h / dpiScale;
 }
 
 
@@ -445,19 +445,19 @@ void GUI::DrawMarkerMesh() {
 void GUI::DrawZebrafishPanel() {
 // This panel cannot be closed
 
-    ImGui::SetNextWindowPos(ImVec2(0.0, mainMenuHeight), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(zebrafishWidth, windowHeight-mainMenuHeight));
+    ImGui::SetNextWindowPos(ImVec2(0.0, UIsize.mainMenuHeight), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(UIsize.zebrafishWidth, UIsize.windowHeight-UIsize.mainMenuHeight));
     ImGui::Begin("Zebrafish Config", NULL, 
         ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
 
     // Stage info
     ImGui::Separator();
-    if (ImGui::Button("Prev Stage", ImVec2(zebrafishWidth / 2.0, 0))) {
+    if (ImGui::Button("Prev Stage", ImVec2(UIsize.zebrafishWidth / 2.0, 0))) {
         stage--;
         stage = std::max(1, stage);
         StateChangeReset();
     }
-    if (ImGui::Button("Next Stage", ImVec2(zebrafishWidth / 2.0, 0))) {
+    if (ImGui::Button("Next Stage", ImVec2(UIsize.zebrafishWidth / 2.0, 0))) {
 
         // stage lock
         bool lock = true;
@@ -566,18 +566,18 @@ void GUI::DrawMainMenuBar() {
             DrawMenuHelp();
             ImGui::EndMenu();
         }
-        mainMenuHeight = ImGui::GetWindowHeight();
+        UIsize.mainMenuHeight = ImGui::GetWindowHeight();
         ImGui::EndMainMenuBar();
     }
 }
 
 
 void GUI::DrawMenuFile() {
-// [ New ] [ Open ] [ Close ]
+// [ New ] [ Load ] [ Close ]
 // Accessed from [ Main menu - File ]
 
     ImGui::MenuItem("New", NULL, false, false);
-    if (ImGui::MenuItem("Open", "Ctrl+O")) { 
+    if (ImGui::MenuItem("Load")) { 
         // Only accept tif/tiff files
         std::string filename = FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});
         if (!filename.empty()) {
@@ -630,8 +630,8 @@ void GUI::DrawMenuHelp() {
 
 void GUI::DrawWindowLog() {
 
-    ImGui::SetNextWindowPos(ImVec2(zebrafishWidth, windowHeight-logHeight), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(windowWidth-zebrafishWidth-RHSPanelWidth, logHeight), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(UIsize.zebrafishWidth, UIsize.windowHeight-UIsize.logHeight));
+    ImGui::SetNextWindowSize(ImVec2(UIsize.windowWidth-UIsize.zebrafishWidth-UIsize.RHSPanelWidth, UIsize.logHeight));
     if (!ImGui::Begin("Log", &show_log)) {
         ImGui::End();
         return;
@@ -667,8 +667,8 @@ void GUI::DrawWindowLog() {
 
 void GUI::DrawWindow3DImageViewer() {
 
-    ImGui::SetNextWindowPos(ImVec2(windowWidth-RHSPanelWidth, windowHeight-Image3DViewerHeight), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(RHSPanelWidth, Image3DViewerHeight), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(UIsize.windowWidth-UIsize.RHSPanelWidth, UIsize.windowHeight-UIsize.Image3DViewerHeight));
+    ImGui::SetNextWindowSize(ImVec2(UIsize.RHSPanelWidth, UIsize.Image3DViewerHeight));
     if (!ImGui::Begin("3D Image Viewer", &show_3DImage_viewer)) {
         ImGui::End();
         return;
@@ -677,7 +677,7 @@ void GUI::DrawWindow3DImageViewer() {
     // Plot "imgData"
     if (currentLoadedFrames > 0) {
 
-        ImGui::PushItemWidth(RHSPanelWidth/2.0);
+        ImGui::PushItemWidth(UIsize.RHSPanelWidth/2.0);
         std::vector<std::string> typeName{"Compressed", "Per Slice"};
         ImGui::Combo("3D Image Viewer Type", &imageViewerType, typeName);
         ImGui::PopItemWidth();
@@ -746,7 +746,7 @@ void GUI::DrawWindow3DImageViewer() {
 
         if (ImGui::TreeNode("Advanced viewer")) {
 
-            ImGui::PushItemWidth(RHSPanelWidth/3.0);
+            ImGui::PushItemWidth(UIsize.RHSPanelWidth/3.0);
             std::vector<std::string> typeName{"Max", "Mean"};
             if (ImGui::Combo("Compress (flatten) method", &imageViewerCompressType, typeName)) {
                 ComputeCompressedTextureForAllLoadedFrames();
@@ -777,14 +777,14 @@ void GUI::DrawWindow3DImageViewer() {
 
 void GUI::DrawWindowPropertyEditor() {
 
-    ImGui::SetNextWindowPos(ImVec2(windowWidth-RHSPanelWidth, mainMenuHeight), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(RHSPanelWidth, windowHeight-Image3DViewerHeight-mainMenuHeight), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(UIsize.windowWidth-UIsize.RHSPanelWidth, UIsize.mainMenuHeight));
+    ImGui::SetNextWindowSize(ImVec2(UIsize.RHSPanelWidth, UIsize.windowHeight-UIsize.Image3DViewerHeight-UIsize.mainMenuHeight));
     if (!ImGui::Begin("Property Editor", &show_3DImage_viewer)) {
         ImGui::End();
         return;
     }
 
-    ImGui::PushItemWidth(RHSPanelWidth/2.0);
+    ImGui::PushItemWidth(UIsize.RHSPanelWidth/2.0);
     std::vector<std::string> typeName{"Grid Search & Opt", "Clusters", "Markers"};
     ImGui::Combo("Property List Type", &propertyListType, typeName);
     ImGui::PopItemWidth();
@@ -1193,12 +1193,12 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     sliceToShow = 0;
     frameToShow = 0;
     currentLoadedFrames = 0;
-    windowWidth = 1600;
-    windowHeight = 900;
-    zebrafishWidth = 300;
-    logHeight = 150;
-    Image3DViewerHeight = 320;
-    RHSPanelWidth = 300;
+    UIsize.windowWidth = 1600;
+    UIsize.windowHeight = 900;
+    UIsize.zebrafishWidth = 300;
+    UIsize.logHeight = 150;
+    UIsize.Image3DViewerHeight = 320;
+    UIsize.RHSPanelWidth = 300;
     // color
     markerPointColor.resize(1, 3);
     markerPointColor << 0.93, 0.32, 0.15;
@@ -1351,7 +1351,7 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
     meshID = viewer.append_mesh();
     viewer.selected_data_index = defaultMeshID;
     viewer.plugins.push_back(this);
-    viewer.launch(true, false, "Zebrafish GUI", windowWidth, windowHeight);
+    viewer.launch(true, false, "Zebrafish GUI", UIsize.windowWidth, UIsize.windowHeight);
 }
 
 }  // namespace zebrafish

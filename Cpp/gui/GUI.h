@@ -55,6 +55,7 @@ typedef struct markerRecord_t {
     markerRecord_t() : num(0) {}
 } markerRecord_t;
 
+////////////////////////////////////////////////////////////////////////
 
 typedef struct hist_t {
 
@@ -95,6 +96,17 @@ typedef struct analysis_t {
     std::vector<Eigen::MatrixXd> V;  // only used by analysis input file
     Eigen::MatrixXi F;  // only used by analysis input file
 } analysis_t;
+
+
+typedef struct UIsize_t {
+    int windowWidth;
+    int windowHeight;
+    int zebrafishWidth;
+    int logHeight;
+    int Image3DViewerHeight;
+    int RHSPanelWidth;
+    double mainMenuHeight;
+} UTsize_t;
 
 
 ////////////////////////////////////////////////////////
@@ -278,13 +290,7 @@ private:
     int sliceToShow;  // which slice in the 3D image to show
     int frameToShow;  // which frame to show
     int currentLoadedFrames;
-    int windowWidth;
-    int windowHeight;
-    int zebrafishWidth;
-    int logHeight;
-    int Image3DViewerHeight;
-    int RHSPanelWidth;
-    double mainMenuHeight;
+    UIsize_t UIsize;
     // color
     Eigen::MatrixXd markerPointColor;
 
