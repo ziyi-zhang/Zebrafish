@@ -761,7 +761,7 @@ namespace zebrafish
             if (!MarkerDepthCorrection(currentFrame + 1, depthCorrectionNum, depthCorrectionGap, logEnergy))
             {
                 res = false;
-                logger().warn("Depth correction failure: frame {}", currentFrame + 1);
+                logger().warn("Depth correction unsuccessful on frame {}", currentFrame + 1);
             }
         }
 

@@ -150,7 +150,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
 
     // prepare for parallel optimization
     Eigen::MatrixXd x_cache, y_cache, z_cache, r_cache, energy_cache;
-    Eigen::VectorXd depthArray(M);
+    Eigen::VectorXd depthArray(M);  // relative z
     x_cache.resize(N, M);
     y_cache.resize(N, M);
     z_cache.resize(N, M);
@@ -159,7 +159,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
     for (int i=-depthNum; i<=depthNum; i++) {
         depthArray[i+depthNum] = depthGap * i;
     }
-    logger().info("Depth correction for markers in frame {}  #starting points = {}, searching gap = {}, searching num = {}", frameIdx, N, depthGap, depthNum);
+    logger().info("Depth correction for frame {}  #starting points = {}, searching gap = {}, searching num = {}", frameIdx, N, depthGap, depthNum);
 
     // Optimization
     tbb::parallel_for( tbb::blocked_range<int>(0, N),
@@ -274,7 +274,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
         if (minEnergy == 1.0) {
             // this should not happen
             char errorMsg[100];
-            std::sprintf(errorMsg, "> [warning] Depth correction min energy 1.0 exception: Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
+            std::sprintf(errorMsg, "> [warning] No valid energy. Too close to the boundary or other failures: Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
             logger().warn(errorMsg);
             std::cerr << errorMsg << std::endl;
             res = false;
@@ -294,7 +294,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
             // min is at end point?
             if (depthNum > 0 && (minColIdx == 0 || minColIdx == 1 || minColIdx == M-1 || minColIdx == M-2)) {
                 char errorMsg[200];
-                std::sprintf(errorMsg, "> [warning] Reached depth correction search range limit. Consider using a larger search range. Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
+                std::sprintf(errorMsg, "> [warning] Exceed search range limit. Consider using a larger search range: Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
                 logger().warn(errorMsg);
                 std::cerr << errorMsg << std::endl;
                 res = false;
@@ -304,8 +304,8 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
                 derivativeTable[i] = false;
                 badDerivative = true;
                 char warnMsg[200];
-                std::sprintf(warnMsg, "> [note] This marker's second derivative in depth search is abnormal: Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
-                logger().info(warnMsg);
+                std::sprintf(warnMsg, "> [note] Abnormal second derivative: Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
+                logger().debug(warnMsg);
                 std::cerr << warnMsg << std::endl;
             }
 

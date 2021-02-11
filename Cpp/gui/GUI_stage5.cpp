@@ -397,11 +397,11 @@ void GUI::DrawStage5() {
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("[Debug purpose] whether log the energy for all depth trials");
         }
-        if (ImGui::Button("Depth correction")) {
+        if (ImGui::Button("Depth search")) {
             // depth correction for the frame that was just updated
             MarkerDepthCorrection(0, depthCorrectionNum, depthCorrectionGap, logEnergy);
         }
-        
+
         ImGui::PopItemWidth();
 
         ImGui::TreePop();

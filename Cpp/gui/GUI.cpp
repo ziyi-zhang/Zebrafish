@@ -1147,7 +1147,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     showOpticalFlow = false;
 
     // Displacement
-    depthCorrectionNum = 30;
+    depthCorrectionNum = 35;
     depthCorrectionGap = 0.1;
     optimMaxXYDisp = 5.0;
 
