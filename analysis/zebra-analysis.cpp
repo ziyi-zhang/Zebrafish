@@ -56,7 +56,7 @@ namespace zebrafish
             return 0;
         };
 
-        const auto WriteInputToFile = [&V, &F, &path, &E, &nu, &offset, &min_area, &discr_order, &is_linear, &n_refs, &vismesh_rel_area]() {
+        const auto WriteInputToFile = [&V, &FF, &path, &E, &nu, &offset, &min_area, &discr_order, &is_linear, &n_refs, &vismesh_rel_area]() {
             const int frames = V.size();
             const int Nverts = V[0].rows();
 
@@ -80,7 +80,7 @@ namespace zebrafish
             H5Easy::dump(file, "frames", frames);
             H5Easy::dump(file, "Nverts", Nverts);
             H5Easy::dump(file, "V", V_concatenated);
-            H5Easy::dump(file, "F", F);
+            H5Easy::dump(file, "F", FF);
         };
 
         if (saveinput)
@@ -189,6 +189,8 @@ namespace zebrafish
                 {"problem", "PointBasedTensor"}};
 
             const Eigen::MatrixXd currentv = V[sim] - ref_v;
+            // Eigen::MatrixXd currentv = V[sim] - ref_v;
+            // currentv.setConstant(2);
 
             state.init(args);
             polyfem::PointBasedTensorProblem &tproblem = *dynamic_cast<polyfem::PointBasedTensorProblem *>(state.problem.get());
@@ -199,12 +201,20 @@ namespace zebrafish
             tproblem.add_function(2, currentv, twod, rbf_function, eps, 2, dirichet_dims);
             state.solve();
 
-            Eigen::MatrixXd vals, traction_forces;
+            Eigen::MatrixXd vals, traction_forces, traction_forces_flip;
+            Eigen::MatrixXi F_flip = F;
+            F_flip.col(0) = F.col(1);
+            F_flip.col(1) = F.col(0);
+
             state.interpolate_boundary_function_at_vertices(V0, F, state.sol, vals);
             state.interpolate_boundary_tensor_function(V0, F, state.sol, vals, true, traction_forces);
+            state.interpolate_boundary_tensor_function(V0, F_flip, state.sol, vals, true, traction_forces_flip);
 
             Eigen::MatrixXd vertex_traction_forces(V0.rows(), 3);
             vertex_traction_forces.setZero();
+
+            Eigen::MatrixXd vertex_traction_forces_flip(V0.rows(), 3);
+            vertex_traction_forces_flip.setZero();
 
             Eigen::MatrixXd area, vertex_area(V0.rows(), 1);
             vertex_area.setZero();
@@ -215,12 +225,16 @@ namespace zebrafish
                 for (int d = 0; d < 3; ++d)
                 {
                     vertex_traction_forces.row(F(f, d)) += traction_forces.row(f) * area(f);
+                    vertex_traction_forces_flip.row(F(f, d)) += traction_forces_flip.row(f) * area(f);
                     vertex_area(F(f, d)) += area(f);
                 }
             }
 
             for (int d = 0; d < 3; ++d)
-                vertex_traction_forces.row(d).array() *= vertex_area.array();
+            {
+                vertex_traction_forces.col(d).array() *= vertex_area.array();
+                vertex_traction_forces_flip.col(d).array() *= vertex_area.array();
+            }
 
             const std::string out_path = path + "-frame" + std::to_string(sim) + ".vtu";
             std::cerr << out_path << std::endl;
@@ -228,6 +242,7 @@ namespace zebrafish
             polyfem::VTUWriter writer;
             writer.add_field("displacement", vals);
             writer.add_field("traction_forces", vertex_traction_forces);
+            writer.add_field("traction_forces_other", vertex_traction_forces_flip);
             writer.write_mesh(out_path, V0, F);
 
             // state.save_vtu(out_path + ".all.vtu", 0);
