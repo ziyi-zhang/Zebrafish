@@ -82,6 +82,22 @@ typedef struct crop_t {
 } crop_t;
 
 
+typedef struct ICP_t {
+
+    int patternRows, patternCols, patternRef;
+    double patternSpacing;
+    float xDisp, yDisp, angleRot, scale;
+    RMat_t Rmat;  // rotation matrix
+    TMat_t Tmat;  // translation matrix
+    Eigen::VectorXi matchIdx;  // p[i] corresponds to q[ matchIdx[i] ]
+
+    ICP_t() : patternRows(0), patternCols(0), patternSpacing(0.0), xDisp(0.0), yDisp(0.0), angleRot(0.0), scale(1.0){
+        Rmat = Eigen::MatrixXd::Identity(3, 3);
+        Tmat = Eigen::MatrixXd::Zero(3, 1);
+    }
+} ICP_t;
+
+
 typedef struct analysis_t {
 
     double offset;  // Diagonal multiplier for box mesh
@@ -216,16 +232,11 @@ private:
     // ICP
     bool showMarkerPoints, showReferencePoints, showICPLines, showMarkerMesh;
     std::string patternFilename;
-    int ICP_patternRef, ICP_patternRows, ICP_patternCols;
-    double ICP_patternSpacing;
-    float ICP_xDisp, ICP_yDisp, ICP_angleRot, ICP_scale;
-    RMat_t ICP_Rmat;  // rotation matrix
-    TMat_t ICP_Tmat;  // translation matrix
+    ICP_t ICP;
     Eigen::MatrixXd refPointLoc;  // visualization purpose
     Eigen::MatrixXd refV, refV_aligned;  // #refV * 3 reference point locations
     Eigen::MatrixXi markerMeshArray;  // F matrix for mesh
     int meshID;
-    Eigen::VectorXi ICP_matchIdx;  // p[i] corresponds to q[ ICP_matchIdx[i] ]
 
     //////////////////////////////////////////////////
     // Optical Flow

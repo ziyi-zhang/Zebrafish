@@ -1126,20 +1126,20 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     showReferencePoints = true;
     showICPLines = false;
     showMarkerMesh = false;
-    ICP_patternRows = 0;
-    ICP_patternCols = 0;
-    ICP_patternSpacing = 18.0;
-    ICP_xDisp = 0.0f;
-    ICP_yDisp = 0.0f;
-    ICP_angleRot = 0.0f;
-    ICP_scale = 1.0f;
+    ICP.patternRows = 0;
+    ICP.patternCols = 0;
+    ICP.patternSpacing = 18.0;
+    ICP.xDisp = 0.0f;
+    ICP.yDisp = 0.0f;
+    ICP.angleRot = 0.0f;
+    ICP.scale = 1.0f;
     refPointLoc.resize(0, 3);
     refV.resize(0, 3);
     refV_aligned.resize(0, 3);
-    ICP_matchIdx.resize(0, 1);
+    ICP.matchIdx.resize(0, 1);
     markerMeshArray.resize(0, 3);
-    ICP_Rmat = Eigen::MatrixXd::Identity(3, 3);
-    ICP_Tmat = Eigen::MatrixXd::Zero(3, 1);
+    ICP.Rmat = Eigen::MatrixXd::Identity(3, 3);
+    ICP.Tmat = Eigen::MatrixXd::Zero(3, 1);
 
     // Optical Flow
     desiredFrames = 0;
