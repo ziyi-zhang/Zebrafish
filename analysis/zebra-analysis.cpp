@@ -190,7 +190,7 @@ namespace zebrafish
 
             const Eigen::MatrixXd currentv = V[sim] - ref_v;
             // Eigen::MatrixXd currentv = V[sim] - ref_v;
-            // currentv.setConstant(2);
+            // currentv.setConstant(.5);
 
             state.init(args);
             polyfem::PointBasedTensorProblem &tproblem = *dynamic_cast<polyfem::PointBasedTensorProblem *>(state.problem.get());
@@ -232,8 +232,8 @@ namespace zebrafish
 
             for (int d = 0; d < 3; ++d)
             {
-                vertex_traction_forces.col(d).array() *= vertex_area.array();
-                vertex_traction_forces_flip.col(d).array() *= vertex_area.array();
+                vertex_traction_forces.col(d).array() /= vertex_area.array();
+                vertex_traction_forces_flip.col(d).array() /= vertex_area.array();
             }
 
             const std::string out_path = path + "-frame" + std::to_string(sim) + ".vtu";
