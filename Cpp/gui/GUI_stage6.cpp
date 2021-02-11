@@ -91,7 +91,7 @@ void GUI::DrawStage6() {
     ImGui::Separator(); /////////////////////////////////////////
 
     if (ImGui::CollapsingHeader("Pattern", ImGuiTreeNodeFlags_DefaultOpen)) {
-    
+
         ImGui::SliderInt("Pattern rows", &ICP_patternRows, 5, ICP_patternRef * 3);
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Generate a standard triangular mesh pattern with specified rows.\nThe reference pattern should be larger than the detected markers.");
