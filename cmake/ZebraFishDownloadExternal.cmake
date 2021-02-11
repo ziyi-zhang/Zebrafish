@@ -100,6 +100,6 @@ endfunction()
 function(zebra_download_polyfem)
     zebra_download_project(polyfem
         GIT_REPOSITORY https://github.com/polyfem/polyfem.git
-        GIT_TAG        f14be229f2ccb8740e2e8d05e199901bd6161f16
+        GIT_TAG        bbc14d12a38adc4ce1e4217a2a22c6a931561de5
     )
 endfunction()

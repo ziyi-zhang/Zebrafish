@@ -418,7 +418,7 @@ void GUI::DrawStage8() {
 
                 // run analysis
                 std::string path = GetFileName(imagePath, -1, "", "analysis");
-                compute_analysis(analysisDisplacementVec, markerMeshArray, path, E, nu, offset, min_area, discr_order, is_linear, n_refs, vismesh_rel_area);
+                compute_analysis(analysisDisplacementVec, markerMeshArray, resolutionX, resolutionY, resolutionZ, path, E, nu, offset, min_area, discr_order, is_linear, n_refs, vismesh_rel_area);
 
                 runAnalysisStr = "Done";
             } catch (const std::exception &e) {
