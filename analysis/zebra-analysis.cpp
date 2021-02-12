@@ -201,20 +201,35 @@ namespace zebrafish
             tproblem.add_function(2, currentv, twod, rbf_function, eps, 2, dirichet_dims);
             state.solve();
 
-            Eigen::MatrixXd vals, traction_forces, traction_forces_flip;
+            Eigen::MatrixXd vals;
+            Eigen::MatrixXd traction_forces, traction_forces_flip;
+            Eigen::MatrixXd stress, stress_flip;
+            Eigen::MatrixXd mises, mises_flip;
             Eigen::MatrixXi F_flip = F;
             F_flip.col(0) = F.col(1);
             F_flip.col(1) = F.col(0);
 
             state.interpolate_boundary_function_at_vertices(V0, F, state.sol, vals);
-            state.interpolate_boundary_tensor_function(V0, F, state.sol, vals, true, traction_forces);
-            state.interpolate_boundary_tensor_function(V0, F_flip, state.sol, vals, true, traction_forces_flip);
+            state.interpolate_boundary_tensor_function(V0, F, state.sol, vals, true, traction_forces, stress, mises);
+            state.interpolate_boundary_tensor_function(V0, F_flip, state.sol, vals, true, traction_forces_flip, stress_flip, mises_flip);
 
             Eigen::MatrixXd vertex_traction_forces(V0.rows(), 3);
             vertex_traction_forces.setZero();
 
+            Eigen::MatrixXd vertex_stress(V0.rows(), 9);
+            vertex_stress.setZero();
+
+            Eigen::MatrixXd vertex_mises(V0.rows(), 1);
+            vertex_mises.setZero();
+
             Eigen::MatrixXd vertex_traction_forces_flip(V0.rows(), 3);
             vertex_traction_forces_flip.setZero();
+
+            Eigen::MatrixXd vertex_stress_flip(V0.rows(), 9);
+            vertex_stress_flip.setZero();
+
+            Eigen::MatrixXd vertex_mises_flip(V0.rows(), 1);
+            vertex_mises_flip.setZero();
 
             Eigen::MatrixXd area, vertex_area(V0.rows(), 1);
             vertex_area.setZero();
@@ -226,6 +241,13 @@ namespace zebrafish
                 {
                     vertex_traction_forces.row(F(f, d)) += traction_forces.row(f) * area(f);
                     vertex_traction_forces_flip.row(F(f, d)) += traction_forces_flip.row(f) * area(f);
+
+                    vertex_stress.row(F(f, d)) += stress.row(f) * area(f);
+                    vertex_stress_flip.row(F(f, d)) += stress_flip.row(f) * area(f);
+
+                    vertex_mises(F(f, d)) += mises(f) * area(f);
+                    vertex_mises_flip(F(f, d)) += mises_flip(f) * area(f);
+
                     vertex_area(F(f, d)) += area(f);
                 }
             }
@@ -235,6 +257,13 @@ namespace zebrafish
                 vertex_traction_forces.col(d).array() /= vertex_area.array();
                 vertex_traction_forces_flip.col(d).array() /= vertex_area.array();
             }
+            for (int d = 0; d < 9; ++d)
+            {
+                vertex_stress.col(d).array() /= vertex_area.array();
+                vertex_stress_flip.col(d).array() /= vertex_area.array();
+            }
+            vertex_mises.array() /= vertex_area.array();
+            vertex_mises_flip.array() /= vertex_area.array();
 
             const std::string out_path = path + "-frame" + std::to_string(sim) + ".vtu";
             std::cerr << out_path << std::endl;
@@ -243,6 +272,19 @@ namespace zebrafish
             writer.add_field("displacement", vals);
             writer.add_field("traction_forces", vertex_traction_forces);
             writer.add_field("traction_forces_other", vertex_traction_forces_flip);
+
+            for(int i = 0; i < 3; ++i){
+                for(int j = 0; j < 3; ++j){
+                    const std::string index  = "_" + std::to_string(i) + std::to_string(j);
+                    writer.add_field("stress" + index, vertex_stress.col(i*3+j));
+                    writer.add_field("stress_other" + index, vertex_stress_flip.col(i*3+j));
+                }
+            }
+
+            writer.add_field("von_mises", vertex_mises);
+            writer.add_field("von_mises_other", vertex_mises_flip);
+
+
             writer.write_mesh(out_path, V0, F);
 
             // state.save_vtu(out_path + ".all.vtu", 0);
