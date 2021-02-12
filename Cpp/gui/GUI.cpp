@@ -1276,6 +1276,7 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
             analysisPara.is_linear = H5Easy::load<bool>(file, "is_linear");
             analysisPara.n_refs = H5Easy::load<int>(file, "n_refs");
             analysisPara.vismesh_rel_area = H5Easy::load<double>(file, "vismesh_rel_area");
+            analysisPara.upsample = 3;  // FIXME
 
             int frames, Nverts;
             Eigen::MatrixXd V_concatenated;
@@ -1307,7 +1308,7 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
             analysisPara.V,
             analysisPara.F,
             analysisInputPath,
-            analysisPara.E, // no need to scale here
+            analysisPara.E,  // no need to scale here
             analysisPara.nu,
             analysisPara.offset,
             analysisPara.min_area,
@@ -1315,6 +1316,7 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
             analysisPara.is_linear,
             analysisPara.n_refs,
             analysisPara.vismesh_rel_area,
+            analysisPara.upsample,
             false);
 
         return;

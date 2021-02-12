@@ -304,7 +304,7 @@ namespace zebrafish
 
         ImGui::Separator(); /////////////////////////////////////////
 
-        if (ImGui::CollapsingHeader("Displacement", ImGuiTreeNodeFlags_DefaultOpen))
+        if (analysisInputPath.empty() && ImGui::CollapsingHeader("Displacement", ImGuiTreeNodeFlags_DefaultOpen))  // do not draw if in re-analysis mode
         {
 
             static bool logEnergy = false;
@@ -374,41 +374,59 @@ namespace zebrafish
             }
             ImGui::SameLine();
             ImGui::Text("%s", calcDispStr.c_str());
+
+            ImGui::Separator(); /////////////////////////////////////////
+
+            if (ImGui::TreeNode("Advanced visualization     "))
+            {
+
+                const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+                ImGui::PushItemWidth(inputWidth);
+                ImGui::Checkbox("Show background image", &showBackgroundImage);
+                ImGui::Checkbox("Show marker centers", &showMarkerPoints);
+                ImGui::Checkbox("Show mesh", &showMarkerMesh);
+                ImGui::SliderInt("Point size", &pointSize, 1, 30);
+                ImGui::SliderFloat("Line width", &lineWidth, 1, 16);
+                ImGui::PopItemWidth();
+
+                ImGui::TreePop();
+            }
+
+            // this loads the code to render the GUI about mouse draging
+            ImGui::Separator(); /////////////////////////////////////////
+            RenderMarkerDragGUI();
         }
-
-        if (ImGui::TreeNode("Advanced visualization     "))
-        {
-
-            const float inputWidth = ImGui::GetWindowWidth() / 3.0;
-            ImGui::PushItemWidth(inputWidth);
-            ImGui::Checkbox("Show background image", &showBackgroundImage);
-            ImGui::Checkbox("Show marker centers", &showMarkerPoints);
-            ImGui::Checkbox("Show mesh", &showMarkerMesh);
-            ImGui::SliderInt("Point size", &pointSize, 1, 30);
-            ImGui::SliderFloat("Line width", &lineWidth, 1, 16);
-            ImGui::PopItemWidth();
-
-            ImGui::TreePop();
-            ImGui::Separator();
-        }
-
-        // this loads the code to render the GUI about mouse draging
-        ImGui::Separator(); /////////////////////////////////////////
-        RenderMarkerDragGUI();
 
         ImGui::Separator(); /////////////////////////////////////////
 
         if (ImGui::CollapsingHeader("Analysis", ImGuiTreeNodeFlags_DefaultOpen))
         {
 
-            static double offset = 1;                 // Diagonal multiplier for box mesh
-            static double min_area = 500;             // Minimum tet area used by tetgen
             static double E = 566.7;                  // Young's modulus 566.7Pa
             static double nu = 0.45;                  // Poisson's ratio
+            static double offset = 1;                 // Diagonal multiplier for box mesh
+            static double min_area = 500;             // Minimum tet area used by tetgen
             static bool is_linear = true;             // Use non-linear material
-            static int discr_order = 1;               // Analysis discretization order
+            static int discr_order = 2;               // Analysis discretization order
             static int n_refs = 0;                    // Number of mesh uniform refinements
             static double vismesh_rel_area = 0.00001; // Desnsity of the output visualization
+            static int upsample = 3;                  // upsample for a denser mesh
+
+            // if this is re-analysis mode
+            static bool reanalysis_first_time = true;
+            if (reanalysis_first_time && !analysisInputPath.empty()) {
+
+                reanalysis_first_time = false;  // only load this once
+                E = analysisPara.E * 1e6;
+                nu = analysisPara.nu;
+                offset = analysisPara.offset;
+                min_area = analysisPara.min_area;
+                discr_order = analysisPara.discr_order;
+                is_linear = analysisPara.is_linear;
+                n_refs = analysisPara.n_refs;
+                vismesh_rel_area = analysisPara.vismesh_rel_area;
+                upsample = analysisPara.upsample;
+            }
 
             // average displacement area crop
             if (ImGui::Checkbox("[Mouse] avg disp area", &meanCrop.cropActive))
@@ -426,6 +444,56 @@ namespace zebrafish
                 ImGui::SetTooltip("The selected area will be used to calculate the global displacement. By default we use the entire image.");
             }
 
+            ImGui::Separator(); /////////////////////////////////////////
+
+            if (ImGui::TreeNode("Advanced analysis"))
+            {
+
+                const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+                ImGui::PushItemWidth(inputWidth);
+                ImGui::InputDouble("offset", &offset);
+                if (showTooltip && ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Diagonal multiplier for box mesh");
+                }
+                ImGui::InputDouble("min tet area", &min_area);
+                if (showTooltip && ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Minimum tet area used by tetgen");
+                }
+                ImGui::InputDouble("E (Young's modulus)", &E);
+                if (showTooltip && ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Young's Modulus [Pascal]");
+                }
+                ImGui::InputDouble("nu (Poisson's ratio)", &nu);
+                ImGui::Checkbox("linear material", &is_linear);
+                if (showTooltip && ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Use non-linear material");
+                }
+                ImGui::InputInt("discretization order", &discr_order);
+                ImGui::InputInt("#refine", &n_refs);
+                if (showTooltip && ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Number of mesh uniform refinements");
+                }
+                ImGui::InputDouble("vismesh_rel_area", &vismesh_rel_area);
+                if (showTooltip && ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Desnsity of the output visualization");
+                }
+                ImGui::InputInt("upsample", &upsample);
+                if (showTooltip && ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Recursively upsample to get a finer mesh");
+                }
+                ImGui::PopItemWidth();
+
+                ImGui::TreePop();
+                ImGui::Separator();
+            }
+
             static std::string runAnalysisStr = "";
             if (ImGui::Button("Run analysis"))
             {
@@ -438,14 +506,15 @@ namespace zebrafish
                             analysisPara.V,
                             analysisPara.F,
                             analysisInputPath,
-                            analysisPara.E, // no need to scale here
-                            analysisPara.nu,
-                            analysisPara.offset,
-                            analysisPara.min_area,
-                            analysisPara.discr_order,
-                            analysisPara.is_linear,
-                            analysisPara.n_refs,
-                            analysisPara.vismesh_rel_area,
+                            E / double(1e6),
+                            nu,
+                            offset,
+                            min_area,
+                            discr_order,
+                            is_linear,
+                            n_refs,
+                            vismesh_rel_area,
+                            upsample,
                             false);
                     }
                     else
@@ -486,7 +555,7 @@ namespace zebrafish
                         std::string path = GetFileName(imagePath, -1, "", "analysis");
                         // [NOTE]: E is in unit of [Pascal], displacement is in unit of [um]. So multiply by 1e-6
                         compute_analysis(
-                            analysisDisplacementVec, markerMeshArray, path, E / double(1e6), nu, offset, min_area, discr_order, is_linear, n_refs, vismesh_rel_area, true);
+                            analysisDisplacementVec, markerMeshArray, path, E / double(1e6), nu, offset, min_area, discr_order, is_linear, n_refs, vismesh_rel_area, upsample, true);
                     }
 
                     runAnalysisStr = "Done";
@@ -504,51 +573,6 @@ namespace zebrafish
             }
             ImGui::SameLine();
             ImGui::Text("%s", runAnalysisStr.c_str());
-
-            /////////////////////////////////////
-
-            if (ImGui::TreeNode("Advanced analysis"))
-            {
-
-                const float inputWidth = ImGui::GetWindowWidth() / 3.0;
-                ImGui::PushItemWidth(inputWidth);
-                ImGui::InputDouble("offset", &offset);
-                if (showTooltip && ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Diagonal multiplier for box mesh");
-                }
-                ImGui::InputDouble("min tet area", &min_area);
-                if (showTooltip && ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Minimum tet area used by tetgen");
-                }
-                ImGui::InputDouble("E (Young's modulus)", &E);
-                if (showTooltip && ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Young's Modulus [Pascal]");
-                }
-                ImGui::InputDouble("nu (Poisson's ratio)", &nu);
-                ImGui::Checkbox("linear material", &is_linear);
-                if (showTooltip && ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Use non-linear material");
-                }
-                ImGui::InputInt("discretization order", &discr_order);
-                ImGui::InputInt("#refine", &n_refs);
-                if (showTooltip && ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Number of mesh uniform refinements");
-                }
-                ImGui::InputDouble("vismesh_rel_area", &vismesh_rel_area);
-                if (showTooltip && ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Desnsity of the output visualization");
-                }
-                ImGui::PopItemWidth();
-
-                ImGui::TreePop();
-                ImGui::Separator();
-            }
         }
 
         ImGui::Separator(); /////////////////////////////////////////
@@ -582,7 +606,7 @@ namespace zebrafish
         }
 
         // static bool saveEntireImage = false;
-        if (ImGui::CollapsingHeader("Save & Export", ImGuiTreeNodeFlags_DefaultOpen))
+        if (analysisInputPath.empty() && ImGui::CollapsingHeader("Save & Export", ImGuiTreeNodeFlags_DefaultOpen))
         {
 
             static std::string saveStr;

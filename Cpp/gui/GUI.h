@@ -121,6 +121,7 @@ typedef struct analysis_t {
     int discr_order;  // Analysis discretization order
     int n_refs;  // Number of mesh uniform refinements
     double vismesh_rel_area;  // Desnsity of the output visualization
+    int upsample;  // upsample for a denser mesh
 
     std::vector<Eigen::MatrixXd> V;  // only used by analysis input file
     Eigen::MatrixXi F;  // only used by analysis input file

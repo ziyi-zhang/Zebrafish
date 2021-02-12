@@ -20,7 +20,7 @@ namespace zebrafish
                           const std::string &path,
                           const double E, const double nu,
                           const double offset, const double min_area,
-                          const int discr_order, const bool is_linear, const int n_refs, const double vismesh_rel_area,
+                          const int discr_order, const bool is_linear, const int n_refs, const double vismesh_rel_area, const int upsample,
                           const bool saveinput)
     {
 
@@ -32,7 +32,7 @@ namespace zebrafish
         Eigen::MatrixXi F;
         Eigen::MatrixXd V0;
         const Eigen::MatrixXd &ref_v = V.front();
-        igl::upsample(ref_v, FF, V0, F, 2);
+        igl::upsample(ref_v, FF, V0, F, upsample);
         Eigen::MatrixXd barys;
         igl::barycenter(V0, F, barys);
 
@@ -56,7 +56,7 @@ namespace zebrafish
             return 0;
         };
 
-        const auto WriteInputToFile = [&V, &FF, &path, &E, &nu, &offset, &min_area, &discr_order, &is_linear, &n_refs, &vismesh_rel_area]() {
+        const auto WriteInputToFile = [&V, &FF, &path, &E, &nu, &offset, &min_area, &discr_order, &is_linear, &n_refs, &vismesh_rel_area, &upsample]() {
             const int frames = V.size();
             const int Nverts = V[0].rows();
 
@@ -76,6 +76,7 @@ namespace zebrafish
             H5Easy::dump(file, "is_linear", is_linear);
             H5Easy::dump(file, "n_refs", n_refs);
             H5Easy::dump(file, "vismesh_rel_area", vismesh_rel_area);
+            H5Easy::dump(file, "upsample", upsample);
 
             H5Easy::dump(file, "frames", frames);
             H5Easy::dump(file, "Nverts", Nverts);
@@ -136,7 +137,7 @@ namespace zebrafish
             box_min(0), box_min(1), box_max(2),
             box_min(0), box_min(1), box_min(2);
 
-        igl::upsample(cube_v, cube_f, cube_v, cube_f, 3);
+        igl::upsample(cube_v, cube_f, cube_v, cube_f, upsample+1);
 
         Eigen::MatrixXd mesh_v(cube_v.rows() + V0.rows(), 3);
         Eigen::MatrixXi mesh_f(cube_f.rows() + F.rows(), 3);
