@@ -689,7 +689,7 @@ void GUI::DrawWindow3DImageViewer() {
     if (currentLoadedFrames > 0) {
 
         ImGui::PushItemWidth(UIsize.RHSPanelWidth/2.0);
-        std::vector<std::string> typeName{"Compressed", "Per Slice"};
+        std::vector<std::string> typeName{"Compressed", "Z-Slice"};
         ImGui::Combo("3D Image Viewer Type", &imageViewerType, typeName);
         ImGui::PopItemWidth();
 
@@ -905,6 +905,22 @@ void GUI::DrawWindowGraphics() {
     }
     igl::opengl::glfw::imgui::ImGuiMenu::draw_viewer_menu();
     ImGui::End();
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Reference Points
+
+
+void GUI::DrawReferenceDots() {
+
+    static Eigen::Matrix3d loc = (Eigen::Matrix3d() << 0, 0, 1, imgCols, imgRows, layerPerImg, imgCols-1, imgRows-1, layerPerImg-1).finished();
+    static Eigen::MatrixXd referencePointColor = [] {
+        Eigen::MatrixXd tmp(1, 3);
+        tmp << 0.33, 0.83, 0.33;
+        return tmp;
+    } ();
+    viewer.data().add_points(loc, referencePointColor);
 }
 
 

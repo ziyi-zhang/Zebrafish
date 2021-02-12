@@ -377,6 +377,8 @@ private:
     void DrawWindowPropertyEditor();
     void DrawWindowGraphics();
 
+    void DrawReferenceDots();
+
     // shared
     void ComputeCompressedTextureAvg(const image_t &img_, int index);
     void ComputeCompressedTextureMax(const image_t &img_, int index);
