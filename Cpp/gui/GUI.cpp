@@ -206,6 +206,7 @@ void GUI::post_resize(int w, int h) {
     const double dpiScale = hidpi_scaling();
     UIsize.windowWidth = w / dpiScale;
     UIsize.windowHeight = h / dpiScale;
+    UIsize_redraw = true;
 }
 
 
@@ -340,6 +341,7 @@ void GUI::draw_menu() {
     if (show_3DImage_viewer) DrawWindow3DImageViewer();
     if (show_property_editor) DrawWindowPropertyEditor();
     if (show_graphics) DrawWindowGraphics();
+    UIsize_redraw = false;
 }
 
 
@@ -445,8 +447,11 @@ void GUI::DrawMarkerMesh() {
 void GUI::DrawZebrafishPanel() {
 // This panel cannot be closed
 
-    ImGui::SetNextWindowPos(ImVec2(0.0, UIsize.mainMenuHeight), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(UIsize.zebrafishWidth, UIsize.windowHeight-UIsize.mainMenuHeight));
+    if (UIsize_redraw) {
+        ImGui::SetNextWindowPos(ImVec2(0.0, UIsize.mainMenuHeight));
+        ImGui::SetNextWindowSize(ImVec2(UIsize.zebrafishWidth, UIsize.windowHeight-UIsize.mainMenuHeight));
+    }
+
     ImGui::Begin("Zebrafish Config", NULL, 
         ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
 
@@ -630,8 +635,11 @@ void GUI::DrawMenuHelp() {
 
 void GUI::DrawWindowLog() {
 
-    ImGui::SetNextWindowPos(ImVec2(UIsize.zebrafishWidth, UIsize.windowHeight-UIsize.logHeight));
-    ImGui::SetNextWindowSize(ImVec2(UIsize.windowWidth-UIsize.zebrafishWidth-UIsize.RHSPanelWidth, UIsize.logHeight));
+    if (UIsize_redraw) {
+        ImGui::SetNextWindowPos(ImVec2(UIsize.zebrafishWidth, UIsize.windowHeight-UIsize.logHeight));
+        ImGui::SetNextWindowSize(ImVec2(UIsize.windowWidth-UIsize.zebrafishWidth-UIsize.RHSPanelWidth, UIsize.logHeight));
+    }
+
     if (!ImGui::Begin("Log", &show_log)) {
         ImGui::End();
         return;
@@ -667,8 +675,11 @@ void GUI::DrawWindowLog() {
 
 void GUI::DrawWindow3DImageViewer() {
 
-    ImGui::SetNextWindowPos(ImVec2(UIsize.windowWidth-UIsize.RHSPanelWidth, UIsize.windowHeight-UIsize.Image3DViewerHeight));
-    ImGui::SetNextWindowSize(ImVec2(UIsize.RHSPanelWidth, UIsize.Image3DViewerHeight));
+    if (UIsize_redraw) {
+        ImGui::SetNextWindowPos(ImVec2(UIsize.windowWidth-UIsize.RHSPanelWidth, UIsize.windowHeight-UIsize.Image3DViewerHeight));
+        ImGui::SetNextWindowSize(ImVec2(UIsize.RHSPanelWidth, UIsize.Image3DViewerHeight));
+    }
+
     if (!ImGui::Begin("3D Image Viewer", &show_3DImage_viewer)) {
         ImGui::End();
         return;
@@ -777,8 +788,13 @@ void GUI::DrawWindow3DImageViewer() {
 
 void GUI::DrawWindowPropertyEditor() {
 
-    ImGui::SetNextWindowPos(ImVec2(UIsize.windowWidth-UIsize.RHSPanelWidth, UIsize.mainMenuHeight));
-    ImGui::SetNextWindowSize(ImVec2(UIsize.RHSPanelWidth, UIsize.windowHeight-UIsize.Image3DViewerHeight-UIsize.mainMenuHeight));
+    static bool first_reach_here = true;
+    if (UIsize_redraw || first_reach_here) {
+        ImGui::SetNextWindowPos(ImVec2(UIsize.windowWidth-UIsize.RHSPanelWidth, UIsize.mainMenuHeight));
+        ImGui::SetNextWindowSize(ImVec2(UIsize.RHSPanelWidth, UIsize.windowHeight-UIsize.Image3DViewerHeight-UIsize.mainMenuHeight));
+        first_reach_here = false;
+    }
+    
     if (!ImGui::Begin("Property Editor", &show_3DImage_viewer)) {
         ImGui::End();
         return;
@@ -1190,6 +1206,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     UIsize.logHeight = 150;
     UIsize.Image3DViewerHeight = 320;
     UIsize.RHSPanelWidth = 300;
+    UIsize_redraw = true;
     // color
     markerPointColor.resize(1, 3);
     markerPointColor << 0.93, 0.32, 0.15;

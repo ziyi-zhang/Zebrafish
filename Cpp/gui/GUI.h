@@ -315,6 +315,7 @@ private:
     int frameToShow;  // which frame to show
     int currentLoadedFrames;
     UIsize_t UIsize;
+    bool UIsize_redraw;  // redraw after window resize
     // color
     Eigen::MatrixXd markerPointColor;
 
