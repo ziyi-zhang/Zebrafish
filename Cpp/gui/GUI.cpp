@@ -1126,16 +1126,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     showReferencePoints = true;
     showICPLines = false;
     showMarkerMesh = false;
-    ICP.patternRows = 0;
-    ICP.patternCols = 0;
-    ICP.patternSpacing = 18.0;
-    ICP.xDisp = 0.0f;
-    ICP.yDisp = 0.0f;
-    ICP.angleRot = 0.0f;
-    ICP.scale = 1.0f;
     refPointLoc.resize(0, 3);
-    refV.resize(0, 3);
-    refV_aligned.resize(0, 3);
     ICP.matchIdx.resize(0, 1);
     markerMeshArray.resize(0, 3);
     ICP.Rmat = Eigen::MatrixXd::Identity(3, 3);

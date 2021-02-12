@@ -26,7 +26,9 @@ void ICP::MatchPoints(const Eigen::MatrixXd &pt, const Eigen::MatrixXd &q, Eigen
             // if already matched to a previous point
             if (matched[j]) continue;
 
-            distSq = (pt(0, i) - q(0, j))*(pt(0, i) - q(0, j)) + (pt(1, i) - q(1, j))*(pt(1, i) - q(1, j)) + (pt(2, i) - q(2, j))*(pt(2, i) - q(2, j));
+            // Only match XY and ignore Z
+            // distSq = (pt(0, i) - q(0, j))*(pt(0, i) - q(0, j)) + (pt(1, i) - q(1, j))*(pt(1, i) - q(1, j)) + (pt(2, i) - q(2, j))*(pt(2, i) - q(2, j));
+            distSq = (pt(0, i) - q(0, j))*(pt(0, i) - q(0, j)) + (pt(1, i) - q(1, j))*(pt(1, i) - q(1, j));
             if (distSq < minDistSq) {
                 minIdx = j;
                 minDistSq = distSq;

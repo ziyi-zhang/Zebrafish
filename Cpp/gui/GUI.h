@@ -91,18 +91,31 @@ typedef struct ICP_t {
     TMat_t Tmat;  // translation matrix
     Eigen::VectorXi matchIdx;  // p[i] corresponds to q[ matchIdx[i] ]
 
+    // reference pattern
+    Eigen::MatrixXd refV, refV_aligned;  // #ICP.refV * 3 reference point locations
+    Eigen::MatrixXi refV_RC;  // row & col index of corresponding vertex
+
     ICP_t() : patternRows(0), patternCols(0), patternSpacing(0.0), xDisp(0.0), yDisp(0.0), angleRot(0.0), scale(1.0){
         Rmat = Eigen::MatrixXd::Identity(3, 3);
         Tmat = Eigen::MatrixXd::Zero(3, 1);
     }
 } ICP_t;
 
+/*
+typedef struct padding_t {
+
+    bool enable, success;
+    
+    // Eigen::MatrixXd padV
+} padding_t;
+*/
+
 
 typedef struct analysis_t {
 
     double offset;  // Diagonal multiplier for box mesh
     double min_area;  // Minimum tet area used by tetgen
-    double E;  // Young's modulus 566.7Pa
+    double E;  // Young's modulus (default 566.7Pa)
     double nu;  // Poisson's ratio
     bool is_linear;  // Use non-linear material
     int discr_order;  // Analysis discretization order
@@ -234,7 +247,6 @@ private:
     std::string patternFilename;
     ICP_t ICP;
     Eigen::MatrixXd refPointLoc;  // visualization purpose
-    Eigen::MatrixXd refV, refV_aligned;  // #refV * 3 reference point locations
     Eigen::MatrixXi markerMeshArray;  // F matrix for mesh
     int meshID;
 

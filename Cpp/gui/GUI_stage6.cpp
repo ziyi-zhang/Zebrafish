@@ -118,7 +118,7 @@ void GUI::DrawStage6() {
                 if (!filename.empty()) {
                     patternFilename = filename;
                     Eigen::MatrixXd tempF;
-                    if (igl::readOFF(patternFilename, refV, tempF)) {
+                    if (igl::readOFF(patternFilename, ICP.refV, tempF)) {
 
                         PreprocessPatternLoc();
                         UpdateRefPointLoc();
@@ -214,7 +214,6 @@ void GUI::DrawStage6() {
             ImGui::Checkbox("Show ICP correspondence", &showICPLines);
             ImGui::Checkbox("Show mesh", &showMarkerMesh);
             ImGui::SliderInt("Point Size", &pointSize, 1, 30);
-            ImGui::SliderFloat("Line width", &lineWidth, 1, 16);
             ImGui::PopItemWidth();
 
             ImGui::TreePop();
@@ -243,8 +242,8 @@ void GUI::InitializeICPPattern() {
 
 void GUI::GenerateICPPattern() {
 
-    refV.resize(ICP.patternRows * ICP.patternCols, 3);
-    int count = 0;
+    ICP.refV.resize(ICP.patternRows * ICP.patternCols, 3);
+    ICP.refV_RC.resize(ICP.patternRows * ICP.patternCols, 3);
 
     // Estimate ICP.patternSpacing
     const int N = markerPointLocArray[0].rows();
@@ -264,18 +263,22 @@ void GUI::GenerateICPPattern() {
             sumDist += minDist;
         }
 
-        ICP.patternSpacing = sumDist / double(N) * 1.05;
+        ICP.patternSpacing = sumDist / double(N) * 1.03;
         logger().debug("ICP pattern spacing estimated as {}", ICP.patternSpacing);
     }
 
+    int count = 0;
     for (int row=0; row<ICP.patternRows; row++)
         for (int col=0; col<ICP.patternCols; col++) {
 
-            refV(count, 0) = ICP.patternSpacing * double(col);
+            ICP.refV(count, 0) = ICP.patternSpacing * double(col);
             if (row & 1)  // odd row
-                refV(count, 0) += ICP.patternSpacing / 2.0;
-            refV(count, 1) = std::sqrt(3) / 2.0 * ICP.patternSpacing * double(row);
-            refV(count, 2) = 1.0;
+                ICP.refV(count, 0) += ICP.patternSpacing / 2.0;
+            ICP.refV(count, 1) = std::sqrt(3) / 2.0 * ICP.patternSpacing * double(row);
+            ICP.refV(count, 2) = 1.0;
+            // also store row & col for extrusion purpose
+            ICP.refV_RC(count, 0) = row;
+            ICP.refV_RC(count, 1) = col;
             count++;
         }
 }
@@ -299,7 +302,7 @@ void GUI::SearchICP() {
     markerLoc = markerArray[0].loc.block(0, 0, markerArray[0].num, 3);
     ICP.matchIdx.resize(markerArray[0].num, 1);
 
-    RMSerror = ICP::RunICP(markerPointLocArray[0].transpose(), refV_aligned.transpose(), ICP.Rmat, ICP.Tmat, ICP.matchIdx);
+    RMSerror = ICP::RunICP(markerPointLocArray[0].transpose(), ICP.refV_aligned.transpose(), ICP.Rmat, ICP.Tmat, ICP.matchIdx);
     UpdateMarkerMesh();
     logger().debug("RunICP RMS error {}", RMSerror);
 }
@@ -374,28 +377,28 @@ void GUI::UpdateMarkerMesh() {
 
 void GUI::PreprocessPatternLoc() {
 
-    assert(refV.size() > 0);
+    assert(ICP.refV.size() > 0);
 
-    refV.col(0).array() -= refV.col(0).minCoeff();  // x
-    refV.col(1).array() -= refV.col(1).minCoeff();  // y
-    refV.col(2) = Eigen::MatrixXd::Ones(refV.rows(), 1);  // force "z" to be 1
+    ICP.refV.col(0).array() -= ICP.refV.col(0).minCoeff();  // x
+    ICP.refV.col(1).array() -= ICP.refV.col(1).minCoeff();  // y
+    ICP.refV.col(2) = Eigen::MatrixXd::Ones(ICP.refV.rows(), 1);  // force "z" to be 1
 
-    // save a copy to "refV_aligned"
-    refV_aligned = refV;
+    // save a copy to "ICP.refV_aligned"
+    ICP.refV_aligned = ICP.refV;
 }
 
 
 void GUI::UpdateRefPointManualAlignment() {
 
-    assert(refV.size() > 0);
+    assert(ICP.refV.size() > 0);
 
     static RMat_t manualAlignTransMat;
     manualAlignTransMat << std::cos(-ICP.angleRot), - std::sin(-ICP.angleRot), ICP.xDisp, 
                          std::sin(-ICP.angleRot),   std::cos(-ICP.angleRot), ICP.yDisp, 
                          0.0,          0.0,            1.0;
 
-    refV_aligned = refV.array() * ICP.scale;
-    refV_aligned = ( manualAlignTransMat * refV_aligned.transpose() ).transpose();
+    ICP.refV_aligned = ICP.refV.array() * ICP.scale;
+    ICP.refV_aligned = ( manualAlignTransMat * ICP.refV_aligned.transpose() ).transpose();
 }
 
 
@@ -403,7 +406,7 @@ void GUI::UpdateRefPointLoc() {
 
     /// NOTE: ICP.Rmat is a unitary matrix
     ///       ICP.Rmat.transpose() * ICP.Rmat = Identity
-    refPointLoc = (ICP.Rmat.transpose() * (refV_aligned.transpose().colwise() - ICP.Tmat)).transpose();
+    refPointLoc = (ICP.Rmat.transpose() * (ICP.refV_aligned.transpose().colwise() - ICP.Tmat)).transpose();
 
     // std::cout << ICP.Rmat << std::endl;
     // std::cout << ICP.Tmat << std::endl;
