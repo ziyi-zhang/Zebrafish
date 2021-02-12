@@ -75,7 +75,7 @@ void GUI::DrawStage4() {
             // whether to show
             ImGui::Checkbox("Show optimized locations", &showOptimizedPoints);
 
-            ImGui::PushItemWidth(zebrafishWidth / 3.0);
+            ImGui::PushItemWidth(UIsize.zebrafishWidth / 3.0);
             ImGui::SliderInt("Point Size", &optimPointSize, 1, 30);
             ImGui::PopItemWidth();
 

@@ -55,7 +55,7 @@ void GUI::DrawStage2() {
         drawList->PopClipRect();
         ImGui::PopItemWidth();
 
-        ImGui::PushItemWidth(zebrafishWidth * 0.75);
+        ImGui::PushItemWidth(UIsize.zebrafishWidth * 0.75);
         ImGui::Text("Outlier brightness threshold (in quantile)");
         if (ImGui::SliderFloat("", &normalizeQuantile, 0.95, 0.999, "%.3f") || updateNormalizedTexture) {
 
@@ -96,9 +96,9 @@ void GUI::DrawStage2() {
             if (ImGui::InputDouble("B-spline solver tolerance", &bsplineSolverTol, 0.0, 0.0, "%.2E")) {
                 bsplineArray[0].Set_solverTol(bsplineSolverTol);
             }
-            ImGui::SliderFloat("X ratio", &bsp_xratio, 0.2, 1.0);
-            ImGui::SliderFloat("Y ratio", &bsp_yratio, 0.2, 1.0);
-            ImGui::SliderFloat("Z ratio", &bsp_zratio, 0.2, 1.0);
+            ImGui::SliderFloat("X ratio", &bsp_xratio, 0.2, 1.0, "%.2f");
+            ImGui::SliderFloat("Y ratio", &bsp_yratio, 0.2, 1.0, "%.2f");
+            ImGui::SliderFloat("Z ratio", &bsp_zratio, 0.2, 1.0, "%.2f");
 
             ImGui::TreePop();
             ImGui::Separator();

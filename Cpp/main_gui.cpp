@@ -28,6 +28,7 @@ int main(int argc, char **argv) {
         // prefer (#TTL - 1)
     int lsMethod = 2;
     int debugMode = 0;
+    bool NoGUI = false;
     CLI::App command_line{"ZebraFish"};
     command_line.add_option("-i,--img", imagePath, "Input TIFF image to process")->check(CLI::ExistingFile);
     command_line.add_option("-m", maskPath, "Input mask TIFF image to process")->check(CLI::ExistingFile);
@@ -35,6 +36,7 @@ int main(int argc, char **argv) {
     command_line.add_option("-l", lsMethod, "Input least square solver method");
     command_line.add_option("-b", debugMode);
     command_line.add_option("-a", analysisInputPath)->check(CLI::ExistingFile);
+    command_line.add_flag("-g", NoGUI);
 
     try {
         command_line.parse(argc, argv);
@@ -59,7 +61,7 @@ int main(int argc, char **argv) {
     logger().info("Desired #threads = {}", num_threads);
 
     // Start GUI
-    gui.init(imagePath, maskPath, analysisInputPath, debugMode);
+    gui.init(imagePath, maskPath, analysisInputPath, debugMode, NoGUI);
 
     return EXIT_SUCCESS;
 }

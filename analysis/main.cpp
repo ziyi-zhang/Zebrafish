@@ -20,6 +20,7 @@ int main(int argc, char **argv)
     int discr_order = 1;
     int n_refs = 0;
     double vismesh_rel_area = 0.00001;
+    int upsample = 3;
 
     CLI::App command_line{"ZebraFishAnalysis"};
     command_line.add_option("-p,--path", path, "Input folder with objs to process")->check(CLI::ExistingDirectory);
@@ -55,7 +56,7 @@ int main(int argc, char **argv)
         igl::read_triangle_mesh(path + file_name + std::to_string(i) + ".obj", V[i], F);
     }
 
-    zebrafish::compute_analysis(V, F, out, E, nu, offset, min_area, discr_order, is_linear, n_refs, vismesh_rel_area, false);
+    zebrafish::compute_analysis(V, F, out, E, nu, offset, min_area, discr_order, is_linear, n_refs, vismesh_rel_area, upsample, false);
 
     return EXIT_SUCCESS;
 }

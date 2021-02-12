@@ -56,7 +56,7 @@ void GUI::DrawStage1() {
 
     if (ImGui::CollapsingHeader("Tiff Image Info", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        ImGui::PushItemWidth(zebrafishWidth / 3.0);
+        ImGui::PushItemWidth(UIsize.zebrafishWidth / 3.0);
         ImGui::InputInt("Layers Per Image", &layerPerImg);
         if (showTooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("The number of layers in one frame.\nFor example there can be ten frames, and each frame is consisted of 40 2D images of size 1024x1024.");
@@ -216,7 +216,7 @@ void GUI::DrawStage1() {
 
     if (ImGui::CollapsingHeader("Microscope", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        ImGui::PushItemWidth(zebrafishWidth / 3.0);
+        ImGui::PushItemWidth(UIsize.zebrafishWidth / 3.0);
         ImGui::InputDouble("Resolution X (um)", &resolutionX, 0.0f, 1000.0f, "%.4f");
         ImGui::InputDouble("Resolution Y (um)", &resolutionY, 0.0f, 1000.0f, "%.4f");
         ImGui::InputDouble("Resolution Z (um)", &resolutionZ, 0.0f, 1000.0f, "%.4f");
@@ -230,7 +230,7 @@ void GUI::DrawStage1() {
 
     if (ImGui::TreeNode("Advanced visualization")) {
 
-        ImGui::PushItemWidth(zebrafishWidth / 2.0);
+        ImGui::PushItemWidth(UIsize.zebrafishWidth / 2.0);
         ImGui::SliderFloat("Enhance contrast", &stage1contrast, 1.0, 4.0, "%.2f");
         ImGui::PopItemWidth();
         if (showTooltip && ImGui::IsItemHovered()) {

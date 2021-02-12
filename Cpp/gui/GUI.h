@@ -55,6 +55,7 @@ typedef struct markerRecord_t {
     markerRecord_t() : num(0) {}
 } markerRecord_t;
 
+////////////////////////////////////////////////////////////////////////
 
 typedef struct hist_t {
 
@@ -81,20 +82,61 @@ typedef struct crop_t {
 } crop_t;
 
 
+typedef struct ICP_t {
+
+    int patternRows, patternCols, patternRef;
+    double patternSpacing;
+    float xDisp, yDisp, angleRot, scale;
+    RMat_t Rmat;  // rotation matrix
+    TMat_t Tmat;  // translation matrix
+    Eigen::VectorXi matchIdx;  // p[i] corresponds to q[ matchIdx[i] ]
+
+    // reference pattern
+    Eigen::MatrixXd refV, refV_aligned;  // #ICP.refV * 3 reference point locations
+    Eigen::MatrixXi refV_RC;  // row & col index of corresponding vertex
+
+    ICP_t() : patternRows(0), patternCols(0), patternSpacing(0.0), xDisp(0.0), yDisp(0.0), angleRot(0.0), scale(1.0){
+        Rmat = Eigen::MatrixXd::Identity(3, 3);
+        Tmat = Eigen::MatrixXd::Zero(3, 1);
+    }
+} ICP_t;
+
+/*
+typedef struct padding_t {
+
+    bool enable, success;
+    
+    // Eigen::MatrixXd padV
+} padding_t;
+*/
+
+
 typedef struct analysis_t {
 
     double offset;  // Diagonal multiplier for box mesh
     double min_area;  // Minimum tet area used by tetgen
-    double E;  // Young's modulus 566.7Pa
+    double E;  // Young's modulus (default 566.7Pa)
     double nu;  // Poisson's ratio
     bool is_linear;  // Use non-linear material
     int discr_order;  // Analysis discretization order
     int n_refs;  // Number of mesh uniform refinements
     double vismesh_rel_area;  // Desnsity of the output visualization
+    int upsample;  // upsample for a denser mesh
 
     std::vector<Eigen::MatrixXd> V;  // only used by analysis input file
     Eigen::MatrixXi F;  // only used by analysis input file
 } analysis_t;
+
+
+typedef struct UIsize_t {
+    int windowWidth;
+    int windowHeight;
+    int zebrafishWidth;
+    int logHeight;
+    int Image3DViewerHeight;
+    int RHSPanelWidth;
+    double mainMenuHeight;
+} UTsize_t;
 
 
 ////////////////////////////////////////////////////////
@@ -204,16 +246,10 @@ private:
     // ICP
     bool showMarkerPoints, showReferencePoints, showICPLines, showMarkerMesh;
     std::string patternFilename;
-    int ICP_patternRef, ICP_patternRows, ICP_patternCols;
-    double ICP_patternSpacing;
-    float ICP_xDisp, ICP_yDisp, ICP_angleRot, ICP_scale;
-    RMat_t ICP_Rmat;  // rotation matrix
-    TMat_t ICP_Tmat;  // translation matrix
+    ICP_t ICP;
     Eigen::MatrixXd refPointLoc;  // visualization purpose
-    Eigen::MatrixXd refV, refV_aligned;  // #refV * 3 reference point locations
     Eigen::MatrixXi markerMeshArray;  // F matrix for mesh
     int meshID;
-    Eigen::VectorXi ICP_matchIdx;  // p[i] corresponds to q[ ICP_matchIdx[i] ]
 
     //////////////////////////////////////////////////
     // Optical Flow
@@ -278,13 +314,8 @@ private:
     int sliceToShow;  // which slice in the 3D image to show
     int frameToShow;  // which frame to show
     int currentLoadedFrames;
-    int windowWidth;
-    int windowHeight;
-    int zebrafishWidth;
-    int logHeight;
-    int Image3DViewerHeight;
-    int RHSPanelWidth;
-    double mainMenuHeight;
+    UIsize_t UIsize;
+    bool UIsize_redraw;  // redraw after window resize
     // color
     Eigen::MatrixXd markerPointColor;
 
@@ -312,7 +343,7 @@ public:
     std::ostringstream oss;
 
     GUI();
-    void init(std::string imagePath, std::string maskPath, std::string analysisInputPath, int debugMode);
+    void init(std::string imagePath, std::string maskPath, std::string analysisInputPath, int debugMode, bool NoGUI);
 
 protected:
     void draw_menu() override;

@@ -148,7 +148,7 @@ void GUI::DrawStage3() {
         drawList->PopClipRect();
         ImGui::PopItemWidth();
 
-        ImGui::PushItemWidth(zebrafishWidth * 0.75);
+        ImGui::PushItemWidth(UIsize.zebrafishWidth * 0.75);
         ImGui::Text("Grid search energy threshold");
         if (ImGui::SliderFloat("", &gridEnergyThres, gridEnergyHist.minValue, gridEnergyHist.maxValue, "%.3f")) {
 
