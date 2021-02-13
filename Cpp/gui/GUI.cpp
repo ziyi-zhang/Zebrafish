@@ -735,6 +735,34 @@ void GUI::DrawWindow3DImageViewer() {
 
         ImGui::Separator(); ////////////////////////
 
+        {
+            ImGui::PushItemWidth(UIsize.RHSPanelWidth/2.0);
+            // Select rotation type
+            int rotation_type = static_cast<int>(viewer.core().rotation_type);
+            static Eigen::Quaternionf trackball_angle = Eigen::Quaternionf::Identity();
+            static bool orthographic = true;
+            if (ImGui::Combo("Camera Type", &rotation_type, "Trackball\0Two Axes\0002D Mode\0\0")) {
+                using RT = igl::opengl::ViewerCore::RotationType;
+                auto new_type = static_cast<RT>(rotation_type);
+                if (new_type != viewer.core().rotation_type) {
+                        if (new_type == RT::ROTATION_TYPE_NO_ROTATION) {
+                            trackball_angle = viewer.core().trackball_angle;
+                            orthographic = viewer.core().orthographic;
+                            viewer.core().trackball_angle = Eigen::Quaternionf::Identity();
+                            viewer.core().orthographic = true;
+                        } else if (viewer.core().rotation_type == RT::ROTATION_TYPE_NO_ROTATION) {
+                            viewer.core().trackball_angle = trackball_angle;
+                            viewer.core().orthographic = orthographic;
+                        }
+                        viewer.core().set_rotation_type(new_type);
+                }
+            }
+
+            // Orthographic view
+            ImGui::Checkbox("Orthographic view", &(viewer.core().orthographic));
+            ImGui::PopItemWidth();
+        }
+
         if (ImGui::TreeNode("Advanced viewer")) {
 
             ImGui::PushItemWidth(UIsize.RHSPanelWidth/3.0);
