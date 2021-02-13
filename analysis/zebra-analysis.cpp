@@ -19,7 +19,7 @@ namespace zebrafish
     void compute_analysis(const std::vector<Eigen::MatrixXd> &V, const Eigen::MatrixXi &FF,
                           const std::string &path,
                           const double E, const double nu,
-                          const double offset, const double min_area,
+                          const double offset, const double radius_edge_ratio, const double max_tet_vol,
                           const int discr_order, const bool is_linear, const int n_refs, const double vismesh_rel_area, const int upsample,
                           const bool saveinput)
     {
@@ -41,11 +41,9 @@ namespace zebrafish
                 return 1;
             double min = std::numeric_limits<double>::max();
             int min_index = 0;
-            for (int i = 0; i < barys.rows(); ++i)
-            {
+            for (int i = 0; i < barys.rows(); ++i) {
                 const double norm = (v - barys.row(i)).squaredNorm();
-                if (norm < min)
-                {
+                if (norm < min) {
                     min_index = i;
                     min = norm;
                 }
@@ -56,7 +54,7 @@ namespace zebrafish
             return 0;
         };
 
-        const auto WriteInputToFile = [&V, &FF, &path, &E, &nu, &offset, &min_area, &discr_order, &is_linear, &n_refs, &vismesh_rel_area, &upsample]() {
+        const auto WriteInputToFile = [&V, &FF, &path, &E, &nu, &offset, &radius_edge_ratio, &max_tet_vol, &discr_order, &is_linear, &n_refs, &vismesh_rel_area, &upsample]() {
             const int frames = V.size();
             const int Nverts = V[0].rows();
 
@@ -71,7 +69,8 @@ namespace zebrafish
             H5Easy::dump(file, "E", E);
             H5Easy::dump(file, "nu", nu);
             H5Easy::dump(file, "offset", offset);
-            H5Easy::dump(file, "min_area", min_area);
+            H5Easy::dump(file, "radius_edge_ratio", radius_edge_ratio);
+            H5Easy::dump(file, "max_tet_vol", max_tet_vol);
             H5Easy::dump(file, "discr_order", discr_order);
             H5Easy::dump(file, "is_linear", is_linear);
             H5Easy::dump(file, "n_refs", n_refs);
@@ -153,8 +152,7 @@ namespace zebrafish
         // Generate tet mesh
         Eigen::MatrixXd nodes;
         Eigen::MatrixXi elem, faces;
-        const std::string switches = "zpq1.414a" + std::to_string(min_area) + "QYY";
-        // const std::string switches = "zpq1.414a10000Q";
+        const std::string switches = "zpq" + std::to_string(radius_edge_ratio) + "a" + std::to_string(max_tet_vol) + "VYY";
         igl::copyleft::tetgen::tetrahedralize(mesh_v, mesh_f, switches, nodes, elem, faces);
 
         //////////////////////////////////////////////////////////////
@@ -185,7 +183,7 @@ namespace zebrafish
                 {"tensor_formulation", is_linear ? "LinearElasticity" : "NeoHookean"},
                 {"discr_order", discr_order},
 
-                {"params", {{"E", E}, {"nu", nu}}},
+                {"params", {{"E", E / double(1e6)}, {"nu", nu}}},  // E has unit [Pascal], convert that to [um] unit
 
                 {"problem", "PointBasedTensor"}};
 

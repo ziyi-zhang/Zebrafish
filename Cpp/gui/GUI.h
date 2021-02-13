@@ -128,7 +128,8 @@ typedef struct padding_t {
 typedef struct analysis_t {
 
     double offset;  // Diagonal multiplier for box mesh
-    double min_area;  // Minimum tet area used by tetgen
+    double radius_edge_ratio;  // Radius edge ratio used by tetgen
+    double max_tet_vol;  // Maximum tet vol used by tetgen
     double E;  // Young's modulus (default 566.7Pa)
     double nu;  // Poisson's ratio
     bool is_linear;  // Use non-linear material

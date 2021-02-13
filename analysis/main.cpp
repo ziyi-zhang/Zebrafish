@@ -11,6 +11,7 @@ int main(int argc, char **argv)
     int n_meshes = 2;
 
     double offset = 1;
+    double radius_edge_ratio = 1.2;
     double min_area = 500;
 
     double E = 1e-3;
@@ -56,7 +57,7 @@ int main(int argc, char **argv)
         igl::read_triangle_mesh(path + file_name + std::to_string(i) + ".obj", V[i], F);
     }
 
-    zebrafish::compute_analysis(V, F, out, E, nu, offset, min_area, discr_order, is_linear, n_refs, vismesh_rel_area, upsample, false);
+    zebrafish::compute_analysis(V, F, out, E, nu, offset, radius_edge_ratio, min_area, discr_order, is_linear, n_refs, vismesh_rel_area, upsample, false);
 
     return EXIT_SUCCESS;
 }

@@ -1205,13 +1205,15 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 
     // Analysis
     analysisPara.offset = 1;  // Diagonal multiplier for box mesh
-    analysisPara.min_area = 500;  // Minimum tet area used by tetgen
+    analysisPara.radius_edge_ratio = 1.2;  // Radius edge ratio used by tetgen
+    analysisPara.max_tet_vol = 500;  // Minimum tet area used by tetgen
     analysisPara.E = 566.7;  // Young's modulus 566.7Pa
     analysisPara.nu = 0.45;  // Poisson's ratio
-    analysisPara.is_linear=true;  // Use non-linear material
+    analysisPara.is_linear = true;  // Use non-linear material
     analysisPara.discr_order = 1;  // Analysis discretization order
     analysisPara.n_refs = 0;  // Number of mesh uniform refinements
     analysisPara.vismesh_rel_area = 0.00001;  // Desnsity of the output visualization
+    analysisPara.upsample = 3;  // upsample for a denser mesh
 
     // 3D image viewer
     V.resize(4, 3);
@@ -1333,12 +1335,13 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
             analysisPara.E = H5Easy::load<double>(file, "E");
             analysisPara.nu = H5Easy::load<double>(file, "nu");
             analysisPara.offset = H5Easy::load<double>(file, "offset");
-            analysisPara.min_area = H5Easy::load<double>(file, "min_area");
+            analysisPara.radius_edge_ratio = H5Easy::load<double>(file, "radius_edge_ratio");
+            analysisPara.max_tet_vol = H5Easy::load<double>(file, "max_tet_vol");
             analysisPara.discr_order = H5Easy::load<int>(file, "discr_order");
             analysisPara.is_linear = H5Easy::load<bool>(file, "is_linear");
             analysisPara.n_refs = H5Easy::load<int>(file, "n_refs");
             analysisPara.vismesh_rel_area = H5Easy::load<double>(file, "vismesh_rel_area");
-            analysisPara.upsample = 3;  // FIXME
+            analysisPara.upsample = H5Easy::load<int>(file, "upsample");
 
             int frames, Nverts;
             Eigen::MatrixXd V_concatenated;
@@ -1356,7 +1359,7 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
             imagePath = analysisInputPath_;
             stage = 8;  // jump to analysis stage
 
-            logger().info("Analysis input file loaded. Please click <Run Analysis> button.");
+            logger().info("Analysis input file loaded. Jump to analysis section.");
         } catch (const std::exception &e) {
             logger().error("   Error when loading the analysis input file: {}", analysisInputPath_);
             std::cerr << "   Error when loading the analysis input file" << std::endl;
@@ -1365,6 +1368,7 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
 
     // NO GUI
     if (NoGUI) {
+        logger().info("GUI disabled. Try to re-compute analysis using the stored parameters...");
         // re-run a previous experiment result
         compute_analysis(
             analysisPara.V,
@@ -1373,7 +1377,8 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
             analysisPara.E,  // no need to scale here
             analysisPara.nu,
             analysisPara.offset,
-            analysisPara.min_area,
+            analysisPara.radius_edge_ratio,
+            analysisPara.max_tet_vol,
             analysisPara.discr_order,
             analysisPara.is_linear,
             analysisPara.n_refs,

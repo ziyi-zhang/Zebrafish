@@ -390,93 +390,59 @@ namespace zebrafish
 
         ImGui::Separator(); /////////////////////////////////////////
 
-        if (ImGui::CollapsingHeader("Analysis", ImGuiTreeNodeFlags_DefaultOpen))
-        {
-
-            static double E = 566.7;                  // Young's modulus 566.7Pa
-            static double nu = 0.45;                  // Poisson's ratio
-            static double offset = 1;                 // Diagonal multiplier for box mesh
-            static double min_area = 500;             // Minimum tet area used by tetgen
-            static bool is_linear = true;             // Use non-linear material
-            static int discr_order = 2;               // Analysis discretization order
-            static int n_refs = 0;                    // Number of mesh uniform refinements
-            static double vismesh_rel_area = 0.00001; // Desnsity of the output visualization
-            static int upsample = 3;                  // upsample for a denser mesh
-
-            // if this is re-analysis mode
-            static bool reanalysis_first_time = true;
-            if (reanalysis_first_time && !analysisInputPath.empty()) {
-
-                reanalysis_first_time = false;  // only load this once
-                E = analysisPara.E * 1e6;
-                nu = analysisPara.nu;
-                offset = analysisPara.offset;
-                min_area = analysisPara.min_area;
-                discr_order = analysisPara.discr_order;
-                is_linear = analysisPara.is_linear;
-                n_refs = analysisPara.n_refs;
-                vismesh_rel_area = analysisPara.vismesh_rel_area;
-                upsample = analysisPara.upsample;
-            }
+        if (ImGui::CollapsingHeader("Analysis", ImGuiTreeNodeFlags_DefaultOpen)) {
 
             // average displacement area crop
-            if (ImGui::Checkbox("[Mouse] avg disp area", &meanCrop.cropActive))
-            {
+            if (ImGui::Checkbox("[Mouse] avg disp area", &meanCrop.cropActive)) {
                 if (!meanCrop.cropActive)
                     logger().debug("[Mouse] avg disp area: de-activated.");
-                else
-                {
+                else {
                     logger().debug("[Mouse] avg disp area: activated.");
                     meanCrop.showCropArea = true;
                 }
             }
-            if (showTooltip && ImGui::IsItemHovered())
-            {
+            if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("The selected area will be used to calculate the global displacement. By default we use the entire image.");
             }
 
             ImGui::Separator(); /////////////////////////////////////////
 
-            if (ImGui::TreeNode("Advanced analysis"))
-            {
+            if (ImGui::TreeNode("Advanced analysis")) {
 
                 const float inputWidth = ImGui::GetWindowWidth() / 3.0;
                 ImGui::PushItemWidth(inputWidth);
-                ImGui::InputDouble("offset", &offset);
-                if (showTooltip && ImGui::IsItemHovered())
-                {
+                ImGui::InputDouble("offset", &analysisPara.offset);
+                if (showTooltip && ImGui::IsItemHovered()) {
                     ImGui::SetTooltip("Diagonal multiplier for box mesh");
                 }
-                ImGui::InputDouble("min tet area", &min_area);
-                if (showTooltip && ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Minimum tet area used by tetgen");
+                ImGui::InputDouble("radius-edge ratio", &analysisPara.radius_edge_ratio);
+                if (showTooltip && ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Radius-edge ratio in TetGen. Cannot be smaller than 0.707.");
                 }
-                ImGui::InputDouble("E (Young's modulus)", &E);
-                if (showTooltip && ImGui::IsItemHovered())
-                {
+                ImGui::InputDouble("max tetrahedral volume", &analysisPara.max_tet_vol);
+                if (showTooltip && ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Maximum tetrahedral volume in TetGen");
+                }
+                ImGui::InputDouble("E (Young's modulus)", &analysisPara.E);
+                if (showTooltip && ImGui::IsItemHovered()) {
                     ImGui::SetTooltip("Young's Modulus [Pascal]");
                 }
-                ImGui::InputDouble("nu (Poisson's ratio)", &nu);
-                ImGui::Checkbox("linear material", &is_linear);
-                if (showTooltip && ImGui::IsItemHovered())
-                {
+                ImGui::InputDouble("nu (Poisson's ratio)", &analysisPara.nu);
+                ImGui::Checkbox("linear material", &analysisPara.is_linear);
+                if (showTooltip && ImGui::IsItemHovered()) {
                     ImGui::SetTooltip("Use non-linear material");
                 }
-                ImGui::InputInt("discretization order", &discr_order);
-                ImGui::InputInt("#refine", &n_refs);
-                if (showTooltip && ImGui::IsItemHovered())
-                {
+                ImGui::InputInt("discretization order", &analysisPara.discr_order);
+                ImGui::InputInt("#refine", &analysisPara.n_refs);
+                if (showTooltip && ImGui::IsItemHovered()) {
                     ImGui::SetTooltip("Number of mesh uniform refinements");
                 }
-                ImGui::InputDouble("vismesh_rel_area", &vismesh_rel_area);
-                if (showTooltip && ImGui::IsItemHovered())
-                {
+                ImGui::InputDouble("vismesh_rel_area", &analysisPara.vismesh_rel_area);
+                if (showTooltip && ImGui::IsItemHovered()) {
                     ImGui::SetTooltip("Desnsity of the output visualization");
                 }
-                ImGui::InputInt("upsample", &upsample);
-                if (showTooltip && ImGui::IsItemHovered())
-                {
+                ImGui::InputInt("upsample", &analysisPara.upsample);
+                if (showTooltip && ImGui::IsItemHovered()) {
                     ImGui::SetTooltip("Recursively upsample to get a finer mesh");
                 }
                 ImGui::PopItemWidth();
@@ -486,30 +452,27 @@ namespace zebrafish
             }
 
             static std::string runAnalysisStr = "";
-            if (ImGui::Button("Run analysis"))
-            {
-                try
-                {
-                    if (!analysisInputPath.empty())
-                    {
+            if (ImGui::Button("Run analysis")) {
+                try {
+                    if (!analysisInputPath.empty()) {
                         // re-run a previous experiment result
                         compute_analysis(
                             analysisPara.V,
                             analysisPara.F,
                             analysisInputPath,
-                            E / double(1e6),
-                            nu,
-                            offset,
-                            min_area,
-                            discr_order,
-                            is_linear,
-                            n_refs,
-                            vismesh_rel_area,
-                            upsample,
+                            analysisPara.E,
+                            analysisPara.nu,
+                            analysisPara.offset,
+                            analysisPara.radius_edge_ratio,
+                            analysisPara.max_tet_vol,
+                            analysisPara.discr_order,
+                            analysisPara.is_linear,
+                            analysisPara.n_refs,
+                            analysisPara.vismesh_rel_area,
+                            analysisPara.upsample,
                             false);
                     }
-                    else
-                    {
+                    else {
 
                         // prepare the displacement
                         std::vector<Eigen::MatrixXd> analysisDisplacementVec;
@@ -519,8 +482,7 @@ namespace zebrafish
                         std::vector<bool> markerInAvgDispArea;
                         GetMarkersInAvgDispArea(markerInAvgDispArea);
                         // remove global displacement
-                        for (int i = 0; i < currentLoadedFrames; i++)
-                        {
+                        for (int i = 0; i < currentLoadedFrames; i++) {
 
                             Eigen::MatrixXd V_analysis = markerPointLocArray_phy[i];
                             // remove the global movement
@@ -546,20 +508,31 @@ namespace zebrafish
                         std::string path = GetFileName(imagePath, -1, "", "analysis");
                         // [NOTE]: E is in unit of [Pascal], displacement is in unit of [um]. So multiply by 1e-6
                         compute_analysis(
-                            analysisDisplacementVec, markerMeshArray, path, E / double(1e6), nu, offset, min_area, discr_order, is_linear, n_refs, vismesh_rel_area, upsample, true);
+                            analysisDisplacementVec, 
+                            markerMeshArray, 
+                            path, 
+                            analysisPara.E, 
+                            analysisPara.nu, 
+                            analysisPara.offset, 
+                            analysisPara.radius_edge_ratio,
+                            analysisPara.max_tet_vol, 
+                            analysisPara.discr_order, 
+                            analysisPara.is_linear, 
+                            analysisPara.n_refs, 
+                            analysisPara.vismesh_rel_area, 
+                            analysisPara.upsample, 
+                            true);
                     }
 
                     runAnalysisStr = "Done";
                 }
-                catch (const std::exception &e)
-                {
+                catch (const std::exception &e) {
                     logger().error("   <button> [Run analysis] Fatal error encountered.");
                     std::cerr << "   <button> [Run analysis] Fatal error encountered." << std::endl;
                     runAnalysisStr = "Fatal error";
                 }
             }
-            if (showTooltip && ImGui::IsItemHovered())
-            {
+            if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Run simulation and save result to analysis VTU file");
             }
             ImGui::SameLine();
@@ -597,13 +570,11 @@ namespace zebrafish
         }
 
         // static bool saveEntireImage = false;
-        if (analysisInputPath.empty() && ImGui::CollapsingHeader("Save & Export", ImGuiTreeNodeFlags_DefaultOpen))
-        {
+        if (analysisInputPath.empty() && ImGui::CollapsingHeader("Save & Export", ImGuiTreeNodeFlags_DefaultOpen)) {
 
             static std::string saveStr;
             static bool meshPointSaveFlag, meshCellSaveFlag, imageSaveFlag;
-            if (ImGui::Button("Export TIFF (and VTU)"))
-            {
+            if (ImGui::Button("Export TIFF (and VTU)")) {
 
                 meshPointSaveFlag = true;
                 meshCellSaveFlag = true;
@@ -622,15 +593,13 @@ namespace zebrafish
 
                 logger().debug("   <button> Export VTU & TIFF");
             }
-            if (showTooltip && ImGui::IsItemHovered())
-            {
+            if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Export the cropped area as new TIFF images. (Optional) Save the raw displacements and the moving mesh. ");
             }
             ImGui::SameLine();
             ImGui::Text("%s", saveStr.c_str());
 
-            if (ImGui::TreeNode("Advanced export"))
-            {
+            if (ImGui::TreeNode("Advanced export")) {
 
                 ImGui::Checkbox("Save cropped image (marker channel)", &saveMarkerImage);
                 ImGui::Checkbox("Save cropped image (cell channel)", &saveCellImage);
