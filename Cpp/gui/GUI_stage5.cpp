@@ -66,7 +66,7 @@ void GUI::DrawStage5() {
         if (cylinderEnergyThres != cylinderEnergyThres_cache ||
             cylinderRadiusThres != cylinderRadiusThres_cache ||
             cylinderIterThres   != cylinderIterThres_cache   ||
-            cylFilterMembraneCheck != cylFilterMembraneCheck_cache || 
+            (!grid.skipMembrane) != cylFilterMembraneCheck_cache || 
             membraneMaskCylApply != membraneMaskCylApply_cache) {
             // Update the points to visualize when the three thresholds have changed
 
@@ -76,7 +76,7 @@ void GUI::DrawStage5() {
             cylinderEnergyThres_cache = cylinderEnergyThres;
             cylinderRadiusThres_cache = cylinderRadiusThres;
             cylinderIterThres_cache   = cylinderIterThres;
-            cylFilterMembraneCheck_cache = cylFilterMembraneCheck;
+            cylFilterMembraneCheck_cache = (!grid.skipMembrane);
             membraneMaskCylApply_cache = membraneMaskCylApply;
         }
 
@@ -225,7 +225,7 @@ void GUI::DrawStage5() {
 
             ImGui::Separator(); /////////////////////////////////////////
 
-            ImGui::Checkbox("Membrane area check", &cylFilterMembraneCheck);
+            ImGui::Checkbox("Membrane area check", &(!grid.skipMembrane));
             if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Whether the optimized cylinders are (likely to be) in the membrane area");
             }
@@ -430,7 +430,7 @@ void GUI::CylinderFilter() {
             (pointRecord.optimization(i, 3) < cylinderRadiusThres) &&
             (pointRecord.optimization(i, 5) < cylinderIterThres);
 
-        if (cylFilterMembraneCheck && pointRecord.alive(i)) {
+        if ((!grid.skipMembrane) && pointRecord.alive(i)) {
             bool membrane = InMembraneArea(imgData[0], grid.membraneThres, pointRecord.grid_search(i, 0), pointRecord.grid_search(i, 1), pointRecord.grid_search(i, 2), pointRecord.grid_search(i, 3));
             if (!membrane) {
                 pointRecord.alive(i) = false;

@@ -286,6 +286,7 @@ void GUI::DrawStage1() {
                         break;
                 }
 
+                imageCrop.showCropArea = false;
                 stage1Lock = true;  // allowed to proceed to stage 2
                 applyStr = "Done";
                 logger().info("Image reloaded");
