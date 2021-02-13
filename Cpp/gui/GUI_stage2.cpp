@@ -47,7 +47,7 @@ void GUI::DrawStage2() {
         ImDrawList *drawList = ImGui::GetWindowDrawList();
         drawList->PushClipRectFullScreen();
         drawList->AddLine(
-            ImVec2(before.x + width * ratio, before.y), 
+            ImVec2(before.x + width * ratio, before.y),
             ImVec2(before.x + width * ratio, after.y), 
             IM_COL32(50, 205, 50, 255), 
             2.0f

@@ -196,6 +196,7 @@ private:
     int layerBegin, layerEnd;  // only slices in this interval in each 3D image will be computed and visualized
     double resolutionX, resolutionY, resolutionZ;
     float normalizeQuantile, normalizeQuantileRes;
+    double previewQuantileBrightness;  // used in stage-1 preview
     float stage1contrast;
     std::string maskPath;
     std::string analysisInputPath;
@@ -397,6 +398,7 @@ private:
     void UpdateMarkerPointLocArray();
     bool MarkerDepthCorrection(int frameIdx, int num, double gap, bool logEnergy = false);
     void NormalizeImage(image_t &image, double thres);
+    void LoadPreviewImage(std::string path);
     void StateChangeReset();
 
     // marker drag
@@ -424,7 +426,7 @@ private:
     // Stage 3 Grid Search
     void GridSearch();
     bool InMembraneArea(const image_t &image, const double thres, double x, double y, double z, double r);
-    bool ValidGridSearchPoint(const image_t &image, const bspline &bsp, bool grid.skipMembrane, double membraneThres, double x, double y, double z, double r);
+    bool ValidGridSearchPoint(const image_t &image, const bspline &bsp, bool skipMembrane, double membraneThres, double x, double y, double z, double r);
     void UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen::MatrixXd &gridSampleOutput);
         /// This function will clear "pointRecord" and intialize it 
         /// with grid search results

@@ -270,12 +270,14 @@ void GUI::DrawStage1() {
 
                 // brightness
                 // re-compute compressed image texture
+                image_t img_ = imgData[0];
+                NormalizeImage(img_, previewQuantileBrightness);  // Do not modify "imgData[0]" now
                 switch (imageViewerCompressType) {
                     case COMPRESS_AVG:
-                        ComputeCompressedTextureAvg(imgData[0], 0);
+                        ComputeCompressedTextureAvg(img_, 0);
                         break;
                     case COMPRESS_MAX:
-                        ComputeCompressedTextureMax(imgData[0], 0);
+                        ComputeCompressedTextureMax(img_, 0);
                         break;
                     default:
                         assert(false);
@@ -307,9 +309,9 @@ void GUI::DrawStage1() {
 
 void GUI::ImageReadReset() {
 
-    layerPerImg = 1;
-    channelPerSlice = 1;
-    channelToLoad = 0;
+    // layerPerImg = 1;
+    // channelPerSlice = 1;
+    // channelToLoad = 0;
     layerBegin = 0;
     layerEnd = layerPerImg - 1;
     resolutionX = 0;

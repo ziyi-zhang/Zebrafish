@@ -379,8 +379,8 @@ void GUI::Draw3DImage() {
             try {
                 ComputeCompressedTextureMax(imgData[0], 0);
             } catch (const std::exception &e) {
-                logger().warn("Failed when drawing 3D image. This is often due to wrong metadata like incorrect number of channels or slices.");
-                std::cerr << "Failed when drawing 3D image. This is often due to wrong metadata like incorrect number of channels or slices." << std::endl;
+                logger().warn("Failed to draw 3D image. This is often due to wrong metadata like incorrect number of channels or slices.");
+                std::cerr << "Failed to draw 3D image. This is often due to wrong metadata like incorrect number of channels or slices." << std::endl;
             }
             layerBegin_cache = layerBegin;
             layerEnd_cache = layerEnd;
@@ -587,18 +587,7 @@ void GUI::DrawMenuFile() {
         std::string filename = FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});
         if (!filename.empty()) {
             imagePath = filename;
-            GetDescription(imagePath, layerPerImg, channelPerSlice, ttlFrames);
-            if (ReadTifFirstFrame(filename, layerPerImg, channelPerSlice, imgData[0])) {
-                imgRows = imgData[0][0].rows();
-                imgCols = imgData[0][0].cols();
-                currentLoadedFrames = 1;
-                // In case the tiff image is very small
-                layerPerImg = imgData[0].size();
-                layerEnd = layerPerImg - 1;
-            } else {
-                logger().error("Error open tiff image");
-                std::cerr << "Error open tiff image" << std::endl;
-            }
+            LoadPreviewImage(imagePath);
         }
     }
 
@@ -1064,6 +1053,29 @@ void GUI::NormalizeImage(image_t &image, double thres) {
 }
 
 
+void GUI::LoadPreviewImage(std::string path) {
+
+    GetDescription(path, layerPerImg, channelPerSlice, ttlFrames);
+    if (ReadTifFirstFrame(path, layerPerImg, channelPerSlice, imgData[0])) {
+
+        imgRows = imgData[0][0].rows();
+        imgCols = imgData[0][0].cols();
+        currentLoadedFrames = 1;
+        // In case the tiff image is very small
+        layerPerImg = imgData[0].size();
+        layerEnd = layerPerImg - 1;
+
+        previewQuantileBrightness = QuantileImage(imgData[0], 0.995, 0, layerEnd);
+        // we are modifying the image directly because the user must click "Apply" to proceed
+        // which will re-load the image
+        NormalizeImage(imgData[0], previewQuantileBrightness);
+    } else {
+        logger().error("Error open tiff image");
+        std::cerr << "Error open tiff image" << std::endl;
+    }
+}
+
+
 void GUI::StateChangeReset() {
 
     MarkerDragReset();
@@ -1254,14 +1266,8 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
         // only true in debug mode
         imagePath = imagePath_;
         maskPath = maskPath_;
-        GetDescription(imagePath_, layerPerImg, channelPerSlice, ttlFrames);
-        ReadTifFirstFrame(imagePath_, layerPerImg, channelPerSlice, imgData[0]);
-        imgRows = imgData[0][0].rows();
-        imgCols = imgData[0][0].cols();
-        currentLoadedFrames = 1;
-        // In case the tiff image is very small
-        layerPerImg = imgData[0].size();
-        layerEnd = layerPerImg - 1;
+
+        LoadPreviewImage(imagePath);
 
         // debug helper
         show_log = true;
