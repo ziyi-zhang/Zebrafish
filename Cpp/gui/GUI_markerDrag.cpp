@@ -30,7 +30,7 @@ void GUI::RenderMarkerDragGUI() {
             UpdateMarkerPointLocArray();
         }
         if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Optimize the XY location of markers in this frame again. This is optional.\nIf any marker has been manually moved, it is highly suggested to optimize the location again.");
+            ImGui::SetTooltip("Optimize the XY location of markers in this frame again. This is optional.\nIf any marker has been manually moved, it is highly suggested to optimize the location again.\nThis button does not optimize the depth.");
         }
         ImGui::PopItemWidth();
 

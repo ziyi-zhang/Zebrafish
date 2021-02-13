@@ -394,6 +394,7 @@ private:
     void ComputeCompressedTextureMax(const image_t &img_, int index);
     void ComputeCompressedTextureForAllLoadedFrames();
     void UpdateMarkerPointLocArray();
+    bool MarkerRecursiveDepthCorrection(int frameIdx, int depthNum, double depthGap, bool logEnergy = false, bool forceSecondRound = false);
     bool MarkerDepthCorrection(int frameIdx, int num, double gap, bool logEnergy = false);
     void NormalizeImage(image_t &image, double thres);
     void LoadPreviewImage(std::string path);

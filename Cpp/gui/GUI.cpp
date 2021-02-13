@@ -827,7 +827,7 @@ void GUI::DrawWindowPropertyEditor() {
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
             ImGui::Columns(2);
 
-            const int maxNumItemDisplayed = 500;
+            const int maxNumItemDisplayed = 1000;
             const int ttlItem = clusterRecord.num;
             const int numItemToDisplay = std::min(maxNumItemDisplayed, ttlItem);
             for (int i=0; i<numItemToDisplay; i++) {
@@ -1140,7 +1140,6 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     cylinderRadiusThres = 6.0;
     cylinderIterThres = optimMaxIt;
     showCylFilterPoints = true;
-    cylFilterMembraneCheck = true;
     cylPointLoc.resize(0, 3);
     cylEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
     cylRadiusHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
@@ -1172,8 +1171,8 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     showOpticalFlow = false;
 
     // Displacement
-    depthCorrectionNum = 35;
-    depthCorrectionGap = 0.1;
+    depthCorrectionNum = 20;
+    depthCorrectionGap = 0.2;
     optimMaxXYDisp = 5.0;
 
     // Analysis
@@ -1290,6 +1289,12 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
         imageCrop.c0 = 448;
         imageCrop.r1 = 437;
         imageCrop.c1 = 556;
+    } else if (debugMode == 3) {
+        // small area with 5 dots
+        imageCrop.r0 = 80;
+        imageCrop.c0 = 53;
+        imageCrop.r1 = 126;
+        imageCrop.c1 = 110;
     }
 
     // Analysis Purpose

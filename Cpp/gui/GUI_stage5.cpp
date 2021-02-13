@@ -225,9 +225,9 @@ void GUI::DrawStage5() {
 
             ImGui::Separator(); /////////////////////////////////////////
 
-            ImGui::Checkbox("Membrane area check", &(!grid.skipMembrane));
+            ImGui::Checkbox("Skip membrane check", &(grid.skipMembrane));
             if (showTooltip && ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Whether the optimized cylinders are (likely to be) in the membrane area");
+                ImGui::SetTooltip("Whether to force the optimized markers to be in the membrane area");
             }
 
             ImGui::Separator(); /////////////////////////////////////////
@@ -390,7 +390,14 @@ void GUI::DrawStage5() {
         }
         if (ImGui::Button("Depth search")) {
             // depth correction for the frame that was just updated
-            MarkerDepthCorrection(0, depthCorrectionNum, depthCorrectionGap, logEnergy);
+            try {
+                MarkerRecursiveDepthCorrection(0, depthCorrectionNum, depthCorrectionGap, logEnergy, true);
+            } catch (const std::exception &e) {
+                logger().warn("  <button> Depth search: Fatal error. Ignore operation.");
+            }
+        }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("[Warning] Do NOT click this button if you have never reached the next stage.");
         }
 
         ImGui::PopItemWidth();

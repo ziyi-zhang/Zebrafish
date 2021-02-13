@@ -135,9 +135,30 @@ double FindDepthFromMesh(const Eigen::MatrixXi &markerMeshArray, const Eigen::Ma
 ////////////////////////////////////////////////////////////////////////////////////////
 // Special module about depth correction
 
+
+bool GUI::MarkerRecursiveDepthCorrection(int frameIdx, int depthNum, double depthGap, bool logEnergy, bool forceSecondRound) {
+
+    // first round
+    logger().info("========== First Round Depth Correction: frame {} ==========", frameIdx);
+    double res = MarkerDepthCorrection(frameIdx, depthNum, depthGap, logEnergy);
+    // second round (refine)
+    if (forceSecondRound || res) {
+        logger().info("========== Second Round Depth Correction: frame {} ==========", frameIdx);
+        MarkerDepthCorrection(frameIdx, 25, depthGap / 10.0, logEnergy);
+    }
+
+    return res;
+}
+
+
 bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, bool logEnergy) {
 // try different z's and pick the one with minimal energy
 
+    if (markerArray.empty()) {
+        logger().warn("Fatal error in MarkerDepthCorrection. [EXC_BAD_ACCESS]");
+        std::cerr << "Fatal error in MarkerDepthCorrection. [EXC_BAD_ACCESS]" << std::endl;
+        return false;
+    }
     const int N = markerArray[frameIdx].num;
     const int M = depthNum * 2 + 1;
     if (N == 0) return true;
@@ -159,7 +180,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
     for (int i=-depthNum; i<=depthNum; i++) {
         depthArray[i+depthNum] = depthGap * i;
     }
-    logger().info("Depth correction for frame {}  #starting points = {}, searching gap = {}, searching num = {}", frameIdx, N, depthGap, depthNum);
+    // logger().info("Depth correction for frame {}  #starting points = {}, searching gap = {}, searching num = {}", frameIdx, N, depthGap, depthNum);
 
     // Optimization
     tbb::parallel_for( tbb::blocked_range<int>(0, N),

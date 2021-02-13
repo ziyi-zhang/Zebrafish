@@ -773,10 +773,10 @@ namespace zebrafish
             ApplyOpticalFlow(currentFrame);
 
             // depth correction for the frame that was just updated
-            if (!MarkerDepthCorrection(currentFrame + 1, depthCorrectionNum, depthCorrectionGap, logEnergy))
+            if (!MarkerRecursiveDepthCorrection(currentFrame + 1, depthCorrectionNum, depthCorrectionGap, logEnergy, true))
             {
                 res = false;
-                logger().warn("Depth correction unsuccessful on frame {}", currentFrame + 1);
+                logger().warn("Depth search unsuccessful on frame {}. See above for detailed reasons.", currentFrame + 1);
             }
         }
 
@@ -821,54 +821,54 @@ namespace zebrafish
         // Optimization
         logger().info(">>>>>>>>>> Before optimization >>>>>>>>>>");
         tbb::parallel_for(tbb::blocked_range<int>(0, N),
-                          //////////////////////////////////////
-                          // lambda function for parallel_for //
-                          //////////////////////////////////////
-                          [this /*.markerArray[?], &bsplineArray[?], .opticalFlowCorrection*/, &param, prevFrameIdx](const tbb::blocked_range<int> &r) {
-                              // NOTE: LBFGSSolver is NOT thread safe. This must be instantiated for every thread
-                              LBFGSpp::LBFGSSolver<double> solver(param);
+            //////////////////////////////////////
+            // lambda function for parallel_for //
+            //////////////////////////////////////
+            [this /*.markerArray[?], &bsplineArray[?], .opticalFlowCorrection*/, &param, prevFrameIdx](const tbb::blocked_range<int> &r) {
+                // NOTE: LBFGSSolver is NOT thread safe. This must be instantiated for every thread
+                LBFGSpp::LBFGSSolver<double> solver(param);
 
-                              // NOTE: the "variable count" used by "Autodiff" will be stored in
-                              //       thread-local memory, so this must be set for every thread
-                              DiffScalarBase::setVariableCount(3);
+                // NOTE: the "variable count" used by "Autodiff" will be stored in
+                //       thread-local memory, so this must be set for every thread
+                DiffScalarBase::setVariableCount(3);
 
-                              for (int ii = r.begin(); ii != r.end(); ++ii)
-                              {
+                for (int ii = r.begin(); ii != r.end(); ++ii)
+                {
 
-                                  Eigen::VectorXd vec(3, 1);
-                                  vec(0) = markerArray[prevFrameIdx].loc(ii, 0) + opticalFlowCorrection[prevFrameIdx](ii, 0); // x
-                                  vec(1) = markerArray[prevFrameIdx].loc(ii, 1) + opticalFlowCorrection[prevFrameIdx](ii, 1); // y
-                                  vec(2) = markerArray[prevFrameIdx].loc(ii, 3);                                              // r
-                                  double res;
+                    Eigen::VectorXd vec(3, 1);
+                    vec(0) = markerArray[prevFrameIdx].loc(ii, 0) + opticalFlowCorrection[prevFrameIdx](ii, 0); // x
+                    vec(1) = markerArray[prevFrameIdx].loc(ii, 1) + opticalFlowCorrection[prevFrameIdx](ii, 1); // y
+                    vec(2) = markerArray[prevFrameIdx].loc(ii, 3);                                              // r
+                    double res;
 
-                                  ///////////////////////////////////
-                                  // lambda function for optimizer //
-                                  ///////////////////////////////////
-                                  auto func = [this /*.markerArray[?], .bsplineArray[?], .opticalFlowCorrection*/, ii, prevFrameIdx](const Eigen::VectorXd &x, Eigen::VectorXd &grad) {
-                                      DScalar ans;
+                    ///////////////////////////////////
+                    // lambda function for optimizer //
+                    ///////////////////////////////////
+                    auto func = [this /*.markerArray[?], .bsplineArray[?], .opticalFlowCorrection*/, ii, prevFrameIdx](const Eigen::VectorXd &x, Eigen::VectorXd &grad) {
+                        DScalar ans;
 
-                                      if (!cylinder::IsValid(bsplineArray[prevFrameIdx + 1], x(0), x(1), markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2), x(2), cylinder::H))
-                                      {
-                                          grad.setZero();
-                                          return 1.0;
-                                      }
-                                      cylinder::EvaluateCylinder(bsplineArray[prevFrameIdx + 1], DScalar(0, x(0)), DScalar(1, x(1)), markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2), DScalar(2, x(2)), cylinder::H, ans, reverseColor);
-                                      grad.resize(3, 1);
-                                      grad = ans.getGradient();
-                                      return ans.getValue();
-                                  };
-                                  // NOTE: the template of "solver.minimize" does not accept a temprary variable (due to non-const argument)
-                                  //       so we define a "func" and pass it in
-                                  int it = solver.minimize(func, vec, res);
-                                  ///////////////////////////////////
+                        if (!cylinder::IsValid(bsplineArray[prevFrameIdx + 1], x(0), x(1), markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2), x(2), cylinder::H))
+                        {
+                            grad.setZero();
+                            return 1.0;
+                        }
+                        cylinder::EvaluateCylinder(bsplineArray[prevFrameIdx + 1], DScalar(0, x(0)), DScalar(1, x(1)), markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2), DScalar(2, x(2)), cylinder::H, ans, reverseColor);
+                        grad.resize(3, 1);
+                        grad = ans.getGradient();
+                        return ans.getValue();
+                    };
+                    // NOTE: the template of "solver.minimize" does not accept a temprary variable (due to non-const argument)
+                    //       so we define a "func" and pass it in
+                    int it = solver.minimize(func, vec, res);
+                    ///////////////////////////////////
 
-                                  markerArray[prevFrameIdx + 1].loc(ii, 0) = vec(0);                                                                            // x
-                                  markerArray[prevFrameIdx + 1].loc(ii, 1) = vec(1);                                                                            // y
-                                  markerArray[prevFrameIdx + 1].loc(ii, 2) = markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2); // z
-                                  markerArray[prevFrameIdx + 1].loc(ii, 3) = vec(2);                                                                            // r
-                                  markerArray[prevFrameIdx + 1].energy(ii) = res;                                                                               // energy
-                              }
-                          });
+                    markerArray[prevFrameIdx + 1].loc(ii, 0) = vec(0);                                                                            // x
+                    markerArray[prevFrameIdx + 1].loc(ii, 1) = vec(1);                                                                            // y
+                    markerArray[prevFrameIdx + 1].loc(ii, 2) = markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2); // z
+                    markerArray[prevFrameIdx + 1].loc(ii, 3) = vec(2);                                                                            // r
+                    markerArray[prevFrameIdx + 1].energy(ii) = res;                                                                               // energy
+                }
+            });
         logger().info("<<<<<<<<<< After optimization <<<<<<<<<<");
     }
 
