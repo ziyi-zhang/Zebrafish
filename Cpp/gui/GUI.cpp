@@ -1173,7 +1173,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     // Displacement
     depthCorrectionNum = 20;
     depthCorrectionGap = 0.2;
-    optimMaxXYDisp = 5.0;
+    optimMaxXYDisp = 4.0;  // depth correction allowed XY displacement
 
     // Analysis
     analysisPara.offset = 1;  // Diagonal multiplier for box mesh

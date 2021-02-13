@@ -37,18 +37,16 @@ double GetMean(const Eigen::MatrixXd &energy, int i, int j) {
 }
 
 
-void SmoothCurve(Eigen::MatrixXd &energy_cache) {
+void SmoothCurve(const Eigen::MatrixXd &energy_cache, Eigen::MatrixXd &energy_cache_res) {
 
     const int rows = energy_cache.rows();
     const int cols = energy_cache.cols();
-    Eigen::MatrixXd tmpEnergy(rows, cols);
+    energy_cache_res.resize(rows, cols);
 
     for (int i=0; i<rows; i++)
         for (int j=0; j<cols; j++) {
-            tmpEnergy(i, j) = GetMean(energy_cache, i, j);
+            energy_cache_res(i, j) = GetMean(energy_cache, i, j);
         }
-
-    energy_cache = tmpEnergy;
 }
 
 
@@ -144,7 +142,7 @@ bool GUI::MarkerRecursiveDepthCorrection(int frameIdx, int depthNum, double dept
     // second round (refine)
     if (forceSecondRound || res) {
         logger().info("========== Second Round Depth Correction: frame {} ==========", frameIdx);
-        MarkerDepthCorrection(frameIdx, 25, depthGap / 10.0, logEnergy);
+        MarkerDepthCorrection(frameIdx, 20, depthGap / 20.0, logEnergy);
     }
 
     return res;
@@ -269,11 +267,12 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
         /// Why twice? This is an empirical decision.
         /// (1) for most (almost all) cases, do it twice will not change anything
         /// (2) there are very rare cases where do it once will fail
-    SmoothCurve(energy_cache);
-    SmoothCurve(energy_cache);
+    Eigen::MatrixXd energy_smooth;
+    SmoothCurve(energy_cache, energy_smooth);
+    SmoothCurve(energy_smooth, energy_smooth);
     // 2nd derivative
-    Eigen::MatrixXd secondDerivative(energy_cache.rows(), energy_cache.cols());
-    CalcLaplacian(energy_cache, secondDerivative);
+    Eigen::MatrixXd secondDerivative(energy_smooth.rows(), energy_smooth.cols());
+    CalcLaplacian(energy_smooth, secondDerivative);
 
     for (int i=0; i<N; i++) {
 
@@ -284,10 +283,13 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
             // valid?
             Eigen::Vector2d xyDist;
             xyDist << x_cache(i, j)-markerArray[frameIdx].loc(i, 0), y_cache(i, j)-markerArray[frameIdx].loc(i, 1);
-            if (xyDist.norm() > thresDist) continue;
+            if (xyDist.norm() > thresDist) {
+                energy_cache(i, j) = 1.2;  // set to be large so that it won't be picked when correcting smoothing-shift
+                continue;
+            }
             // does this depth lead to a smaller energy?
-            if (energy_cache(i, j) < minEnergy) {
-                minEnergy = energy_cache(i, j);
+            if (energy_smooth(i, j) < minEnergy) {
+                minEnergy = energy_smooth(i, j);
                 minColIdx = j;
             }
         }
@@ -313,11 +315,12 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
             }
 
             // min is at end point?
-            if (depthNum > 0 && (minColIdx == 0 || minColIdx == 1 || minColIdx == M-1 || minColIdx == M-2)) {
+            if (depthNum > 0 && (minColIdx == 0 || minColIdx == M-2)) {
                 char errorMsg[200];
-                std::sprintf(errorMsg, "> [warning] Exceed search range limit. Consider using a larger search range: Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
+                std::sprintf(errorMsg, "> [warning] Exceed search range limit: Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
                 logger().warn(errorMsg);
                 std::cerr << errorMsg << std::endl;
+                std::cerr << "energy_cache.row(" << i << ") = " << energy_cache.row(i) << std::endl;
                 res = false;
             }
             // derivative looks good?
@@ -328,6 +331,16 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
                 std::sprintf(warnMsg, "> [note] Abnormal second derivative: Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
                 logger().debug(warnMsg);
                 std::cerr << warnMsg << std::endl;
+                std::cerr << "energy_cache.row(" << i << ") = " << energy_cache.row(i) << std::endl;
+            }
+
+            // it is possible that smoothing caused the minCol to shift by 1 (or 2?)
+            // we fix this shift here
+            for (int j=std::max(0, minColIdx-2); j<=std::min(M-1, minColIdx+2); j++) {
+                if (energy_cache(i, j) < minEnergy) {
+                    minEnergy = energy_cache(i, j);
+                    minColIdx = j;
+                }
             }
 
             markerArray[frameIdx].loc(i, 0) = x_cache(i, minColIdx);

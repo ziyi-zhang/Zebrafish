@@ -328,7 +328,7 @@ namespace zebrafish
                 }
                 if (showTooltip && ImGui::IsItemHovered())
                 {
-                    ImGui::SetTooltip("Maximum displacement in XY plane during optimization");
+                    ImGui::SetTooltip("Maximum displacement in XY plane during depth correction");
                 }
                 ImGui::Checkbox("Log energy matrix", &logEnergy);
                 if (showTooltip && ImGui::IsItemHovered())
