@@ -197,7 +197,6 @@ private:
     double resolutionX, resolutionY, resolutionZ;
     float normalizeQuantile, normalizeQuantileRes;
     double previewQuantileBrightness;  // used in stage-1 preview
-    float stage1contrast;
     std::string maskPath;
     std::string analysisInputPath;
     // Hist

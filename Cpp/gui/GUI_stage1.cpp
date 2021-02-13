@@ -226,6 +226,7 @@ void GUI::DrawStage1() {
         ImGui::SetTooltip("The physical distance of one pixel (in micrometers).\nResolution X is the distance between two rows; resolution Y is the distance between two columns; resolution Z is the vertical distance between two z-slices.");
     }
 
+    /*
     ImGui::Separator(); /////////////////////////////////////////
 
     if (ImGui::TreeNode("Advanced visualization")) {
@@ -239,6 +240,7 @@ void GUI::DrawStage1() {
         ImGui::TreePop();
         ImGui::Separator();
     }
+    */
 
     ImGui::Separator(); /////////////////////////////////////////
 
