@@ -150,6 +150,10 @@ void GUI::DrawStage6() {
                 ICP.yDisp = 0.0f;
                 ICP.angleRot = 0.0f;
                 ICP.scale = 1.0f;
+                ICP.xStretch = 0.0f;
+                ICP.yStretch = 0.0f;
+                ICP.xdistort = 0.0f;
+                ICP.ydistort = 0.0f;
                 UpdateRefPointManualAlignment();
                 UpdateRefPointLoc();
                 showICPLines = false;
@@ -160,6 +164,14 @@ void GUI::DrawStage6() {
             }
 
             // align two point clouds manually
+            if (ImGui::SliderFloat("Scale", &ICP.scale, 0.7f, 1.5f, "%.4f x")) {
+                UpdateRefPointManualAlignment();
+                UpdateRefPointLoc();
+            }
+            if (ImGui::SliderFloat("Rotation", &ICP.angleRot, -igl::PI / 6.0, igl::PI / 6.0, "%.4f rads")) {
+                UpdateRefPointManualAlignment();
+                UpdateRefPointLoc();
+            }
             if (ImGui::SliderFloat("X displacement", &ICP.xDisp, -0.2 * imgCols, 0.2 * imgCols, "%.3f pixels")) {
                 UpdateRefPointManualAlignment();
                 UpdateRefPointLoc();
@@ -168,11 +180,23 @@ void GUI::DrawStage6() {
                 UpdateRefPointManualAlignment();
                 UpdateRefPointLoc();
             }
-            if (ImGui::SliderFloat("Rotation", &ICP.angleRot, -igl::PI / 6.0, igl::PI / 6.0, "%.4f rads")) {
+            if (ImGui::SliderFloat("X distort", &ICP.xdistort, -0.1, 0.1, "%.3f")) {
+                GenerateICPPattern();
+                PreprocessPatternLoc();
                 UpdateRefPointManualAlignment();
                 UpdateRefPointLoc();
             }
-            if (ImGui::SliderFloat("Scale", &ICP.scale, 0.4f, 2.0f, "%.4f x")) {
+            if (ImGui::SliderFloat("Y distort", &ICP.ydistort, -0.1, 0.1, "%.3f")) {
+                GenerateICPPattern();
+                PreprocessPatternLoc();
+                UpdateRefPointManualAlignment();
+                UpdateRefPointLoc();
+            }
+            if (ImGui::SliderFloat("X stretch", &ICP.xStretch, -0.5, 0.5, "%.2f")) {
+                UpdateRefPointManualAlignment();
+                UpdateRefPointLoc();
+            }
+            if (ImGui::SliderFloat("Y stretch", &ICP.yStretch, -0.5, 0.5, "%.2f")) {
                 UpdateRefPointManualAlignment();
                 UpdateRefPointLoc();
             }
@@ -233,7 +257,7 @@ void GUI::InitializeICPPattern() {
 void GUI::GenerateICPPattern() {
 
     ICP.refV.resize(ICP.patternRows * ICP.patternCols, 3);
-    ICP.refV_RC.resize(ICP.patternRows * ICP.patternCols, 3);
+    ICP.refV_RC.resize(ICP.patternRows * ICP.patternCols, 2);
 
     // Estimate ICP.patternSpacing
     const int N = markerPointLocArray[0].rows();
@@ -257,14 +281,17 @@ void GUI::GenerateICPPattern() {
         logger().debug("ICP pattern spacing estimated as {}", ICP.patternSpacing);
     }
 
+    // Generate pattern
     int count = 0;
+    double xdistort = ICP.xdistort * ICP.patternSpacing;
+    double ydistort = ICP.ydistort * ICP.patternSpacing;
     for (int row=0; row<ICP.patternRows; row++)
         for (int col=0; col<ICP.patternCols; col++) {
 
-            ICP.refV(count, 0) = ICP.patternSpacing * double(col);
+            ICP.refV(count, 0) = (ICP.patternSpacing - xdistort * col) * double(col);
             if (row & 1)  // odd row
                 ICP.refV(count, 0) += ICP.patternSpacing / 2.0;
-            ICP.refV(count, 1) = std::sqrt(3) / 2.0 * ICP.patternSpacing * double(row);
+            ICP.refV(count, 1) = std::sqrt(3) / 2.0 * (ICP.patternSpacing - ydistort * row) * double(row);
             ICP.refV(count, 2) = 1.0;
             // also store row & col for extrusion purpose
             ICP.refV_RC(count, 0) = row;
@@ -382,12 +409,18 @@ void GUI::UpdateRefPointManualAlignment() {
 
     assert(ICP.refV.size() > 0);
 
+    static RMat_t stretchMat;
+    stretchMat << ICP.xStretch+1, 0.0, 0.0, 
+                  0.0, ICP.yStretch+1, 0.0, 
+                  0.0, 0.0, 1.0;
+
     static RMat_t manualAlignTransMat;
     manualAlignTransMat << std::cos(-ICP.angleRot), - std::sin(-ICP.angleRot), ICP.xDisp, 
                          std::sin(-ICP.angleRot),   std::cos(-ICP.angleRot), ICP.yDisp, 
                          0.0,          0.0,            1.0;
 
     ICP.refV_aligned = ICP.refV.array() * ICP.scale;
+    ICP.refV_aligned = ( stretchMat * ICP.refV_aligned.transpose() ).transpose();
     ICP.refV_aligned = ( manualAlignTransMat * ICP.refV_aligned.transpose() ).transpose();
 }
 

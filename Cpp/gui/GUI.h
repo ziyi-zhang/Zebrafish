@@ -100,7 +100,7 @@ typedef struct ICP_t {
 
     int patternRows, patternCols, patternRef;
     double patternSpacing;
-    float xDisp, yDisp, angleRot, scale;
+    float xDisp, yDisp, angleRot, scale, xStretch, yStretch, xdistort, ydistort;
     RMat_t Rmat;  // rotation matrix
     TMat_t Tmat;  // translation matrix
     Eigen::VectorXi matchIdx;  // p[i] corresponds to q[ matchIdx[i] ]
@@ -109,7 +109,9 @@ typedef struct ICP_t {
     Eigen::MatrixXd refV, refV_aligned;  // #ICP.refV * 3 reference point locations
     Eigen::MatrixXi refV_RC;  // row & col index of corresponding vertex
 
-    ICP_t() : patternRows(0), patternCols(0), patternSpacing(0.0), xDisp(0.0), yDisp(0.0), angleRot(0.0), scale(1.0){
+    ICP_t() : patternRows(0), patternCols(0), patternSpacing(0.0), 
+              xDisp(0.0), yDisp(0.0), angleRot(0.0), scale(1.0), 
+              xStretch(0.0), yStretch(0.0), xdistort(0.0), ydistort(0.0) {
         Rmat = Eigen::MatrixXd::Identity(3, 3);
         Tmat = Eigen::MatrixXd::Zero(3, 1);
     }

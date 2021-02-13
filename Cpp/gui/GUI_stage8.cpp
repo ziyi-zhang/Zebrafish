@@ -393,16 +393,16 @@ namespace zebrafish
         if (ImGui::CollapsingHeader("Analysis", ImGuiTreeNodeFlags_DefaultOpen)) {
 
             // average displacement area crop
-            if (ImGui::Checkbox("[Mouse] avg disp area", &meanCrop.cropActive)) {
+            if (ImGui::Checkbox("[Mouse] global disp area", &meanCrop.cropActive)) {
                 if (!meanCrop.cropActive)
-                    logger().debug("[Mouse] avg disp area: de-activated.");
+                    logger().debug("[Mouse] global disp area: de-activated.");
                 else {
-                    logger().debug("[Mouse] avg disp area: activated.");
+                    logger().debug("[Mouse] global disp area: activated.");
                     meanCrop.showCropArea = true;
                 }
             }
             if (showTooltip && ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("The selected area will be used to calculate the global displacement. By default we use the entire image.");
+                ImGui::SetTooltip("Crop an area that will be used to estimate the global displacement.\nGlobal displacement will be subtracted in analysis. By default we use the entire image.");
             }
 
             ImGui::Separator(); /////////////////////////////////////////
@@ -448,7 +448,6 @@ namespace zebrafish
                 ImGui::PopItemWidth();
 
                 ImGui::TreePop();
-                ImGui::Separator();
             }
 
             static std::string runAnalysisStr = "";
