@@ -768,6 +768,12 @@ void GUI::DrawWindow3DImageViewer() {
             } else if (imageViewerCompressType == COMPRESS_MAX) {
                 ImGui::SliderFloat("Darken factor", &imageViewerDarkenFactor_max, 1.0, 3.0);
             }
+
+            ImGui::Checkbox("Show ref points", &show_refPoints);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Three green points sketching the size of the image");
+            }
+
             ImGui::PopItemWidth();
             ImGui::TreePop();
             ImGui::Separator();
@@ -914,6 +920,7 @@ void GUI::DrawWindowGraphics() {
 
 void GUI::DrawReferenceDots() {
 
+    if (!show_refPoints) return;
     static Eigen::Matrix3d loc = (Eigen::Matrix3d() << 0, 0, 1, imgCols, imgRows, layerPerImg, imgCols-1, imgRows-1, layerPerImg-1).finished();
     static Eigen::MatrixXd referencePointColor = [] {
         Eigen::MatrixXd tmp(1, 3);
@@ -1115,15 +1122,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     bsplineArray[0].Set_solverTol(bsplineSolverTol);
 
     // grid search
-    gapX_grid = 1.0;
-    gapY_grid = 1.0;
-    gapZ_grid = 1.0;
-    rArrayMin_grid = 3.0;
-    rArrayMax_grid = 6.0;
-    rArrayGap_grid = 1.0;
     showPromisingPoints = true;
-    skipMembrane = false;
-    gridEnergyThres = -0.1;
     promisingPointLoc.resize(0, 3);
     gridEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
 
@@ -1223,6 +1222,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     UIsize.Image3DViewerHeight = 320;
     UIsize.RHSPanelWidth = 300;
     UIsize_redraw = true;
+    show_refPoints = true;
     // color
     markerPointColor.resize(1, 3);
     markerPointColor << 0.93, 0.32, 0.15;

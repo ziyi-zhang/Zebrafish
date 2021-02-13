@@ -35,7 +35,7 @@ void GUI::DrawStage6() {
     }
 
     // Visualize marker cluster points (first frame)
-    static int pointSize = 10;
+    static int pointSize = 7;
     if (showMarkerPoints) {
 
         viewer.data().point_size = pointSize;
@@ -180,7 +180,6 @@ void GUI::DrawStage6() {
             ImGui::PopItemWidth();
             
             ImGui::TreePop();
-            ImGui::Separator();
         }
 
         if (ImGui::Button("Run ICP")) {
@@ -254,7 +253,7 @@ void GUI::GenerateICPPattern() {
             sumDist += minDist;
         }
 
-        ICP.patternSpacing = sumDist / double(N) * 1.03;
+        ICP.patternSpacing = sumDist / double(N) * 1.07;
         logger().debug("ICP pattern spacing estimated as {}", ICP.patternSpacing);
     }
 

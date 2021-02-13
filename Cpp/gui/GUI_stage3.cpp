@@ -22,6 +22,18 @@ std::string Vec2Str(const Eigen::VectorXd &vec) {
     return sstr.str();
 }
 
+
+void UpdateGridGap(int imgRows, int imgCols, int imgHeight, grid_t &grid) {
+
+    int N_xy = 100;
+    if (imgRows > N_xy) {
+        grid.gapX = double(imgRows) / double(N_xy);
+    }
+    if (imgCols > N_xy) {
+        grid.gapY = double(imgCols) / double(N_xy);
+    }
+}
+
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -31,25 +43,29 @@ void GUI::DrawStage3() {
 
     if (stage2to3Flag) {
 
-        membraneThres = QuantileImage(imgData[0], 0.85, layerBegin, layerEnd);
+        grid.membraneThres = QuantileImage(imgData[0], 0.85, layerBegin, layerEnd);
+        UpdateGridGap(imgRows, imgCols, layerEnd-layerBegin+1, grid);
         stage2to3Flag = false;
     }
 
     // Visualize promising starting points
-    static int gridSearchPointSize = 7;
+    static int gridSearchPointSize = 5;
     if (showPromisingPoints) {
 
-        static double gridEnergyThres_cache = -1;
-        if (gridEnergyThres != gridEnergyThres_cache) {
-            // Update the points to visualize when "gridEnergyThres" has changed or 
+        static double energyThres_cache = -1;
+        if (grid.energyThres != energyThres_cache) {
+            // Update the points to visualize when "grid.energyThres" has changed or 
             // "Grid Search" has been re-computed
             UpdatePromisingPointLoc();
-            gridEnergyThres_cache = gridEnergyThres;
+            energyThres_cache = grid.energyThres;
         }
 
         viewer.data().point_size = gridSearchPointSize;
-        Eigen::MatrixXd pointColor(1, 3);
-        pointColor << 0.87, 0.33, 0.33;
+        static Eigen::MatrixXd pointColor = [] {
+            Eigen::MatrixXd tmp(1, 3);
+            tmp << 0.87, 0.33, 0.33;
+            return tmp;
+        } ();
 
         if (promisingPointLoc.rows() > 0) {
             // show promising points
@@ -70,13 +86,13 @@ void GUI::DrawStage3() {
 
             const float inputWidth = ImGui::GetWindowWidth() / 3.0;
             ImGui::PushItemWidth(inputWidth);
-            ImGui::InputDouble("Gap X (pixel)", &gapX_grid, 0.0, 0.0, "%.2f");
-            ImGui::InputDouble("Gap Y (pixel)", &gapY_grid, 0.0, 0.0, "%.2f");
-            ImGui::InputDouble("Gap Z (pixel)", &gapZ_grid, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Gap row (pixel)", &grid.gapX, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Gap col (pixel)", &grid.gapY, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Gap depth (pixel)", &grid.gapZ, 0.0, 0.0, "%.2f");
 
-            ImGui::InputDouble("Radius min (pixel)", &rArrayMin_grid, 0.0, 0.0, "%.2f");
-            ImGui::InputDouble("Radius max (pixel)", &rArrayMax_grid, 0.0, 0.0, "%.2f");
-            ImGui::InputDouble("Radius gap (pixel)", &rArrayGap_grid, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Radius min (pixel)", &grid.rArrayMin, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Radius max (pixel)", &grid.rArrayMax, 0.0, 0.0, "%.2f");
+            ImGui::InputDouble("Radius gap (pixel)", &grid.rArrayGap, 0.0, 0.0, "%.2f");
             if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("The following array of radii will be searched\n[R_min R_min+R_gap R_min+2*R_gap ... R_max]");
             }
@@ -85,7 +101,7 @@ void GUI::DrawStage3() {
             if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("By default the markers should have darker color. If checked, the program will search for light color markers.");
             }
-            ImGui::Checkbox("Skip membrane area check", &skipMembrane);
+            ImGui::Checkbox("Skip membrane area check", &grid.skipMembrane);
             if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("By default only cylinders in the membrane area will be used.");
             }
@@ -126,7 +142,7 @@ void GUI::DrawStage3() {
         ImVec2 after = ImGui::GetCursorScreenPos();
         after.y -= ImGui::GetStyle().ItemSpacing.y;
 
-        float ratio = ((gridEnergyThres-gridEnergyHist.minValue)/(gridEnergyHist.maxValue-gridEnergyHist.minValue));
+        float ratio = ((grid.energyThres-gridEnergyHist.minValue)/(gridEnergyHist.maxValue-gridEnergyHist.minValue));
         ratio = std::min(1.0f, std::max(0.0f, ratio));
         ImDrawList *drawList = ImGui::GetWindowDrawList();
         drawList->PushClipRectFullScreen();
@@ -141,7 +157,7 @@ void GUI::DrawStage3() {
 
         ImGui::PushItemWidth(UIsize.zebrafishWidth * 0.75);
         ImGui::Text("Grid search energy threshold");
-        if (ImGui::SliderFloat("", &gridEnergyThres, gridEnergyHist.minValue, gridEnergyHist.maxValue, "%.3f")) {
+        if (ImGui::SliderFloat("", &grid.energyThres, gridEnergyHist.minValue, gridEnergyHist.maxValue, "%.3f")) {
 
             UpdateSampleNewton(gridSampleInput, gridSampleOutput);
         }
@@ -154,7 +170,10 @@ void GUI::DrawStage3() {
 
             const float inputWidth = ImGui::GetWindowWidth() / 3.0;
             ImGui::PushItemWidth(inputWidth);
-            ImGui::Checkbox("Show grid search promising location", &showPromisingPoints);
+            ImGui::Checkbox("Show grid search result", &showPromisingPoints);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("After the energy filter, only these dots will be used as optimization starting conditions.");
+            }
             ImGui::SliderInt("Point Size", &gridSearchPointSize, 1, 30);
             ImGui::PopItemWidth();
             
@@ -175,27 +194,27 @@ void GUI::GridSearch() {
     const int Nx = bsplineArray[0].Get_Nx();
     const int Ny = bsplineArray[0].Get_Ny();
     const int Nz = bsplineArray[0].Get_Nz();
-    const int Nr = std::round((rArrayMax_grid - rArrayMin_grid) / rArrayGap_grid + 1);
+    const int Nr = std::round((grid.rArrayMax - grid.rArrayMin) / grid.rArrayGap + 1);
 
     Eigen::VectorXd rArray;
     rArray.resize(Nr);
     for (int i=0; i<Nr; i++)
-        rArray(i) = rArrayMin_grid + i * rArrayGap_grid;
-    if (rArray(Nr-1) > rArrayMax_grid) rArray(Nr-1) = rArrayMax_grid;
+        rArray(i) = grid.rArrayMin + i * grid.rArrayGap;
+    if (rArray(Nr-1) > grid.rArrayMax) rArray(Nr-1) = grid.rArrayMax;
 
     double xx, yy, zz, rr;
     int sampleCount = 0;
     gridSampleInput.resize(Nx*Ny*Nz*Nr, 4);
-    for (int ix=0; ix<floor(Nx/gapX_grid); ix++)
-        for (int iy=0; iy<floor(Ny/gapY_grid); iy++)
-            for (int iz=0; iz<floor(Nz/gapZ_grid); iz++)
+    for (int ix=0; ix<floor(Nx/grid.gapX); ix++)
+        for (int iy=0; iy<floor(Ny/grid.gapY); iy++)
+            for (int iz=0; iz<floor(Nz/grid.gapZ); iz++)
                 for (int ir=0; ir<Nr; ir++) {
 
-                    xx = ix * gapX_grid;
-                    yy = iy * gapY_grid;
-                    zz = iz * gapZ_grid;
+                    xx = ix * grid.gapX;
+                    yy = iy * grid.gapY;
+                    zz = iz * grid.gapZ;
                     rr = rArray(ir);
-                    if (!ValidGridSearchPoint(imgData[0], bsplineArray[0], skipMembrane, membraneThres, xx, yy, zz, rr)) continue;
+                    if (!ValidGridSearchPoint(imgData[0], bsplineArray[0], grid.skipMembrane, grid.membraneThres, xx, yy, zz, rr)) continue;
 
                     gridSampleInput(sampleCount, 0) = xx;
                     gridSampleInput(sampleCount, 1) = yy;
@@ -205,7 +224,7 @@ void GUI::GridSearch() {
                 }
     gridSampleOutput.resize(sampleCount, 1);
     logger().info("Grid search samples prepared...");
-    logger().debug("gapX = {:.2f}  gapY = {:.2f}  gapZ = {:.2f}", gapX_grid, gapY_grid, gapZ_grid);
+    logger().debug("gapX = {:.2f}  gapY = {:.2f}  gapZ = {:.2f}", grid.gapX, grid.gapY, grid.gapZ);
     logger().debug("Calculated rArray = [ {} ]", Vec2Str(rArray));
 
     // Parallel Grid Search
@@ -226,9 +245,9 @@ bool GUI::InMembraneArea(const image_t &image, const double thres, double x, dou
 // Is the cylinder in the membrane area?
 // Check this by sampling 8 nearby locations. They must have light color.
 
-    // assume cylinder height 3, peripheral sqrt(2)*r
+    // assume cylinder height 2.5, peripheral sqrt(2)*r
     const double d1 = round(r * 1.2), d2 = round(r * 0.85);
-    const Eigen::MatrixXd &layer = image[round(z + 1.5)];
+    const Eigen::MatrixXd &layer = image[round(z + 1.25)];
     // if (layer(x, y) > thres) return false;  // center must be dark
     int count = 0;
     if (layer(x-d2, y-d2) > thres) count++;
@@ -268,7 +287,7 @@ void GUI::UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen
     int i, count = 0;
 
     for (i=0; i<N; i++)
-        if (gridSampleOutput(i) < gridEnergyThres) M++;  // count to reserve space
+        if (gridSampleOutput(i) < grid.energyThres) M++;  // count to reserve space
 
     pointRecord.num = M;
     pointRecord.alive.resize(M, Eigen::NoChange);
@@ -276,7 +295,7 @@ void GUI::UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen
     pointRecord.optimization.resize(M, Eigen::NoChange);
 
     for (i=0; i<N; i++) {
-        if (gridSampleOutput(i) > gridEnergyThres) continue;
+        if (gridSampleOutput(i) > grid.energyThres) continue;
 
         // alive
         pointRecord.alive(count) = true;

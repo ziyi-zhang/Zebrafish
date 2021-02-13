@@ -22,7 +22,7 @@ namespace {
 void GUI::DrawStage4() {
 
     // Visualize optimized points
-    static int optimPointSize = 7;
+    static int optimPointSize = 5;
     if (showOptimizedPoints) {
 
         static double optimEnergyThres_cache = -1;

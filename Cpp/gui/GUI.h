@@ -82,6 +82,20 @@ typedef struct crop_t {
 } crop_t;
 
 
+typedef struct grid_t {
+
+    double gapX, gapY, gapZ;
+    double rArrayMin, rArrayMax, rArrayGap;
+
+    bool skipMembrane;
+    double membraneThres;  // brightness threshold to decide whether a point is in the membrane area
+
+    float energyThres;  // energy threshold to decide whether a starting point is worth optimizing
+
+    grid_t() : gapX(1.0), gapY(1.0), gapZ(1.0), rArrayMin(3.0), rArrayMax(6.0), rArrayGap(1.0), skipMembrane(false), membraneThres(), energyThres(-0.1) {}
+} grid_t;
+
+
 typedef struct ICP_t {
 
     int patternRows, patternCols, patternRef;
@@ -203,13 +217,9 @@ private:
 
     //////////////////////////////////////////////////
     // Grid Search
+    grid_t grid;
     Eigen::MatrixXd gridSampleInput, gridSampleOutput;
-    double gapX_grid, gapY_grid, gapZ_grid;
-    double rArrayMin_grid, rArrayMax_grid, rArrayGap_grid;
-    float gridEnergyThres;  // energy threshold to decide whether a starting point is worth optimizing
-    double membraneThres;  // brightness threshold to decide whether a point is in the membrane area
     bool showPromisingPoints;
-    bool skipMembrane;
     Eigen::MatrixXd promisingPointLoc;  // visualization purpose
     // Hist
     hist_t gridEnergyHist;
@@ -316,6 +326,7 @@ private:
     int currentLoadedFrames;
     UIsize_t UIsize;
     bool UIsize_redraw;  // redraw after window resize
+    bool show_refPoints;
     // color
     Eigen::MatrixXd markerPointColor;
 
@@ -413,7 +424,7 @@ private:
     // Stage 3 Grid Search
     void GridSearch();
     bool InMembraneArea(const image_t &image, const double thres, double x, double y, double z, double r);
-    bool ValidGridSearchPoint(const image_t &image, const bspline &bsp, bool skipMembrane, double membraneThres, double x, double y, double z, double r);
+    bool ValidGridSearchPoint(const image_t &image, const bspline &bsp, bool grid.skipMembrane, double membraneThres, double x, double y, double z, double r);
     void UpdateSampleNewton(const Eigen::MatrixXd &gridSampleInput, const Eigen::MatrixXd &gridSampleOutput);
         /// This function will clear "pointRecord" and intialize it 
         /// with grid search results

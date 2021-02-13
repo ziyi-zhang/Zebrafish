@@ -54,7 +54,7 @@ void GUI::DrawStage5() {
     }
 
     // Visualize filtered cylinder points
-    static int filterPointSize = 7;
+    static int filterPointSize = 5;
     if (showCylFilterPoints) {
 
         static float cylinderEnergyThres_cache = -1;
@@ -323,7 +323,7 @@ void GUI::DrawStage5() {
             ClusterNearBorderWarn();
         }
         if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("In case we need values larger than 4.0");
+            ImGui::SetTooltip("To use a threshold value outside the slider limit");
         }
 
         ImGui::Separator(); /////////////////////////////////////////
@@ -431,7 +431,7 @@ void GUI::CylinderFilter() {
             (pointRecord.optimization(i, 5) < cylinderIterThres);
 
         if (cylFilterMembraneCheck && pointRecord.alive(i)) {
-            bool membrane = InMembraneArea(imgData[0], membraneThres, pointRecord.grid_search(i, 0), pointRecord.grid_search(i, 1), pointRecord.grid_search(i, 2), pointRecord.grid_search(i, 3));
+            bool membrane = InMembraneArea(imgData[0], grid.membraneThres, pointRecord.grid_search(i, 0), pointRecord.grid_search(i, 1), pointRecord.grid_search(i, 2), pointRecord.grid_search(i, 3));
             if (!membrane) {
                 pointRecord.alive(i) = false;
                 // DEBUG PURPOSE
