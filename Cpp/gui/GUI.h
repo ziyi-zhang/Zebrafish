@@ -6,6 +6,7 @@
 #include <zebrafish/Cylinder.h>
 #include <zebrafish/autodiff.h>
 #include <zebrafish/ICP.h>
+#include <zebrafish/Padding.h>
 
 #include <string>
 #include <vector>
@@ -267,7 +268,7 @@ private:
 
     //////////////////////////////////////////////////
     // Padding
-    std::map<int, std::array<int, 2> > markerRCMap;  // map marker index in "markerMeshArray" to (row, col) in regular triangular mesh
+    RCMap_t markerRCMap;  // map marker index in "markerMeshArray" to (row, col) in regular triangular mesh
 
     //////////////////////////////////////////////////
     // Optical Flow

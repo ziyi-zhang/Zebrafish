@@ -12,6 +12,8 @@ set(SOURCES
     ICP.h
     OpticalFlow.cpp
     OpticalFlow.h
+    Padding.cpp
+    Padding.h
     Quad.ipp
 )
 
