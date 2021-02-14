@@ -41,7 +41,7 @@ struct PropertyEditorItem {
         ImGui::NextColumn();
 
         if (nodeOpen) {
-            static const std::vector<std::string> itemName{"Energy", "x", "y", "z", "r", "Energy", "x", "y", "z", "r", "Iter"};
+            static const std::vector<std::string> itemName{"Energy", "X", "Y", "Z", "R", "Energy", "X", "Y", "Z", "R", "Iter"};
             for (int i=0; i<5; i++) {
                 ImGui::PushID(i);
                 ImGui::AlignTextToFramePadding();
@@ -145,27 +145,31 @@ struct PropertyEditorItem {
 
     // ----------------------------------------------------------------------------------------------
 
-    static void AppendMarkerRecordItem(const char* prefix, int uid, const markerRecord_t &markerRecord) {
+    static bool AppendMarkerRecordItem(const char* prefix, int uid, markerRecord_t &markerRecord) {
 
         ImGui::PushID(uid);
         ImGui::AlignTextToFramePadding();
         bool nodeOpen = ImGui::TreeNode("Object", "%s %u", prefix, uid);
         ImGui::NextColumn();
         ImGui::AlignTextToFramePadding();
+        bool res = false;
 
         // no text here
 
         ImGui::NextColumn();
 
         if (nodeOpen) {
-            static const std::vector<std::string> itemName{"X", "Y", "Z", "R", "energy", "size"};
+            static const std::vector<std::string> itemName{"X (row)", "Y (col)", "Z", "R", "energy", "size"};
             for (int i=0; i<4; i++) {
                 ImGui::PushID(i);
                 ImGui::AlignTextToFramePadding();
                 ImGui::TreeNodeEx(itemName[i].c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet);
                 ImGui::NextColumn();
                     
-                ImGui::Text("%.3f", markerRecord.loc(uid, i));
+                // ImGui::Text("%.3f", markerRecord.loc(uid, i));
+                if (ImGui::InputDouble("", &markerRecord.loc(uid, i), 0.0, 0.0, "%.3f")) {
+                    res = true;
+                }
 
                 ImGui::NextColumn();
                 ImGui::PopID();
@@ -192,6 +196,7 @@ struct PropertyEditorItem {
         }
 
         ImGui::PopID();
+        return res;  // Whether InputDouble triggered
     }
 };
 
@@ -336,7 +341,11 @@ void GUI::draw_menu() {  // this overrides the default draw_menu!
     viewer.data().clear_edges();
     viewer.data().clear_points();
     viewer.data().clear_labels();
+    viewer.data(visualID).clear_edges();
+    viewer.data(visualID).clear_points();
+    viewer.data(visualID).clear_labels();
 
+    // draw GUI
     Draw3DImage();
     DrawMarkerMesh();
     DrawMainMenuBar();
@@ -348,6 +357,8 @@ void GUI::draw_menu() {  // this overrides the default draw_menu!
     if (show_graphics) DrawWindowGraphics();
     UIsize_redraw = false;
 
+    // visualization
+    if (show_axisPoints) DrawAxisDots();
     // Text labels
     if (show_allMarkerIndex) ShowAllMarkerIndex();
     draw_labels_window();
@@ -601,7 +612,9 @@ void GUI::DrawMenuWindow() {
 
     ImGui::MenuItem("Log", NULL, &show_log);
     ImGui::MenuItem("3D Image Viewer", NULL, &show_3DImage_viewer);
-    ImGui::MenuItem("Property Editor", NULL, &show_property_editor);
+    if (ImGui::MenuItem("Property Editor", NULL, &show_property_editor)) {
+        show_axisPoints = show_property_editor;
+    }
 
     ImGui::Separator();
 
@@ -766,9 +779,17 @@ void GUI::DrawWindow3DImageViewer() {
             }
 
             // Orthographic view
-            ImGui::Checkbox("Orthographic view", &(viewer.core().orthographic));
-            if (stage >= 6)
-                ImGui::Checkbox("Show all marker index", &show_allMarkerIndex);
+            ImGui::Checkbox("Orthographic projection", &(viewer.core().orthographic));
+            if (stage >= 6) {
+                ImGui::Checkbox("Show marker index", &show_allMarkerIndex);
+                if (showTooltip && ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Show marker index registered in property editor window");
+                }
+            }
+            ImGui::Checkbox("Show axis points", &show_axisPoints);
+            if (showTooltip && ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Three array of points indicating the X, Y and Z axis");
+            }
             ImGui::PopItemWidth();
         }
 
@@ -840,7 +861,7 @@ void GUI::DrawWindowPropertyEditor() {
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
             ImGui::Columns(2);
 
-            const int maxNumItemDisplayed = 500;
+            const int maxNumItemDisplayed = 1000;
             const int ttlItem = pointRecord.num;
             const int numItemToDisplay = std::min(maxNumItemDisplayed, ttlItem);
             for (int i=0; i<numItemToDisplay; i++) {
@@ -890,12 +911,14 @@ void GUI::DrawWindowPropertyEditor() {
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
             ImGui::Columns(2);
 
-            const int maxNumItemDisplayed = 500;
+            const int maxNumItemDisplayed = 1000;
             const int ttlItem = markerArray[frameToShow].num;
             const int numItemToDisplay = std::min(maxNumItemDisplayed, ttlItem);
             for (int i=0; i<numItemToDisplay; i++) {
 
-                PropertyEditorItem::AppendMarkerRecordItem("Marker", i, markerArray[frameToShow]);
+                if (PropertyEditorItem::AppendMarkerRecordItem("Marker", i, markerArray[frameToShow])) {
+                    UpdateMarkerPointLocArray();
+                }
             }
 
             ImGui::Columns(1);
@@ -1247,7 +1270,9 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     UIsize.Image3DViewerHeight = 320;
     UIsize.RHSPanelWidth = 300;
     UIsize_redraw = true;
-    show_refPoints = true;
+
+    show_refPoints = false;
+    show_axisPoints = false;
     show_allMarkerIndex = false;
     // color
     markerPointColor.resize(1, 3);
@@ -1404,11 +1429,15 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
         // viewer.core().is_animating = true;
     int defaultMeshID = viewer.selected_data_index;
     meshID = viewer.append_mesh();
+    visualID = viewer.append_mesh();
     viewer.selected_data_index = defaultMeshID;
     viewer.plugins.push_back(this);
 
     // activate label rendering
     viewer.data().show_labels = true;
+    // initialize visualID mesh
+    viewer.data(visualID).point_size = 6;
+    viewer.data(visualID).show_labels = true;
 
     viewer.launch(true, false, "Zebrafish GUI", UIsize.windowWidth, UIsize.windowHeight);
 }

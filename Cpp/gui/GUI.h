@@ -337,7 +337,10 @@ private:
     int currentLoadedFrames;
     UIsize_t UIsize;
     bool UIsize_redraw;  // redraw after window resize
+
+    int visualID;
     bool show_refPoints;
+    bool show_axisPoints;
     bool show_allMarkerIndex;
     // color
     Eigen::MatrixXd markerPointColor;
@@ -414,6 +417,7 @@ private:
     // visualization
     void DrawText(Eigen::Vector3d pos, const std::string &text, const Eigen::Vector4f color);  // DO NOT USE THIS
     void DrawReferenceDots();
+    void DrawAxisDots();
     void ShowAllMarkerIndex();
     void PlotBadDCPoints();
 
