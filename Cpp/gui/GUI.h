@@ -411,6 +411,7 @@ private:
     void StateChangeReset();
 
     // visualization
+    void DrawText(Eigen::Vector3d pos, const std::string &text, const Eigen::Vector4f color);  // DO NOT USE THIS
     void DrawReferenceDots();
     void ShowAllMarkerIndex();
 

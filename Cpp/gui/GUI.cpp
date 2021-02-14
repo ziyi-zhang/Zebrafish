@@ -330,7 +330,12 @@ bool GUI::MouseMoveCallback(igl::opengl::glfw::Viewer &viewer, int mouse_x, int 
 /// This is the main starting point
 /// We override the libigl function "draw_menu" as the main GUI function
 
-void GUI::draw_menu() {
+void GUI::draw_menu() {  // this overrides the default draw_menu!
+
+    // viewer.data().clear();  // slow
+    viewer.data().clear_edges();
+    viewer.data().clear_points();
+    viewer.data().clear_labels();
 
     Draw3DImage();
     DrawMarkerMesh();
@@ -342,6 +347,10 @@ void GUI::draw_menu() {
     if (show_property_editor) DrawWindowPropertyEditor();
     if (show_graphics) DrawWindowGraphics();
     UIsize_redraw = false;
+
+    // Text labels
+    if (show_allMarkerIndex) ShowAllMarkerIndex();
+    draw_labels_window();
 }
 
 
@@ -350,11 +359,6 @@ void GUI::draw_menu() {
 
 
 void GUI::Draw3DImage() {
-
-    viewer.data().clear();
-    Eigen::Vector3d p;
-    p << 0.0, 0.0, 0.1;
-    viewer.data().add_label(p, "test label");
 
     // do not draw if there is no image or this is not needed
     if (currentLoadedFrames == 0) return;
@@ -1403,9 +1407,6 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
     viewer.plugins.push_back(this);
 
     // activate label rendering
-    igl::opengl::glfw::imgui::ImGuiMenu menu;  // FIXME: need another menu for labels to work
-    menu.callback_draw_viewer_window = [](){};
-    viewer.plugins.push_back(&menu);
     viewer.data().show_labels = true;
 
     viewer.launch(true, false, "Zebrafish GUI", UIsize.windowWidth, UIsize.windowHeight);
