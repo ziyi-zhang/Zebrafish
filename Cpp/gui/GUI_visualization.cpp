@@ -62,4 +62,32 @@ void GUI::ShowAllMarkerIndex() {
     }
 }
 
+
+void GUI::PlotBadDCPoints() {
+
+    if (markerDepthCorrectionSuccess.size()-1 < frameToShow) return;
+    const markerRecord_t &markerRecord = markerArray[frameToShow];
+    const std::vector<int> &succ = markerDepthCorrectionSuccess[frameToShow];
+    const int N = succ.size();
+    if (N == 0) return;
+
+    // colors
+    Eigen::MatrixXd colors(4, 3);
+    colors << 0, 0, 0, 
+              0.8, 0.0, 0.1, 
+              0.6, 0.7, 0.4, 
+              0.6, 0.7, 1.0;
+
+    viewer.data().show_labels = true;
+    Eigen::Vector3d p;
+    for (int i=0; i<N; i++) {
+        if (succ[i] == 0) continue;  // if this point is successful
+        p << 0.5+markerRecord.loc(i, 1), (imgRows-0.5)-markerRecord.loc(i, 0), markerRecord.loc(i, 2) + 0.003;
+        // label
+        viewer.data().add_label(p, std::to_string(i));
+        // point
+        viewer.data().add_points(p.transpose(), colors.row(succ[i]));
+    }
+}
+
 }  // namespace zebrafish

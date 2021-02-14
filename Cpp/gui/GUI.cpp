@@ -1232,6 +1232,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     //////////////////////////////////////////////////
     // visualization
     compressedImgTextureArray.resize(1);
+    markerDepthCorrectionSuccess.resize(1);
     markerPointLocArray.clear();
     markerPointStatusArray.resize(1, 1);
     manualOverrideMarkerVis = false;

@@ -405,8 +405,8 @@ private:
     void ComputeCompressedTextureMax(const image_t &img_, int index);
     void ComputeCompressedTextureForAllLoadedFrames();
     void UpdateMarkerPointLocArray();
-    bool MarkerRecursiveDepthCorrection(int frameIdx, int depthNum, double depthGap, bool logEnergy = false, bool forceSecondRound = false);
-    bool MarkerDepthCorrection(int frameIdx, int num, double gap, bool logEnergy = false, bool logSuccess = false);
+    bool MarkerRecursiveDepthCorrection(int frameIdx, int depthNum, double depthGap, bool logEnergy = false, bool forceSecondRound = false, bool showSuccess = false);
+    bool MarkerDepthCorrection(int frameIdx, int num, double gap, bool logEnergy = false, bool showSuccess = false);
     void NormalizeImage(image_t &image, double thres);
     void LoadPreviewImage(std::string path);
     void StateChangeReset();
@@ -415,6 +415,7 @@ private:
     void DrawText(Eigen::Vector3d pos, const std::string &text, const Eigen::Vector4f color);  // DO NOT USE THIS
     void DrawReferenceDots();
     void ShowAllMarkerIndex();
+    void PlotBadDCPoints();
 
     // marker drag
     void RenderMarkerDragGUI();

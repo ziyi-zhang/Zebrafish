@@ -263,6 +263,9 @@ namespace zebrafish
             }
         }
 
+        // Visualize unsuccessfully optimized points
+        PlotBadDCPoints();
+
         // Visualize meshes
         DrawMarkerMesh();
 
@@ -723,7 +726,7 @@ namespace zebrafish
             ApplyOpticalFlow(currentFrame);
 
             // depth correction for the frame that was just updated
-            if (!MarkerRecursiveDepthCorrection(currentFrame + 1, depthCorrectionNum, depthCorrectionGap, logEnergy, true)) {
+            if (!MarkerRecursiveDepthCorrection(currentFrame + 1, depthCorrectionNum, depthCorrectionGap, logEnergy, true, true)) {
                 res = false;
                 logger().warn("Depth search unsuccessful on frame {}. See above for detailed reasons.", currentFrame + 1);
             }

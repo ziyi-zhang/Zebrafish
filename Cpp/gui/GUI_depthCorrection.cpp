@@ -134,22 +134,22 @@ double FindDepthFromMesh(const Eigen::MatrixXi &markerMeshArray, const Eigen::Ma
 // Special module about depth correction
 
 
-bool GUI::MarkerRecursiveDepthCorrection(int frameIdx, int depthNum, double depthGap, bool logEnergy, bool forceSecondRound) {
+bool GUI::MarkerRecursiveDepthCorrection(int frameIdx, int depthNum, double depthGap, bool logEnergy, bool forceSecondRound, bool showSuccess) {
 
     // first round
     logger().info("========== First Round Depth Correction: frame {} ==========", frameIdx);
-    double res = MarkerDepthCorrection(frameIdx, depthNum, depthGap, logEnergy);
+    double res = MarkerDepthCorrection(frameIdx, depthNum, depthGap, logEnergy, showSuccess);
     // second round (refine)
     if (secondRoundDepthCorrection && (forceSecondRound || res)) {
         logger().info("========== Second Round Depth Correction: frame {} ==========", frameIdx);
-        MarkerDepthCorrection(frameIdx, 20, depthGap / 20.0, logEnergy);
+        MarkerDepthCorrection(frameIdx, 20, depthGap / 20.0, logEnergy);  // do not plot unsuccessful points for this round
     }
 
     return res;
 }
 
 
-bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, bool logEnergy, bool logSuccess) {
+bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, bool logEnergy, bool showSuccess) {
 // try different z's and pick the one with minimal energy
 
     if (markerArray.empty()) {
@@ -160,8 +160,8 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
     const int N = markerArray[frameIdx].num;
     const int M = depthNum * 2 + 1;
 
-    // initialize depth correction success array everytime
-    markerDepthCorrectionSuccess[frameIdx].assign(N, 0);
+    // initialize depth correction success
+    if (showSuccess) markerDepthCorrectionSuccess[frameIdx].assign(N, 0);
     if (N == 0) return true;
 
     /////////////////////////////////////////////////
@@ -303,7 +303,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
             std::sprintf(errorMsg, "> [warning] No valid energy. Too close to the boundary or other failures: Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
             logger().warn(errorMsg);
             std::cerr << errorMsg << std::endl;
-            markerDepthCorrectionSuccess[frameIdx][i] = 1;
+            if (showSuccess) markerDepthCorrectionSuccess[frameIdx][i] = 1;
             res = false;
         } else {
             // minEnergy < 1.0
@@ -325,7 +325,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
                 logger().warn(errorMsg);
                 std::cerr << errorMsg << std::endl;
                 std::cerr << "energy_cache.row(" << i << ") = " << energy_cache.row(i) << std::endl;
-                markerDepthCorrectionSuccess[frameIdx][i] = 2;
+                if (showSuccess) markerDepthCorrectionSuccess[frameIdx][i] = 2;
                 res = false;
             }
             // derivative looks good?
@@ -337,6 +337,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
                 logger().debug(warnMsg);
                 std::cerr << warnMsg << std::endl;
                 std::cerr << "energy_cache.row(" << i << ") = " << energy_cache.row(i) << std::endl;
+                if (showSuccess) markerDepthCorrectionSuccess[frameIdx][i] = 3;
             }
 
             // it is possible that smoothing caused the minCol to shift by 1 (or 2?)
