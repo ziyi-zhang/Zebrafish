@@ -168,6 +168,7 @@ void GUI::LoadSubsequentFrames() {
     imgData.resize(desiredFrames);
     compressedImgTextureArray.resize(desiredFrames);
     bsplineArray.resize(desiredFrames);
+    markerDepthCorrectionSuccess.resize(desiredFrames);
         // initialize with the markers in the first frame
     markerArray.resize(desiredFrames, markerArray[0]);
         // initialize with zero matrices

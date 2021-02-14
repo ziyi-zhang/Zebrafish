@@ -328,6 +328,7 @@ private:
     // visualization
     texture_t texture;
     textureArray_t compressedImgTextureArray;
+    std::vector<std::vector<int> > markerDepthCorrectionSuccess;
     std::vector<Eigen::MatrixXd> markerPointLocArray;  // visualization purpose
     Eigen::Matrix<bool, Eigen::Dynamic, 1> markerPointStatusArray;  // visualization purpose
     bool manualOverrideMarkerVis, showAllMarkers;
@@ -405,7 +406,7 @@ private:
     void ComputeCompressedTextureForAllLoadedFrames();
     void UpdateMarkerPointLocArray();
     bool MarkerRecursiveDepthCorrection(int frameIdx, int depthNum, double depthGap, bool logEnergy = false, bool forceSecondRound = false);
-    bool MarkerDepthCorrection(int frameIdx, int num, double gap, bool logEnergy = false);
+    bool MarkerDepthCorrection(int frameIdx, int num, double gap, bool logEnergy = false, bool logSuccess = false);
     void NormalizeImage(image_t &image, double thres);
     void LoadPreviewImage(std::string path);
     void StateChangeReset();

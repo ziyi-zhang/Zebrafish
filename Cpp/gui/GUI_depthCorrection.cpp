@@ -149,7 +149,7 @@ bool GUI::MarkerRecursiveDepthCorrection(int frameIdx, int depthNum, double dept
 }
 
 
-bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, bool logEnergy) {
+bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, bool logEnergy, bool logSuccess) {
 // try different z's and pick the one with minimal energy
 
     if (markerArray.empty()) {
@@ -159,6 +159,9 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
     }
     const int N = markerArray[frameIdx].num;
     const int M = depthNum * 2 + 1;
+
+    // initialize depth correction success array everytime
+    markerDepthCorrectionSuccess[frameIdx].assign(N, 0);
     if (N == 0) return true;
 
     /////////////////////////////////////////////////
@@ -300,6 +303,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
             std::sprintf(errorMsg, "> [warning] No valid energy. Too close to the boundary or other failures: Frame %d, Marker index %d at [%.2f, %.2f, %.2f].", frameIdx, i, markerArray[frameIdx].loc(i, 0), markerArray[frameIdx].loc(i, 1), markerArray[frameIdx].loc(i, 2));
             logger().warn(errorMsg);
             std::cerr << errorMsg << std::endl;
+            markerDepthCorrectionSuccess[frameIdx][i] = 1;
             res = false;
         } else {
             // minEnergy < 1.0
@@ -321,6 +325,7 @@ bool GUI::MarkerDepthCorrection(int frameIdx, int depthNum, double depthGap, boo
                 logger().warn(errorMsg);
                 std::cerr << errorMsg << std::endl;
                 std::cerr << "energy_cache.row(" << i << ") = " << energy_cache.row(i) << std::endl;
+                markerDepthCorrectionSuccess[frameIdx][i] = 2;
                 res = false;
             }
             // derivative looks good?

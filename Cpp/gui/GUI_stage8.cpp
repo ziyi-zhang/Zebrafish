@@ -684,8 +684,7 @@ namespace zebrafish
     ////////////////////////////////////////////////////////////////////////////////////////
     // Optimization
 
-    void GUI::GetMarkersInAvgDispArea(std::vector<bool> &markerInAvgDispArea)
-    {
+    void GUI::GetMarkersInAvgDispArea(std::vector<bool> &markerInAvgDispArea) {
 
         const int N = markerArray[0].num;
         markerInAvgDispArea.resize(N);
@@ -696,30 +695,24 @@ namespace zebrafish
         int y0 = (meanCrop.c0 == -1) ? 0 : meanCrop.c0;
         int y1 = (meanCrop.c1 == -1) ? imgCols : meanCrop.c1;
 
-        for (int i = 0; i < N; i++)
-        {
+        for (int i = 0; i < N; i++) {
             if (markerArray[0].loc(i, 0) > x0 && markerArray[0].loc(i, 0) < x1 &&
-                markerArray[0].loc(i, 1) > y0 && markerArray[0].loc(i, 1) < y1)
-            {
+                markerArray[0].loc(i, 1) > y0 && markerArray[0].loc(i, 1) < y1) {
                 markerInAvgDispArea[i] = true;
                 count += 1;
-            }
-            else
-            {
+            } else {
                 markerInAvgDispArea[i] = false;
             }
         }
         logger().info("#markerInAvgDispArea = {}", count);
     }
 
-    bool GUI::OptimizeAllFrames(bool logEnergy)
-    {
+    bool GUI::OptimizeAllFrames(bool logEnergy) {
 
         bool res = true;
         int currentFrame;
 
-        for (currentFrame = 0; currentFrame < currentLoadedFrames - 1; currentFrame++)
-        {
+        for (currentFrame = 0; currentFrame < currentLoadedFrames - 1; currentFrame++) {
 
             // OptimizeOneFrame(currentFrame);
             /// Note: why don't we optimize here anymore?
@@ -730,8 +723,7 @@ namespace zebrafish
             ApplyOpticalFlow(currentFrame);
 
             // depth correction for the frame that was just updated
-            if (!MarkerRecursiveDepthCorrection(currentFrame + 1, depthCorrectionNum, depthCorrectionGap, logEnergy, true))
-            {
+            if (!MarkerRecursiveDepthCorrection(currentFrame + 1, depthCorrectionNum, depthCorrectionGap, logEnergy, true)) {
                 res = false;
                 logger().warn("Depth search unsuccessful on frame {}. See above for detailed reasons.", currentFrame + 1);
             }
