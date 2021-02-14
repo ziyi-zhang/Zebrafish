@@ -130,6 +130,7 @@ if(ZEBRA_TOPLEVEL_PROJECT)
     Cpp/gui/GUI_markerDrag.cpp
     Cpp/gui/GUI_mask.cpp
     Cpp/gui/GUI_depthCorrection.cpp
+    Cpp/gui/GUI_visualization.cpp
     analysis/zebra-analysis.cpp
   )
   zebra_copy_headers(Cpp/gui/GUI.h Cpp/gui/FileDialog.h)

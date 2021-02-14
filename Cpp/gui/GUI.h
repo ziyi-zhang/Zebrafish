@@ -337,6 +337,7 @@ private:
     UIsize_t UIsize;
     bool UIsize_redraw;  // redraw after window resize
     bool show_refPoints;
+    bool show_allMarkerIndex;
     // color
     Eigen::MatrixXd markerPointColor;
 
@@ -398,8 +399,6 @@ private:
     void DrawWindowPropertyEditor();
     void DrawWindowGraphics();
 
-    void DrawReferenceDots();
-
     // shared
     void ComputeCompressedTextureAvg(const image_t &img_, int index);
     void ComputeCompressedTextureMax(const image_t &img_, int index);
@@ -410,6 +409,10 @@ private:
     void NormalizeImage(image_t &image, double thres);
     void LoadPreviewImage(std::string path);
     void StateChangeReset();
+
+    // visualization
+    void DrawReferenceDots();
+    void ShowAllMarkerIndex();
 
     // marker drag
     void RenderMarkerDragGUI();

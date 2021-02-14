@@ -48,7 +48,7 @@ const auto Initialize = [](Eigen::MatrixXd &V, Eigen::MatrixXi &F, RCMap_t &RCMa
     RCMap.insert({4, {1, 0}});
     RCMap.insert({5, {1, 1}});
     RCMap.insert({6, {0, 2}});
-    RCMap.insert({7, {7, 3}});
+    RCMap.insert({7, {0, 3}});
     RCMap.insert({8, {0, 1}});
 };
 

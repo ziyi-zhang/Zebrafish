@@ -352,6 +352,9 @@ void GUI::draw_menu() {
 void GUI::Draw3DImage() {
 
     viewer.data().clear();
+    Eigen::Vector3d p;
+    p << 0.0, 0.0, 0.1;
+    viewer.data().add_label(p, "test label");
 
     // do not draw if there is no image or this is not needed
     if (currentLoadedFrames == 0) return;
@@ -760,6 +763,8 @@ void GUI::DrawWindow3DImageViewer() {
 
             // Orthographic view
             ImGui::Checkbox("Orthographic view", &(viewer.core().orthographic));
+            if (stage >= 6)
+                ImGui::Checkbox("Show all marker index", &show_allMarkerIndex);
             ImGui::PopItemWidth();
         }
 
@@ -919,23 +924,6 @@ void GUI::DrawWindowGraphics() {
     }
     igl::opengl::glfw::imgui::ImGuiMenu::draw_viewer_menu();
     ImGui::End();
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////
-// Reference Points
-
-
-void GUI::DrawReferenceDots() {
-
-    if (!show_refPoints) return;
-    static Eigen::Matrix3d loc = (Eigen::Matrix3d() << 0, 0, 1, imgCols, imgRows, layerPerImg, imgCols-1, imgRows-1, layerPerImg-1).finished();
-    static Eigen::MatrixXd referencePointColor = [] {
-        Eigen::MatrixXd tmp(1, 3);
-        tmp << 0.33, 0.83, 0.33;
-        return tmp;
-    } ();
-    viewer.data().add_points(loc, referencePointColor);
 }
 
 
@@ -1255,6 +1243,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     UIsize.RHSPanelWidth = 300;
     UIsize_redraw = true;
     show_refPoints = true;
+    show_allMarkerIndex = false;
     // color
     markerPointColor.resize(1, 3);
     markerPointColor << 0.93, 0.32, 0.15;
@@ -1412,6 +1401,13 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
     meshID = viewer.append_mesh();
     viewer.selected_data_index = defaultMeshID;
     viewer.plugins.push_back(this);
+
+    // activate label rendering
+    igl::opengl::glfw::imgui::ImGuiMenu menu;  // FIXME: need another menu for labels to work
+    menu.callback_draw_viewer_window = [](){};
+    viewer.plugins.push_back(&menu);
+    viewer.data().show_labels = true;
+
     viewer.launch(true, false, "Zebrafish GUI", UIsize.windowWidth, UIsize.windowHeight);
 }
 

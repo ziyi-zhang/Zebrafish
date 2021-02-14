@@ -57,6 +57,9 @@ void padding::ComputeOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F,
         appendV.conservativeResize(N+1, 3);
         appendV(N, 2) = 1.2;// V(central_vid, 2);  // temporary z-value
         // Update New Vertex Loc
+        //     1    2
+        //  0  center  3
+        //     5    4
         switch (dir) {
         case 0:
             appendV(N, 0) = V(central_vid, 0) - avgEdgeLength;
@@ -64,11 +67,11 @@ void padding::ComputeOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F,
             break;
         case 1:
             appendV(N, 0) = V(central_vid, 0) - avgEdgeLength * 0.5;
-            appendV(N, 1) = V(central_vid, 1) - avgEdgeLength * std::sqrt(3) / 2.0;
+            appendV(N, 1) = V(central_vid, 1) + avgEdgeLength * std::sqrt(3) / 2.0;
             break;
         case 2:
             appendV(N, 0) = V(central_vid, 0) + avgEdgeLength * 0.5;
-            appendV(N, 1) = V(central_vid, 1) - avgEdgeLength * std::sqrt(3) / 2.0;
+            appendV(N, 1) = V(central_vid, 1) + avgEdgeLength * std::sqrt(3) / 2.0;
             break;
         case 3:
             appendV(N, 0) = V(central_vid, 0) + avgEdgeLength;
@@ -76,10 +79,10 @@ void padding::ComputeOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F,
             break;
         case 4:
             appendV(N, 0) = V(central_vid, 0) + avgEdgeLength * 0.5;
-            appendV(N, 1) = V(central_vid, 1) + avgEdgeLength * std::sqrt(3) / 2.0;
+            appendV(N, 1) = V(central_vid, 1) - avgEdgeLength * std::sqrt(3) / 2.0;
             break;
         case 5:
-            appendV(N, 0) = V(central_vid, 0) + avgEdgeLength * 0.5;
+            appendV(N, 0) = V(central_vid, 0) - avgEdgeLength * 0.5;
             appendV(N, 1) = V(central_vid, 1) - avgEdgeLength * std::sqrt(3) / 2.0;
             break;
         default:
