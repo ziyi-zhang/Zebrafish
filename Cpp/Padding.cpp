@@ -18,7 +18,7 @@ namespace {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // class padding
 
-void padding::AddOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F, const RCMap_t &RCMap, Eigen::MatrixXd &appendV, Eigen::MatrixXi &appendF) {
+void padding::ComputeOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F, const RCMap_t &RCMap, Eigen::MatrixXd &appendV, Eigen::MatrixXi &appendF) {
 
     std::unordered_set<int> vids, vids_new;
     RCMap_t RCMap_new;  // map newly created vertices to RC
@@ -54,8 +54,8 @@ void padding::AddOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F, con
         }
         // create one and return the new id
         int N = appendV.rows();
-        appendV.conservativeResize(N, 3);
-        appendV(N, 2) = V(central_vid, 2);  // temporary z-value
+        appendV.conservativeResize(N+1, 3);
+        appendV(N, 2) = 1.2;// V(central_vid, 2);  // temporary z-value
         // Update New Vertex Loc
         switch (dir) {
         case 0:
@@ -80,7 +80,7 @@ void padding::AddOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F, con
             break;
         case 5:
             appendV(N, 0) = V(central_vid, 0) + avgEdgeLength * 0.5;
-            appendV(N, 1) = V(central_vid, 1) + avgEdgeLength * std::sqrt(3) / 2.0;
+            appendV(N, 1) = V(central_vid, 1) - avgEdgeLength * std::sqrt(3) / 2.0;
             break;
         default:
             break;
@@ -129,11 +129,11 @@ void padding::AddOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F, con
         int rc_loop[6][2]{
             // clockwise
             {r, c-1},
+            {r-1, c-1+col_correction},
             {r-1, c+col_correction},
-            {r-1, c+1+col_correction},
             {r, c+1}, 
             {r+1, c+col_correction},
-            {r+1, c+1+col_correction},
+            {r+1, c-1+col_correction}
         };
 
         for (int i=0; i<6; i++) {
@@ -143,7 +143,7 @@ void padding::AddOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F, con
 
             tri_t tri = FormTriangle(rc0, rc1, rc2);
             auto it = std::find(tri_set.begin(), tri_set.end(), tri);
-            if (it == tri_set.end()) {
+            if (it != tri_set.end()) {
                 continue;
             } else {
                 // find a new triangle to insert
@@ -153,11 +153,23 @@ void padding::AddOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F, con
                 // real update
                 tri_set.push_back(tri);
                 int appendF_cnt = appendF.rows();
-                appendF.conservativeResize(appendF_cnt, 3);
+                appendF.conservativeResize(appendF_cnt+1, 3);
                 appendF.row(appendF_cnt) << vid, v1, v2;  // order matters
             }
         }
     }
+}
+
+
+void padding::AddOneRing(const Eigen::MatrixXd &appendV, const Eigen::MatrixXi &appendF, Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
+
+    int N = V.rows();
+    V.conservativeResize(V.rows() + appendV.rows(), 3);
+    V.block(N, 0, appendV.rows(), 3) = appendV;
+
+    N = F.rows();
+    F.conservativeResize(F.rows() + appendF.rows(), 3);
+    F.block(N, 0, appendF.rows(), 3) = appendF;
 }
 
 }  // namespace zebrafish

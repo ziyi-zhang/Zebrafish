@@ -2,12 +2,17 @@
 #include <zebrafish/Common.h>
 #include <zebrafish/Logger.hpp>
 #include <zebrafish/Padding.h>
+#include <igl/opengl/glfw/Viewer.h>
+#include <igl/opengl/glfw/imgui/ImGuiMenu.h>
+#include <igl/opengl/glfw/imgui/ImGuiHelpers.h>
 
+#include <imgui/imgui.h>
 #include <catch.hpp>
 
 #include <math.h>
 #include <stdlib.h>
 #include <random>
+#include <unordered_set>
 
 using namespace std;
 using namespace Eigen;
@@ -58,8 +63,36 @@ TEST_CASE("Padding_9", "[PaddingTest]") {
 
     Initialize(V, F, RCMap);
 
-    padding::AddOneRing(V, F, RCMap, appendV, appendF);
+    padding::ComputeOneRing(V, F, RCMap, appendV, appendF);
+    padding::AddOneRing(appendV, appendF, V, F);
+
+
+    cout << "appendV" << endl;
     cout << appendV << endl;
     cout << "appendF" << endl;
     cout << appendF << endl;
+
+    std::unordered_set<int> vids;
+    for (int i=0; i<F.rows(); i++) {
+        vids.insert(F(i, 0));
+        vids.insert(F(i, 1));
+        vids.insert(F(i, 2));
+    }
+    igl::opengl::glfw::Viewer viewer;
+    Eigen::Vector3d p;
+    p << 0.0, 0.0, 0.005;
+    viewer.data().set_mesh(V, F);
+    for (int vid : vids) {
+        viewer.data().add_label(V.row(vid) + p.transpose(), std::to_string(vid));
+    }
+    printf("#vids = %lu\n", vids.size());
+
+    // activate label rendering
+    viewer.data().show_labels = true;
+    // Rendering of text labels is handled by ImGui, so we need to enable the ImGui
+    // plugin to show text labels.
+    igl::opengl::glfw::imgui::ImGuiMenu menu;
+    menu.callback_draw_viewer_window = [](){};
+    viewer.plugins.push_back(&menu);
+    viewer.launch();
 }

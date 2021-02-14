@@ -15,7 +15,7 @@ foreach(source IN ITEMS ${test_sources})
     source_group("tests" FILES "${source}")
 endforeach()
 
-target_link_libraries(unit_tests PUBLIC ZebraFish Catch2::Catch2 warnings::all)
+target_link_libraries(unit_tests PUBLIC ZebraFish Catch2::Catch2 warnings::all igl::opengl igl::opengl_glfw igl::opengl_glfw_imgui)
 
 set(DATA_DIR "$CMAKE_CURRENT_SOURCE_DIR/data/")
 target_include_directories(unit_tests PUBLIC ${ZEBRA_EXTERNAL}/Catch2/single_include/catch2)
