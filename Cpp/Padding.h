@@ -4,6 +4,8 @@
 #include <zebrafish/Common.h>
 
 #include <Eigen/Dense>
+#include <map>
+#include <array>
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace zebrafish {
