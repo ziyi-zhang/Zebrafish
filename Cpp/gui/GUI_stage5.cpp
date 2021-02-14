@@ -378,11 +378,15 @@ void GUI::DrawStage5() {
         static bool logEnergy = false;
         ImGui::SliderFloat("DC gap", &depthCorrectionGap, 0, 0.3, "%.3f pixels");
         if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Depth correction gap in pixels");
+            ImGui::SetTooltip("Depth search gap in pixels");
         }
         ImGui::SliderInt("DC trial numbers", &depthCorrectionNum, 0, 50, "%d * gap");
         if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Depth correction trial numbers. A vertical interval of length [2*num+1]x[gap] pixels will be searched to determine whether the depth should be modified.");
+            ImGui::SetTooltip("Depth search trial numbers. A vertical interval of length [2*num+1]x[gap] pixels will be searched to determine whether the depth should be modified.");
+        }
+        ImGui::Checkbox("Second round DC", &secondRoundDepthCorrection);
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Increase depth search precision but time-consuming");
         }
         ImGui::Checkbox("Log energy matrix", &logEnergy);
         if (showTooltip && ImGui::IsItemHovered()) {

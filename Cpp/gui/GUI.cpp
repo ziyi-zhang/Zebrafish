@@ -1199,6 +1199,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     showOpticalFlow = false;
 
     // Displacement
+    secondRoundDepthCorrection = true;
     depthCorrectionNum = 20;
     depthCorrectionGap = 0.2;
     optimMaxXYDisp = 4.0;  // depth correction allowed XY displacement

@@ -135,7 +135,7 @@ void GUI::DrawStage6() {
             const float inputWidth = ImGui::GetWindowWidth() / 2.0;
             ImGui::PushItemWidth(inputWidth);
 
-            if (ImGui::Button("Reset trans")) {
+            if (ImGui::Button("Reset ICP trans")) {
                 ResetICPTransformation();
                 showICPLines = false;
                 showMarkerMesh = false;
@@ -334,6 +334,13 @@ void GUI::UpdateMarkerMesh() {
 
     for (i=0; i<N; i++) {
         indexMap.insert({ICP.matchIdx(i), i});  // pattern idx -> marker idx
+    }
+
+    // update markerRCMap
+    markerRCMap.clear();
+    for (auto p : indexMap) {
+        std::array<int, 2> rc{ICP.refV_RC(p.first, 0), ICP.refV_RC(p.first, 1)};
+        markerRCMap.insert({p.second, rc});
     }
 
     count = 0;

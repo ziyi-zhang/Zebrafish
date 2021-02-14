@@ -140,7 +140,7 @@ bool GUI::MarkerRecursiveDepthCorrection(int frameIdx, int depthNum, double dept
     logger().info("========== First Round Depth Correction: frame {} ==========", frameIdx);
     double res = MarkerDepthCorrection(frameIdx, depthNum, depthGap, logEnergy);
     // second round (refine)
-    if (forceSecondRound || res) {
+    if (secondRoundDepthCorrection && (forceSecondRound || res)) {
         logger().info("========== Second Round Depth Correction: frame {} ==========", frameIdx);
         MarkerDepthCorrection(frameIdx, 20, depthGap / 20.0, logEnergy);
     }

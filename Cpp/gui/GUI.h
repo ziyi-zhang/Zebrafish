@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <map>
 #include <igl/opengl/glfw/Viewer.h>
 #include <igl/opengl/glfw/imgui/ImGuiMenu.h>
 ////////////////////////////////////////////////////////////////////////////////
@@ -116,6 +117,7 @@ typedef struct ICP_t {
         Tmat = Eigen::MatrixXd::Zero(3, 1);
     }
 } ICP_t;
+
 
 /*
 typedef struct padding_t {
@@ -264,6 +266,10 @@ private:
     int meshID;
 
     //////////////////////////////////////////////////
+    // Padding
+    std::map<int, std::array<int, 2> > markerRCMap;  // map marker index in "markerMeshArray" to (row, col) in regular triangular mesh
+
+    //////////////////////////////////////////////////
     // Optical Flow
     int desiredFrames;  // only load the first "desiredFrames" frames
     double opticalFlowAlpha;  // weight factor
@@ -275,6 +281,7 @@ private:
 
     //////////////////////////////////////////////////
     // Displacement
+    bool secondRoundDepthCorrection;
     int depthCorrectionNum;
     float depthCorrectionGap;
     float optimMaxXYDisp;  // max XY displacement during optimization

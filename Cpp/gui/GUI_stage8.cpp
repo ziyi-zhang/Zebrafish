@@ -295,44 +295,39 @@ namespace zebrafish
 
         ImGui::Separator(); /////////////////////////////////////////
 
-        if (analysisInputPath.empty() && ImGui::CollapsingHeader("Displacement", ImGuiTreeNodeFlags_DefaultOpen))  // do not draw if in re-analysis mode
-        {
+        if (analysisInputPath.empty() && ImGui::CollapsingHeader("Displacement", ImGuiTreeNodeFlags_DefaultOpen)) {  // do not draw if in re-analysis mode
 
             static bool logEnergy = false;
             static std::string calcDispStr = "";
-            if (ImGui::TreeNode("Advanced depth correction"))
-            {
+            if (ImGui::TreeNode("Advanced depth correction")) {
 
                 const float inputWidth = ImGui::GetWindowWidth() / 3.0;
                 ImGui::PushItemWidth(inputWidth);
 
-                if (ImGui::SliderFloat("DC gap", &depthCorrectionGap, 0, 0.3, "%.3f pixels"))
-                {
+                if (ImGui::SliderFloat("DC gap", &depthCorrectionGap, 0, 0.3, "%.3f pixels")) {
                     calcDispStr = "";
                 }
-                if (showTooltip && ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Depth correction gap in pixels");
+                if (showTooltip && ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Depth search gap in pixels");
                 }
-                if (ImGui::SliderInt("DC trial numbers", &depthCorrectionNum, 0, 50, "%d * gap"))
-                {
+                if (ImGui::SliderInt("DC trial numbers", &depthCorrectionNum, 0, 50, "%d * gap")) {
                     calcDispStr = "";
                 }
-                if (showTooltip && ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Depth correction trial numbers. A vertical interval of length [2*num+1]x[gap] pixels will be searched to determine whether the depth should be modified.");
+                if (showTooltip && ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Depth search trial numbers. A vertical interval of length [2*num+1]x[gap] pixels will be searched to determine whether the depth should be modified.");
                 }
-                if (ImGui::SliderFloat("Max XY displacement", &optimMaxXYDisp, 0.5, 9, "%.2f pixels"))
-                {
+                if (ImGui::SliderFloat("Max XY displacement", &optimMaxXYDisp, 0.5, 9, "%.2f pixels")) {
                     calcDispStr = "";
                 }
-                if (showTooltip && ImGui::IsItemHovered())
-                {
+                if (showTooltip && ImGui::IsItemHovered()) {
                     ImGui::SetTooltip("Maximum displacement in XY plane during depth correction");
                 }
+                ImGui::Checkbox("Second round DC", &secondRoundDepthCorrection);
+                if (showTooltip && ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Increase depth search precision but time-consuming");
+                }
                 ImGui::Checkbox("Log energy matrix", &logEnergy);
-                if (showTooltip && ImGui::IsItemHovered())
-                {
+                if (showTooltip && ImGui::IsItemHovered()) {
                     ImGui::SetTooltip("[Debug purpose] whether log the energy for all depth trials");
                 }
 
@@ -342,25 +337,20 @@ namespace zebrafish
                 ImGui::Separator();
             }
 
-            if (ImGui::Button("Calculate Displacement"))
-            {
-                try
-                {
+            if (ImGui::Button("Calculate Displacement")) {
+                try {
                     if (OptimizeAllFrames(logEnergy))
                         calcDispStr = "Successful";
                     else
                         calcDispStr = "exception: see log";
                     logger().debug("   <button> Calculate Displacement");
-                }
-                catch (const std::exception &e)
-                {
+                } catch (const std::exception &e) {
                     logger().error("   <button> [Calculate Displacement] Fatal error encountered.");
                     std::cerr << "   <button> [Calculate Displacement] Fatal error encountered." << std::endl;
                     calcDispStr = "Fatal error";
                 }
             }
-            if (showTooltip && ImGui::IsItemHovered())
-            {
+            if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Calculate displacement for all loaded frames");
             }
             ImGui::SameLine();
@@ -368,8 +358,7 @@ namespace zebrafish
 
             ImGui::Separator(); /////////////////////////////////////////
 
-            if (ImGui::TreeNode("Advanced visualization     "))
-            {
+            if (ImGui::TreeNode("Advanced visualization     ")) {
 
                 const float inputWidth = ImGui::GetWindowWidth() / 3.0;
                 ImGui::PushItemWidth(inputWidth);
