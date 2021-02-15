@@ -13,6 +13,7 @@ namespace zebrafish
                           const double E, const double nu,
                           const double offset, const double radius_edge_ratio, const double min_area,
                           const int discr_order, const bool is_linear, const int n_refs, const double vismesh_rel_area, const int upsample,
-                          const std::map<int, std::array<int, 2> > &markerRCMap,
+                          const std::map<int, std::array<int, 2> > &markerRCMap, const int imgRows, const int imgCols, const int layerPerImg,
+                          const double resolutionX, const double resolutionY, const double resolutionZ,
                           const bool saveinput);
 }

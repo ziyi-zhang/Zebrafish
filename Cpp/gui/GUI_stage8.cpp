@@ -156,31 +156,25 @@ namespace zebrafish
             }
         }
 
-        void GetPhysicalLocation(const std::vector<Eigen::MatrixXd> &locArray, double resolutionX, double resolutionY, double resolutionZ, std::vector<Eigen::MatrixXd> &locArray_out)
-        {
+        void GetPhysicalLocation(const std::vector<Eigen::MatrixXd> &locArray, double resolutionX, double resolutionY, double resolutionZ, std::vector<Eigen::MatrixXd> &locArray_out) {
 
             const int N = locArray.size();
             locArray_out.resize(N);
             bool physical;
 
-            if (resolutionX > 0 && resolutionY > 0 && resolutionZ > 0)
-            {
+            if (resolutionX > 0 && resolutionY > 0 && resolutionZ > 0) {
                 physical = true;
                 logger().info("Using physical unit. Row dist = {}, col dist = {}, depth dist = {}", resolutionX, resolutionY, resolutionZ);
-            }
-            else
-            {
+            } else {
                 physical = false; // the user does not input valid physical resolution
                 logger().info("Physical resolution invalid. Using pixel as unit.");
             }
 
-            for (int i = 0; i < locArray.size(); i++)
-            {
+            for (int i = 0; i < locArray.size(); i++) {
 
                 // Note: locArray has inverted XY
                 locArray_out[i] = locArray[i];
-                if (physical)
-                {
+                if (physical) {
                     locArray_out[i].col(0) *= resolutionY;
                     locArray_out[i].col(1) *= resolutionX;
                     locArray_out[i].col(2) *= resolutionZ;
@@ -379,7 +373,7 @@ namespace zebrafish
 
         if (ImGui::CollapsingHeader("Analysis", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-            if (ImGui::Button("Padding")) {
+            if (!analysisInputPath.empty() && ImGui::Button("Padding")) {
                 Eigen::MatrixXd appendV;
                 Eigen::MatrixXi appendF;                
                 padding::ComputeOneRing(analysisPara.V[0], analysisPara.F, analysisPara.markerRCMap, appendV, appendF);
@@ -388,7 +382,7 @@ namespace zebrafish
             }
 
             // average displacement area crop
-            if (ImGui::Checkbox("[Mouse] global disp area", &meanCrop.cropActive)) {
+            if (analysisInputPath.empty() && ImGui::Checkbox("[Mouse] global disp area", &meanCrop.cropActive)) {  // no mean crop in re-analysis
                 if (!meanCrop.cropActive)
                     logger().debug("[Mouse] global disp area: de-activated.");
                 else {
@@ -465,34 +459,36 @@ namespace zebrafish
                             analysisPara.vismesh_rel_area,
                             analysisPara.upsample,
                             analysisPara.markerRCMap,
+                            imgRows, imgCols, layerPerImg,
+                            resolutionX, resolutionY, resolutionZ, 
                             false);
                     }
                     else {
 
                         // prepare the displacement
                         std::vector<Eigen::MatrixXd> analysisDisplacementVec;
-                        std::vector<Eigen::MatrixXd> markerPointLocArray_phy;
-                        GetPhysicalLocation(markerPointLocArray, resolutionX, resolutionY, resolutionZ, markerPointLocArray_phy);
+                            // Do NOT compute physical location here
+                            // std::vector<Eigen::MatrixXd> markerPointLocArray_phy;
+                            // GetPhysicalLocation(markerPointLocArray, resolutionX, resolutionY, resolutionZ, markerPointLocArray_phy);
                         // determine markers that are used to compute global displacement
                         std::vector<bool> markerInAvgDispArea;
                         GetMarkersInAvgDispArea(markerInAvgDispArea);
                         // remove global displacement
                         for (int i = 0; i < currentLoadedFrames; i++) {
 
-                            Eigen::MatrixXd V_analysis = markerPointLocArray_phy[i];
+                            Eigen::MatrixXd V_analysis = markerPointLocArray[i];
                             // remove the global movement
-                            Eigen::RowVectorXd meanV(1, 3); // (V_analysis - markerPointLocArray_phy[0]).colwise().mean();
+                            Eigen::RowVectorXd meanV(1, 3); // (V_analysis - markerPointLocArray[0]).colwise().mean();
                             meanV << 0.0f, 0.0f, 0.0f;
                             int count = 0;
-                            for (int j = 0; j < markerInAvgDispArea.size(); j++)
-                            {
+                            for (int j = 0; j < markerInAvgDispArea.size(); j++) {
                                 if (!markerInAvgDispArea[j])
                                     continue;
-                                meanV += V_analysis.row(j) - markerPointLocArray_phy[0].row(j);
+                                meanV += V_analysis.row(j) - markerPointLocArray[0].row(j);
                                 count += 1;
                             }
                             meanV /= double(count);
-                            logger().debug("Avg global displacement in frame {}: {} {} {}", i, meanV(0), meanV(1), meanV(2));
+                            logger().debug("Avg global displacement with {} markers in frame {}: {} {} {}", count, i, meanV(0), meanV(1), meanV(2));
 
                             V_analysis.rowwise() -= meanV;
                             // push to new analysis vector
@@ -517,6 +513,8 @@ namespace zebrafish
                             analysisPara.vismesh_rel_area, 
                             analysisPara.upsample, 
                             analysisPara.markerRCMap,
+                            imgRows, imgCols, layerPerImg,
+                            resolutionX, resolutionY, resolutionZ, 
                             true);
                     }
 

@@ -1154,7 +1154,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     UIsize.windowHeight = 900;
     UIsize.zebrafishWidth = 300;
     UIsize.logHeight = 150;
-    UIsize.Image3DViewerHeight = 320;
+    UIsize.Image3DViewerHeight = 350;
     UIsize.RHSPanelWidth = 300;
     UIsize_redraw = true;
 
@@ -1251,6 +1251,14 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
             analysisPara.vismesh_rel_area = H5Easy::load<double>(file, "vismesh_rel_area");
             analysisPara.upsample = H5Easy::load<int>(file, "upsample");
 
+            // dimension
+            imgRows = H5Easy::load<int>(file, "imgRows");
+            imgCols = H5Easy::load<int>(file, "imgCols");
+            layerPerImg = H5Easy::load<int>(file, "layerPerImg");
+            resolutionX = H5Easy::load<double>(file, "resolutionX");
+            resolutionY = H5Easy::load<double>(file, "resolutionY");
+            resolutionZ = H5Easy::load<double>(file, "resolutionZ");
+
             // V, F
             int frames, Nverts;
             Eigen::MatrixXd V_concatenated;
@@ -1301,6 +1309,8 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
             analysisPara.vismesh_rel_area,
             analysisPara.upsample,
             analysisPara.markerRCMap,
+            imgRows, imgCols, layerPerImg,
+            resolutionX, resolutionY, resolutionZ, 
             false);
 
         return;
@@ -1311,6 +1321,7 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
         showBackgroundImage = false;
         show_property_editor = false;  // disable this
         show_badDCPoints = false;
+        meanCrop.showCropArea = false;  // no crop allowed
         UpdateAnalysisPointLocArray();
     }
 

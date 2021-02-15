@@ -14,14 +14,16 @@
 #include <igl/remove_unreferenced.h>
 #include <highfive/H5Easy.hpp>
 
+
 namespace zebrafish
 {
-    void compute_analysis(const std::vector<Eigen::MatrixXd> &V, const Eigen::MatrixXi &FF,
+    void compute_analysis(const std::vector<Eigen::MatrixXd> &VV, const Eigen::MatrixXi &FF,
                           const std::string &path,
                           const double E, const double nu,
                           const double offset, const double radius_edge_ratio, const double max_tet_vol,
                           const int discr_order, const bool is_linear, const int n_refs, const double vismesh_rel_area, const int upsample,
-                          const std::map<int, std::array<int, 2> > &markerRCMap,
+                          const std::map<int, std::array<int, 2> > &markerRCMap, const int imgRows, const int imgCols, const int layerPerImg,
+                          const double resolutionX, const double resolutionY, const double resolutionZ,
                           const bool saveinput)
     {
 
@@ -29,6 +31,73 @@ namespace zebrafish
         const std::string rbf_function = "thin-plate";
         // const std::string rbf_function = "cubic";
         const double eps = 10;
+        std::vector<Eigen::MatrixXd> V = VV;
+
+        // save to analysis file for future re-analysis
+        const auto WriteInputToFile = [&VV, &FF, &path, &E, &nu, &offset, &radius_edge_ratio, &max_tet_vol, &discr_order, &is_linear, &n_refs, &vismesh_rel_area, &upsample, 
+                                       &markerRCMap, &imgRows, &imgCols, &layerPerImg, &resolutionX, &resolutionY, &resolutionZ]() {
+            const int frames = VV.size();
+            const int Nverts = VV[0].rows();
+
+            Eigen::MatrixXd V_concatenated(frames * Nverts, 3);
+            for (int i = 0; i < frames; i++)
+            {
+                V_concatenated.block(Nverts * i, 0, Nverts, 3) = VV[i];
+            }
+
+            Eigen::MatrixXi markerRCMap_mat(markerRCMap.size(), 3);
+            int count = 0;
+            for (auto it : markerRCMap) {
+                markerRCMap_mat(count, 0) = it.first;
+                markerRCMap_mat(count, 1) = it.second[0];
+                markerRCMap_mat(count, 2) = it.second[1];
+                count++;
+            }
+
+            std::string fileName = path + "-AnalysisInput" + ".h5";
+            H5Easy::File file(fileName, H5Easy::File::ReadWrite | H5Easy::File::Create);
+            H5Easy::dump(file, "E", E);
+            H5Easy::dump(file, "nu", nu);
+            H5Easy::dump(file, "offset", offset);
+            H5Easy::dump(file, "radius_edge_ratio", radius_edge_ratio);
+            H5Easy::dump(file, "max_tet_vol", max_tet_vol);
+            H5Easy::dump(file, "discr_order", discr_order);
+            H5Easy::dump(file, "is_linear", is_linear);
+            H5Easy::dump(file, "n_refs", n_refs);
+            H5Easy::dump(file, "vismesh_rel_area", vismesh_rel_area);
+            H5Easy::dump(file, "upsample", upsample);
+
+            // for re-analysis visualization
+            H5Easy::dump(file, "imgRows", imgRows);
+            H5Easy::dump(file, "imgCols", imgCols);
+            H5Easy::dump(file, "layerPerImg", layerPerImg);
+            H5Easy::dump(file, "resolutionX", resolutionX);
+            H5Easy::dump(file, "resolutionY", resolutionY);
+            H5Easy::dump(file, "resolutionZ", resolutionZ);
+
+            // V, F
+            // NOTE: V is in visualization format, with mean displacement removed, but before converting to physical unit
+            H5Easy::dump(file, "frames", frames);
+            H5Easy::dump(file, "Nverts", Nverts);
+            H5Easy::dump(file, "V", V_concatenated);
+            H5Easy::dump(file, "F", FF);
+            // for ring padding
+            H5Easy::dump(file, "markerRCMap_mat", markerRCMap_mat);
+        };
+
+        if (saveinput)
+            WriteInputToFile();
+
+        // To physical unit
+        if (resolutionX > 0 && resolutionY > 0 && resolutionZ > 0) {
+            for (int i=0; i<V.size(); i++) {
+                V[i].col(0) *= resolutionY;
+                V[i].col(1) *= resolutionX;
+                V[i].col(2) *= resolutionZ;
+            }
+        } else {
+            std::cout << "Analysis using pixel unit" << std::endl;
+        }
 
         Eigen::MatrixXi F;
         Eigen::MatrixXd V0;
@@ -54,48 +123,6 @@ namespace zebrafish
                 return 2;
             return 0;
         };
-
-        const auto WriteInputToFile = [&V, &FF, &path, &E, &nu, &offset, &radius_edge_ratio, &max_tet_vol, &discr_order, &is_linear, &n_refs, &vismesh_rel_area, &upsample, &markerRCMap]() {
-            const int frames = V.size();
-            const int Nverts = V[0].rows();
-
-            Eigen::MatrixXd V_concatenated(frames * Nverts, 3);
-            for (int i = 0; i < frames; i++)
-            {
-                V_concatenated.block(Nverts * i, 0, Nverts, 3) = V[i];
-            }
-
-            Eigen::MatrixXi markerRCMap_mat(markerRCMap.size(), 3);
-            int count = 0;
-            for (auto it : markerRCMap) {
-                markerRCMap_mat(count, 0) = it.first;
-                markerRCMap_mat(count, 1) = it.second[0];
-                markerRCMap_mat(count, 2) = it.second[1];
-                count++;
-            }
-
-            std::string fileName = path + "-AnalysisInput" + ".h5";
-            H5Easy::File file(fileName, H5Easy::File::ReadWrite | H5Easy::File::Create);
-            H5Easy::dump(file, "E", E);
-            H5Easy::dump(file, "nu", nu);
-            H5Easy::dump(file, "offset", offset);
-            H5Easy::dump(file, "radius_edge_ratio", radius_edge_ratio);
-            H5Easy::dump(file, "max_tet_vol", max_tet_vol);
-            H5Easy::dump(file, "discr_order", discr_order);
-            H5Easy::dump(file, "is_linear", is_linear);
-            H5Easy::dump(file, "n_refs", n_refs);
-            H5Easy::dump(file, "vismesh_rel_area", vismesh_rel_area);
-            H5Easy::dump(file, "upsample", upsample);
-
-            H5Easy::dump(file, "frames", frames);
-            H5Easy::dump(file, "Nverts", Nverts);
-            H5Easy::dump(file, "V", V_concatenated);
-            H5Easy::dump(file, "F", FF);
-            H5Easy::dump(file, "markerRCMap_mat", markerRCMap_mat);
-        };
-
-        if (saveinput)
-            WriteInputToFile();
 
         //////////////////////////////////////////////////////////////
         // get the bounding box for the first V
