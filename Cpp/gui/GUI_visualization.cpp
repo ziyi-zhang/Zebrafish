@@ -113,15 +113,15 @@ void GUI::DrawAxisDots() {
 
 void GUI::ShowAllMarkerIndex() {
 
-    if (markerArray.empty()) return;
-    const markerRecord_t &markerRecord = markerArray[frameToShow];
-    const int N = markerRecord.num;
+    if (markerPointLocArray.empty()) return;
+    const Eigen::MatrixXd &loc = markerPointLocArray[frameToShow];
+    const int N = loc.rows();
     if (N == 0) return;
 
     viewer.data().show_labels = true;
     Eigen::Vector3d p;
     for (int i=0; i<N; i++) {
-        p << 0.5+markerRecord.loc(i, 1), (imgRows-0.5)-markerRecord.loc(i, 0), markerRecord.loc(i, 2) + 0.003;
+        p << loc(i, 0), loc(i, 1), loc(i, 2) + 0.005;
         viewer.data().add_label(p, std::to_string(i));
     }
 }
@@ -129,6 +129,7 @@ void GUI::ShowAllMarkerIndex() {
 
 void GUI::PlotBadDCPoints() {
 
+    if (!show_badDCPoints) return;
     if (markerDepthCorrectionSuccess.size()-1 < frameToShow) return;
     const markerRecord_t &markerRecord = markerArray[frameToShow];
     const std::vector<int> &succ = markerDepthCorrectionSuccess[frameToShow];
@@ -281,23 +282,16 @@ void GUI::UpdateMarkerPointLocArray() {
 void GUI::UpdateAnalysisPointLocArray() {
 
     int N = analysisPara.V.size();
-    markerPointLocArray.resize(N);
     // only show the markers in one frame
     markerPointStatusArray.resize(N, 1);
     for (int i=0; i<markerPointStatusArray.rows(); i++)
         markerPointStatusArray(i) = false;
     markerPointStatusArray(frameToShow) = true;
+    // update visualization V
+    markerPointLocArray = analysisPara.V;  // V is already converted to visualization format
 
-    for (int i=0; i<N; i++) {
-
-        const int M = analysisPara.V[i].rows();
-
-        markerPointLocArray[i].resize(M, 3);
-        markerPointLocArray[i].col(0) = analysisPara.V[i].col(1);
-        markerPointLocArray[i].col(1) = -analysisPara.V[i].col(0);
-        markerPointLocArray[i].col(2) = analysisPara.V[i].col(2);
-    }
-
+    // other member variables
+    currentLoadedFrames = N;
     // to show marker mesh
     markerMeshArray = analysisPara.F;
     showMarkerMesh = true;

@@ -379,14 +379,12 @@ namespace zebrafish
 
         if (ImGui::CollapsingHeader("Analysis", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-            if (ImGui::Button("Padding test")) {
+            if (ImGui::Button("Padding")) {
                 Eigen::MatrixXd appendV;
                 Eigen::MatrixXi appendF;                
                 padding::ComputeOneRing(analysisPara.V[0], analysisPara.F, analysisPara.markerRCMap, appendV, appendF);
-                std::cerr << "markerMeshArray\n" << analysisPara.F << std::endl;
-                padding::AddOneRing<Eigen::MatrixXd>(appendV, appendF, analysisPara.V[0], analysisPara.F);
+                padding::AddOneRingForAll(appendV, appendF, analysisPara.V, analysisPara.F);
                 UpdateAnalysisPointLocArray();
-                std::cerr << "markerMeshArray\n" << analysisPara.F << std::endl;
             }
 
             // average displacement area crop

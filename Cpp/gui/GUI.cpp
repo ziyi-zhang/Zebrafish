@@ -604,10 +604,12 @@ void GUI::DrawWindow3DImageViewer() {
     // Plot "imgData"
     if (currentLoadedFrames > 0) {
 
-        ImGui::PushItemWidth(UIsize.RHSPanelWidth/2.0);
-        std::vector<std::string> typeName{"Compressed", "Z-Slice"};
-        ImGui::Combo("3D Image Viewer Type", &imageViewerType, typeName);
-        ImGui::PopItemWidth();
+        if (analysisInputPath.empty()) {
+            ImGui::PushItemWidth(UIsize.RHSPanelWidth/2.0);
+            std::vector<std::string> typeName{"Compressed", "Z-Slice"};
+            ImGui::Combo("3D Image Viewer Type", &imageViewerType, typeName);
+            ImGui::PopItemWidth();
+        }
 
         ImGui::Separator(); ////////////////////////
 
@@ -1159,6 +1161,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     show_refPoints = false;
     show_axisPoints = false;
     show_allMarkerIndex = false;
+    show_badDCPoints = true;
     // color
     markerPointColor.resize(1, 3);
     markerPointColor << 0.93, 0.32, 0.15;
@@ -1301,6 +1304,14 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
             false);
 
         return;
+    }
+
+    // Analysis visualization purpose
+    if (!analysisInputPath_.empty()) {
+        showBackgroundImage = false;
+        show_property_editor = false;  // disable this
+        show_badDCPoints = false;
+        UpdateAnalysisPointLocArray();
     }
 
     //////////////////////////////////////////////////////////////////////////////

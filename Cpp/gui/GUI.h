@@ -339,6 +339,7 @@ private:
     bool show_refPoints;
     bool show_axisPoints;
     bool show_allMarkerIndex;
+    bool show_badDCPoints;
     // color
     Eigen::MatrixXd markerPointColor;
 
