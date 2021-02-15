@@ -21,7 +21,8 @@ private:
 
 public:
     static void ComputeOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F, const RCMap_t &RCMap, Eigen::MatrixXd &appendV, Eigen::MatrixXi &appendF);
-    static void AddOneRing(const Eigen::MatrixXd &appendV, const Eigen::MatrixXi &appendF, Eigen::MatrixXd &V, Eigen::MatrixXi &F);
+    template <typename T>
+    static void AddOneRing(const Eigen::MatrixXd &appendV, const Eigen::MatrixXi &appendF, T &V, Eigen::MatrixXi &F);
 };
 
 }  // namespace zebrafish

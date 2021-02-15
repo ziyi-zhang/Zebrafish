@@ -6,6 +6,7 @@
 #include <zebrafish/VTUwriter.h>
 #include <zebrafish/TiffReader.h>
 #include <zebrafish/zebra-analysis.hpp>
+#include <zebrafish/Padding.h>
 
 #include <tbb/task_scheduler_init.h>
 #include <tbb/parallel_for.h>
@@ -358,6 +359,17 @@ namespace zebrafish
             }
             ImGui::SameLine();
             ImGui::Text("%s", calcDispStr.c_str());
+
+            if (ImGui::Button("Padding test")) {
+                for (auto it : markerRCMap) {
+                    std::cerr << it.first << " " << it.second[0] << " " << it.second[1] << std::endl;
+                }
+                Eigen::MatrixXd appendV;
+                Eigen::MatrixXi appendF;
+                padding::ComputeOneRing(markerArray[0].loc, markerMeshArray, markerRCMap, appendV, appendF);
+                padding::AddOneRing<Eigen::MatrixX4d>(appendV, appendF, markerArray[0].loc, markerMeshArray);
+                UpdateMarkerPointLocArray();
+            }
 
             ImGui::Separator(); /////////////////////////////////////////
 

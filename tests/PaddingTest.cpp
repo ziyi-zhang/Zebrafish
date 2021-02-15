@@ -32,15 +32,15 @@ const auto Initialize = [](Eigen::MatrixXd &V, Eigen::MatrixXi &F, RCMap_t &RCMa
     double s3 = std::sqrt(3);
     double s32 = s3 * 2.0;
     V.resize(9, 3);
-    V << 5, 0, 1, 
-         3, 0, 1, 
-         1, 0, 1, 
-         4, s3, 1, 
-         0, s3, 1, 
-         2, s3, 1, 
-         3, s32, 1, 
-         5, s32, 1, 
-         1, s32, 1;
+    V << s32, 5, 1, 
+         s32, 3, 1, 
+         s32, 1, 1, 
+         s3, 4, 1, 
+         s3, 0, 1, 
+         s3, 2, 1, 
+         0, 3, 1, 
+         0, 5, 1, 
+         0, 1, 1;
     RCMap.insert({0, {2, 3}});
     RCMap.insert({1, {2, 2}});
     RCMap.insert({2, {2, 1}});
@@ -64,7 +64,7 @@ TEST_CASE("Padding_9", "[PaddingTest]") {
     Initialize(V, F, RCMap);
 
     padding::ComputeOneRing(V, F, RCMap, appendV, appendF);
-    padding::AddOneRing(appendV, appendF, V, F);
+    padding::AddOneRing<Eigen::MatrixXd>(appendV, appendF, V, F);
 
 
     cout << "appendV" << endl;

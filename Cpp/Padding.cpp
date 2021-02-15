@@ -57,33 +57,34 @@ void padding::ComputeOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F,
         appendV.conservativeResize(N+1, 3);
         appendV(N, 2) = 1.2;// V(central_vid, 2);  // temporary z-value
         // Update New Vertex Loc
-        //     1    2
-        //  0  center  3
-        //     5    4
+        // x(row)      5    4
+        // ^        0  center  3
+        // |           1    2
+        // | ----> y(col)
         switch (dir) {
         case 0:
-            appendV(N, 0) = V(central_vid, 0) - avgEdgeLength;
-            appendV(N, 1) = V(central_vid, 1);
+            appendV(N, 0) = V(central_vid, 0);
+            appendV(N, 1) = V(central_vid, 1) - avgEdgeLength;
             break;
         case 1:
-            appendV(N, 0) = V(central_vid, 0) - avgEdgeLength * 0.5;
-            appendV(N, 1) = V(central_vid, 1) + avgEdgeLength * std::sqrt(3) / 2.0;
+            appendV(N, 0) = V(central_vid, 0) - avgEdgeLength * std::sqrt(3) / 2.0;
+            appendV(N, 1) = V(central_vid, 1) - avgEdgeLength * 0.5;
             break;
         case 2:
-            appendV(N, 0) = V(central_vid, 0) + avgEdgeLength * 0.5;
-            appendV(N, 1) = V(central_vid, 1) + avgEdgeLength * std::sqrt(3) / 2.0;
+            appendV(N, 0) = V(central_vid, 0) - avgEdgeLength * std::sqrt(3) / 2.0;
+            appendV(N, 1) = V(central_vid, 1) + avgEdgeLength * 0.5;
             break;
         case 3:
-            appendV(N, 0) = V(central_vid, 0) + avgEdgeLength;
-            appendV(N, 1) = V(central_vid, 1);
+            appendV(N, 0) = V(central_vid, 0);
+            appendV(N, 1) = V(central_vid, 1) + avgEdgeLength;
             break;
         case 4:
-            appendV(N, 0) = V(central_vid, 0) + avgEdgeLength * 0.5;
-            appendV(N, 1) = V(central_vid, 1) - avgEdgeLength * std::sqrt(3) / 2.0;
+            appendV(N, 0) = V(central_vid, 0) + avgEdgeLength * std::sqrt(3) / 2.0;
+            appendV(N, 1) = V(central_vid, 1) + avgEdgeLength * 0.5;
             break;
         case 5:
-            appendV(N, 0) = V(central_vid, 0) - avgEdgeLength * 0.5;
-            appendV(N, 1) = V(central_vid, 1) - avgEdgeLength * std::sqrt(3) / 2.0;
+            appendV(N, 0) = V(central_vid, 0) + avgEdgeLength * std::sqrt(3) / 2.0;
+            appendV(N, 1) = V(central_vid, 1) - avgEdgeLength * 0.5;
             break;
         default:
             break;
@@ -99,7 +100,7 @@ void padding::ComputeOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F,
     //////////////////////////////////////////////////////////////////////////////
 
     const int old_v_cnt = V.rows();
-    appendV.resize(0, 3);
+    appendV.resize(0, V.cols());
     appendF.resize(0, 3);
 
     // get vids in V
@@ -130,7 +131,7 @@ void padding::ComputeOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F,
 
         int col_correction = r & 1;  // for odd rows, the column index of adjacent dots needs to add 1
         int rc_loop[6][2]{
-            // clockwise
+            // anti-clockwise
             {r, c-1},
             {r-1, c-1+col_correction},
             {r-1, c+col_correction},
@@ -164,15 +165,19 @@ void padding::ComputeOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F,
 }
 
 
-void padding::AddOneRing(const Eigen::MatrixXd &appendV, const Eigen::MatrixXi &appendF, Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
+template <typename T>
+void padding::AddOneRing(const Eigen::MatrixXd &appendV, const Eigen::MatrixXi &appendF, T &V, Eigen::MatrixXi &F) {
 
     int N = V.rows();
-    V.conservativeResize(V.rows() + appendV.rows(), 3);
-    V.block(N, 0, appendV.rows(), 3) = appendV;
+    V.conservativeResize(V.rows() + appendV.rows(), V.cols());
+    V.block(N, 0, appendV.rows(), V.cols()) = appendV;
 
     N = F.rows();
     F.conservativeResize(F.rows() + appendF.rows(), 3);
     F.block(N, 0, appendF.rows(), 3) = appendF;
 }
+// explicit template instantiation
+template void padding::AddOneRing(const Eigen::MatrixXd &appendV, const Eigen::MatrixXi &appendF, Eigen::MatrixXd &V, Eigen::MatrixXi &F);
+template void padding::AddOneRing(const Eigen::MatrixXd &appendV, const Eigen::MatrixXi &appendF, Eigen::MatrixX4d &V, Eigen::MatrixXi &F);
 
 }  // namespace zebrafish
