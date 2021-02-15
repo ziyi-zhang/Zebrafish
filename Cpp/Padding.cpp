@@ -18,7 +18,13 @@ namespace {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // class padding
 
-void padding::ComputeOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F, const RCMap_t &RCMap, Eigen::MatrixXd &appendV, Eigen::MatrixXi &appendF) {
+void padding::ComputeOneRing(
+    const Eigen::MatrixXd &V, 
+    const Eigen::MatrixXi &F, 
+    const RCMap_t &RCMap, 
+    Eigen::MatrixXd &appendV, 
+    Eigen::MatrixXi &appendF,
+    RCMap_t &appendRCMap) {
 
     std::unordered_set<int> vids, vids_new;
     RCMap_t RCMap_new;  // map newly created vertices to RC
@@ -55,7 +61,7 @@ void padding::ComputeOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F,
         // create one and return the new id
         int N = appendV.rows();
         appendV.conservativeResize(N+1, 3);
-        appendV(N, 2) = V(central_vid, 2)-2;  // temporary z-value
+        appendV(N, 2) = V(central_vid, 2);  // temporary z-value
         // Update New Vertex Loc
         // y(row)      5    4
         // ^        0  center  3
@@ -162,6 +168,8 @@ void padding::ComputeOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F,
             }
         }
     }
+
+    appendRCMap = RCMap_new;
 }
 
 
@@ -181,12 +189,13 @@ template void padding::AddOneRing(const Eigen::MatrixXd &appendV, const Eigen::M
 template void padding::AddOneRing(const Eigen::MatrixXd &appendV, const Eigen::MatrixXi &appendF, Eigen::MatrixX4d &V, Eigen::MatrixXi &F);  // test purpose
 
 
-void padding::AddOneRingForAll(const Eigen::MatrixXd &appendV, const Eigen::MatrixXi &appendF, std::vector<Eigen::MatrixXd> &V, Eigen::MatrixXi &F) {
+void padding::AddOneRingForAll(const Eigen::MatrixXd &appendV, const Eigen::MatrixXi &appendF, const RCMap_t &appendRCMap, std::vector<Eigen::MatrixXd> &V, Eigen::MatrixXi &F, RCMap_t &RCMap) {
 
     const int N = V.size();
     for (int i=0; i<N; i++) {
         padding::AddOneRing<Eigen::MatrixXd>(appendV, appendF, V[i], F);
     }
+    RCMap.insert(appendRCMap.begin(), appendRCMap.end());
 }
 
 }  // namespace zebrafish

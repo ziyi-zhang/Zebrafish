@@ -375,9 +375,10 @@ namespace zebrafish
 
             if (!analysisInputPath.empty() && ImGui::Button("Padding")) {
                 Eigen::MatrixXd appendV;
-                Eigen::MatrixXi appendF;                
-                padding::ComputeOneRing(analysisPara.V[0], analysisPara.F, analysisPara.markerRCMap, appendV, appendF);
-                padding::AddOneRingForAll(appendV, appendF, analysisPara.V, analysisPara.F);
+                Eigen::MatrixXi appendF;
+                RCMap_t appendRCMap;
+                padding::ComputeOneRing(analysisPara.V[0], analysisPara.F, analysisPara.markerRCMap, appendV, appendF, appendRCMap);
+                padding::AddOneRingForAll(appendV, appendF, appendRCMap, analysisPara.V, analysisPara.F, analysisPara.markerRCMap);
                 UpdateAnalysisPointLocArray();
             }
 

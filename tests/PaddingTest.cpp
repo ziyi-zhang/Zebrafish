@@ -88,11 +88,11 @@ TEST_CASE("Padding_9", "[PaddingTest]") {
 
     Eigen::MatrixXd V, appendV;
     Eigen::MatrixXi F, appendF;
-    RCMap_t RCMap;
+    RCMap_t RCMap, appendRCMap;
 
     Initialize1(V, F, RCMap);
 
-    padding::ComputeOneRing(V, F, RCMap, appendV, appendF);
+    padding::ComputeOneRing(V, F, RCMap, appendV, appendF, appendRCMap);
     padding::AddOneRing<Eigen::MatrixXd>(appendV, appendF, V, F);
 
 
@@ -131,11 +131,11 @@ TEST_CASE("Padding_6", "[PaddingTest]") {
 
     Eigen::MatrixXd V, appendV;
     Eigen::MatrixXi F, appendF;
-    RCMap_t RCMap;
+    RCMap_t RCMap, appendRCMap;
 
     Initialize2(V, F, RCMap);
 
-    padding::ComputeOneRing(V, F, RCMap, appendV, appendF);
+    padding::ComputeOneRing(V, F, RCMap, appendV, appendF, appendRCMap);
     padding::AddOneRing<Eigen::MatrixXd>(appendV, appendF, V, F);
 
     std::unordered_set<int> vids;
