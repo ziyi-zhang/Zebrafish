@@ -143,6 +143,7 @@ typedef struct analysis_t {
     double vismesh_rel_area;  // Desnsity of the output visualization
     int upsample;  // upsample for a denser mesh
 
+    RCMap_t markerRCMap;  // map marker index in "markerMeshArray" to (row, col) in regular triangular mesh
     std::vector<Eigen::MatrixXd> V;  // only used by analysis input file
     Eigen::MatrixXi F;  // only used by analysis input file
 } analysis_t;
@@ -267,10 +268,6 @@ private:
     int meshID;
 
     //////////////////////////////////////////////////
-    // Padding
-    RCMap_t markerRCMap;  // map marker index in "markerMeshArray" to (row, col) in regular triangular mesh
-
-    //////////////////////////////////////////////////
     // Optical Flow
     int desiredFrames;  // only load the first "desiredFrames" frames
     double opticalFlowAlpha;  // weight factor
@@ -390,8 +387,6 @@ protected:
 private:
     const int stageMax = 8;  // 8 stages (1..8)
 
-    void Draw3DImage();
-    void DrawMarkerMesh();
     void DrawMainMenuBar();
     void DrawZebrafishPanel();
     void DrawMenuFile();
@@ -407,7 +402,6 @@ private:
     void ComputeCompressedTextureAvg(const image_t &img_, int index);
     void ComputeCompressedTextureMax(const image_t &img_, int index);
     void ComputeCompressedTextureForAllLoadedFrames();
-    void UpdateMarkerPointLocArray();
     bool MarkerRecursiveDepthCorrection(int frameIdx, int depthNum, double depthGap, bool logEnergy = false, bool forceSecondRound = false, bool showSuccess = false);
     bool MarkerDepthCorrection(int frameIdx, int num, double gap, bool logEnergy = false, bool showSuccess = false);
     void NormalizeImage(image_t &image, double thres);
@@ -420,6 +414,11 @@ private:
     void DrawAxisDots();
     void ShowAllMarkerIndex();
     void PlotBadDCPoints();
+
+    void Draw3DImage();
+    void DrawMarkerMesh();
+    void UpdateMarkerPointLocArray();
+    void UpdateAnalysisPointLocArray();
 
     // marker drag
     void RenderMarkerDragGUI();

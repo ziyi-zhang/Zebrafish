@@ -55,12 +55,12 @@ void padding::ComputeOneRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F,
         // create one and return the new id
         int N = appendV.rows();
         appendV.conservativeResize(N+1, 3);
-        appendV(N, 2) = 1.2;// V(central_vid, 2);  // temporary z-value
+        appendV(N, 2) = V(central_vid, 2);  // temporary z-value
         // Update New Vertex Loc
-        // x(row)      5    4
-        // ^        0  center  3
-        // |           1    2
-        // | ----> y(col)
+        // x(row)      1    2
+        // |        0  center  3
+        // |           5    4
+        // v ----> y(col)
         switch (dir) {
         case 0:
             appendV(N, 0) = V(central_vid, 0);

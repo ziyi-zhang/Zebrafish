@@ -21,6 +21,7 @@ namespace zebrafish
                           const double E, const double nu,
                           const double offset, const double radius_edge_ratio, const double max_tet_vol,
                           const int discr_order, const bool is_linear, const int n_refs, const double vismesh_rel_area, const int upsample,
+                          const std::map<int, std::array<int, 2> > &markerRCMap,
                           const bool saveinput)
     {
 
@@ -54,7 +55,7 @@ namespace zebrafish
             return 0;
         };
 
-        const auto WriteInputToFile = [&V, &FF, &path, &E, &nu, &offset, &radius_edge_ratio, &max_tet_vol, &discr_order, &is_linear, &n_refs, &vismesh_rel_area, &upsample]() {
+        const auto WriteInputToFile = [&V, &FF, &path, &E, &nu, &offset, &radius_edge_ratio, &max_tet_vol, &discr_order, &is_linear, &n_refs, &vismesh_rel_area, &upsample, &markerRCMap]() {
             const int frames = V.size();
             const int Nverts = V[0].rows();
 
@@ -62,6 +63,15 @@ namespace zebrafish
             for (int i = 0; i < frames; i++)
             {
                 V_concatenated.block(Nverts * i, 0, Nverts, 3) = V[i];
+            }
+
+            Eigen::MatrixXi markerRCMap_mat(markerRCMap.size(), 3);
+            int count = 0;
+            for (auto it : markerRCMap) {
+                markerRCMap_mat(count, 0) = it.first;
+                markerRCMap_mat(count, 1) = it.second[0];
+                markerRCMap_mat(count, 2) = it.second[1];
+                count++;
             }
 
             std::string fileName = path + "-AnalysisInput" + ".h5";
@@ -81,6 +91,7 @@ namespace zebrafish
             H5Easy::dump(file, "Nverts", Nverts);
             H5Easy::dump(file, "V", V_concatenated);
             H5Easy::dump(file, "F", FF);
+            H5Easy::dump(file, "markerRCMap_mat", markerRCMap_mat);
         };
 
         if (saveinput)

@@ -337,10 +337,10 @@ void GUI::UpdateMarkerMesh() {
     }
 
     // update markerRCMap
-    markerRCMap.clear();
+    analysisPara.markerRCMap.clear();
     for (auto p : indexMap) {
         std::array<int, 2> rc{ICP.refV_RC(p.first, 0), ICP.refV_RC(p.first, 1)};
-        markerRCMap.insert({p.second, rc});
+        analysisPara.markerRCMap.insert({p.second, rc});
     }
 
     count = 0;

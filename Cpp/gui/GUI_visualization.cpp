@@ -154,4 +154,153 @@ void GUI::PlotBadDCPoints() {
     }
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Draw 3D image & marker mesh
+
+
+void GUI::Draw3DImage() {
+
+    // do not draw if there is no image or this is not needed
+    if (currentLoadedFrames == 0) return;
+    if (!showBackgroundImage) return;
+
+    static const Eigen::Vector3d ambient = Eigen::Vector3d(146./255., 172./255., 178./255.);
+    static const Eigen::Vector3d diffuse = Eigen::Vector3d(146./255., 172./255., 178./255.);
+    static const Eigen::Vector3d specular = Eigen::Vector3d(0., 0., 0.);
+    static Eigen::MatrixXd UV = [] {
+        Eigen::MatrixXd tmp(4, 2);
+        tmp << 0, 1, 1, 1, 1, 0, 0, 0;
+        return tmp;
+    }();
+    static int layerBegin_cache = -1, layerEnd_cache = -1;
+    static int imgCols_cache = -1, imgRows_cache = -1;
+
+    if (imageViewerType == 0) {
+        // compressed view
+
+        V_texture << 0, 0, 0, imgCols, 0, 0, imgCols, imgRows, 0, 0, imgRows, 0;
+        if (layerBegin_cache != layerBegin || layerEnd_cache != layerEnd) {
+            // if depth crop has updated
+            // Note: only frame 0 in stage 1 could reach here
+
+            const int num = imgData[0].size();
+            // the user could provide false metadata
+            try {
+                ComputeCompressedTextureMax(imgData[0], 0);
+            } catch (const std::exception &e) {
+                logger().warn("Failed to draw 3D image. This is often due to wrong metadata like incorrect number of channels or slices.");
+                std::cerr << "Failed to draw 3D image. This is often due to wrong metadata like incorrect number of channels or slices." << std::endl;
+            }
+            layerBegin_cache = layerBegin;
+            layerEnd_cache = layerEnd;
+        }
+        texture = compressedImgTextureArray[frameToShow];
+    } else {
+        // per slice view
+
+        V_texture << 0, 0, sliceToShow, 
+             imgCols, 0, sliceToShow, 
+             imgCols, imgRows, sliceToShow, 
+             0, imgRows, sliceToShow;
+        image_t &imgChosen = imgData[frameToShow];
+        texture = (imgChosen[sliceToShow].array() * 255).cast<unsigned char>();
+        texture.transposeInPlace();
+    }
+
+    if (stage <= 2) viewer.core().align_camera_center(V_texture);
+    viewer.data().set_mesh(V_texture, F_texture);
+    viewer.data().set_uv(UV);
+    viewer.data().uniform_colors(ambient, diffuse, specular);
+    viewer.data().show_faces = true;
+    viewer.data().show_lines = false;
+    viewer.data().show_texture = true;
+    viewer.data().set_texture(texture, texture, texture);
+}
+
+
+void GUI::DrawMarkerMesh() {
+
+    viewer.data(meshID).clear();
+
+    // do not draw if not needed
+    if (!showMarkerMesh) return;
+    if (markerMeshArray.size() == 0 || markerPointLocArray.empty()) return;
+    if (stage < 6) return;  // do not visualize mesh before stage 6: mesh
+
+    // show mesh
+    static Eigen::MatrixXd tempV;
+    tempV = markerPointLocArray[frameToShow];
+    tempV.col(2).array() -= 0.3;  // colliding with marker points
+    viewer.data(meshID).show_faces = false;
+    viewer.data(meshID).show_lines = true;
+    viewer.data(meshID).show_texture = false;
+    // viewer.data(meshID).set_colors(Eigen::RowVector3d(0.78, 0.82, 0.83));
+    viewer.data(meshID).line_width = lineWidth;
+    viewer.data(meshID).shininess = 0;
+    viewer.data(meshID).set_mesh(
+        tempV,  // mesh V
+        markerMeshArray  // mesh F
+    );
+
+    if (!analysisInputPath.empty()) {
+        viewer.core().align_camera_center(tempV);
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Update marker point array
+
+
+void GUI::UpdateMarkerPointLocArray() {
+// Critical marker location visualization array
+
+    markerPointLocArray.resize(currentLoadedFrames);
+    // only show the markers in one frame
+    markerPointStatusArray.resize(currentLoadedFrames, 1);
+    for (int i=0; i<markerPointStatusArray.rows(); i++)
+        markerPointStatusArray(i) = false;
+    markerPointStatusArray(frameToShow) = true;
+
+    for (int i=0; i<currentLoadedFrames; i++) {
+
+        markerRecord_t &markerRecord = markerArray[i];
+        const int N = markerRecord.num;
+
+        markerPointLocArray[i].resize(N, 3);
+        markerPointLocArray[i].col(0) = markerRecord.loc.col(1).array() + 0.5;
+        markerPointLocArray[i].col(1) = (imgRows-0.5) - markerRecord.loc.col(0).array();
+        markerPointLocArray[i].col(2) = markerRecord.loc.col(2);
+    }
+
+    logger().trace("   [Vis] Marker point location array updated: all frames");
+}
+
+
+void GUI::UpdateAnalysisPointLocArray() {
+
+    int N = analysisPara.V.size();
+    markerPointLocArray.resize(N);
+    // only show the markers in one frame
+    markerPointStatusArray.resize(N, 1);
+    for (int i=0; i<markerPointStatusArray.rows(); i++)
+        markerPointStatusArray(i) = false;
+    markerPointStatusArray(frameToShow) = true;
+
+    for (int i=0; i<N; i++) {
+
+        const int M = analysisPara.V[i].rows();
+
+        markerPointLocArray[i].resize(M, 3);
+        markerPointLocArray[i].col(0) = analysisPara.V[i].col(1);
+        markerPointLocArray[i].col(1) = -analysisPara.V[i].col(0);
+        markerPointLocArray[i].col(2) = analysisPara.V[i].col(2);
+    }
+
+    // to show marker mesh
+    markerMeshArray = analysisPara.F;
+    showMarkerMesh = true;
+}
+
 }  // namespace zebrafish

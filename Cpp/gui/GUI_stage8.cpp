@@ -234,26 +234,20 @@ namespace zebrafish
 
         // Visualize marker cluster points
         static int pointSize = 7;
-        if (showMarkerPoints)
-        {
+        if (showMarkerPoints) {
 
             viewer.data().point_size = pointSize;
 
-            if (!markerPointLocArray.empty())
-            {
+            if (!markerPointLocArray.empty()) {
                 // show optimized markers
-                if (!manualOverrideMarkerVis)
-                {
+                if (!manualOverrideMarkerVis) {
                     // show markers in the frame that is currently focused
                     viewer.data().add_points(
                         markerPointLocArray[frameToShow],
                         markerPointColor);
-                }
-                else
-                {
+                } else {
                     // show markers in manually selected frames
-                    for (int i = 0; i < markerPointStatusArray.rows(); i++)
-                    {
+                    for (int i = 0; i < markerPointStatusArray.rows(); i++) {
                         if (!markerPointStatusArray(i))
                             continue;
                         viewer.data().add_points(
@@ -360,17 +354,6 @@ namespace zebrafish
             ImGui::SameLine();
             ImGui::Text("%s", calcDispStr.c_str());
 
-            if (ImGui::Button("Padding test")) {
-                for (auto it : markerRCMap) {
-                    std::cerr << it.first << " " << it.second[0] << " " << it.second[1] << std::endl;
-                }
-                Eigen::MatrixXd appendV;
-                Eigen::MatrixXi appendF;
-                padding::ComputeOneRing(markerArray[0].loc, markerMeshArray, markerRCMap, appendV, appendF);
-                padding::AddOneRing<Eigen::MatrixX4d>(appendV, appendF, markerArray[0].loc, markerMeshArray);
-                UpdateMarkerPointLocArray();
-            }
-
             ImGui::Separator(); /////////////////////////////////////////
 
             if (ImGui::TreeNode("Advanced visualization     ")) {
@@ -395,6 +378,16 @@ namespace zebrafish
         ImGui::Separator(); /////////////////////////////////////////
 
         if (ImGui::CollapsingHeader("Analysis", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+            if (ImGui::Button("Padding test")) {
+                Eigen::MatrixXd appendV;
+                Eigen::MatrixXi appendF;                
+                padding::ComputeOneRing(analysisPara.V[0], analysisPara.F, analysisPara.markerRCMap, appendV, appendF);
+                std::cerr << "markerMeshArray\n" << analysisPara.F << std::endl;
+                padding::AddOneRing<Eigen::MatrixXd>(appendV, appendF, analysisPara.V[0], analysisPara.F);
+                UpdateAnalysisPointLocArray();
+                std::cerr << "markerMeshArray\n" << analysisPara.F << std::endl;
+            }
 
             // average displacement area crop
             if (ImGui::Checkbox("[Mouse] global disp area", &meanCrop.cropActive)) {
@@ -473,6 +466,7 @@ namespace zebrafish
                             analysisPara.n_refs,
                             analysisPara.vismesh_rel_area,
                             analysisPara.upsample,
+                            analysisPara.markerRCMap,
                             false);
                     }
                     else {
@@ -524,6 +518,7 @@ namespace zebrafish
                             analysisPara.n_refs, 
                             analysisPara.vismesh_rel_area, 
                             analysisPara.upsample, 
+                            analysisPara.markerRCMap,
                             true);
                     }
 
