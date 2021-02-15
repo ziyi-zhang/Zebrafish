@@ -53,16 +53,16 @@ void GUI::MouseSelectMarker(const Eigen::Vector2f &mouse) {
         viewer.core().view, 
         viewer.core().proj,
         viewer.core().viewport, 
-        V, 
-        F, 
+        V_texture, 
+        F_texture, 
         fid, 
         bc);
 
     if (hit) {
         // has hit
 
-        y =                 (V(F(fid, 0), 0) * bc(0) + V(F(fid, 1), 0) * bc(1) + V(F(fid, 2), 0) * bc(2)) - 0.5;
-        x = imgRows - 0.5 - (V(F(fid, 0), 1) * bc(0) + V(F(fid, 1), 1) * bc(1) + V(F(fid, 2), 1) * bc(2));
+        y =                 (V_texture(F_texture(fid, 0), 0) * bc(0) + V_texture(F_texture(fid, 1), 0) * bc(1) + V_texture(F_texture(fid, 2), 0) * bc(2)) - 0.5;
+        x = imgRows - 0.5 - (V_texture(F_texture(fid, 0), 1) * bc(0) + V_texture(F_texture(fid, 1), 1) * bc(1) + V_texture(F_texture(fid, 2), 1) * bc(2));
 
         markerDragLoc << x, y;
 

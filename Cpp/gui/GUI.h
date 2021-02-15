@@ -293,8 +293,8 @@ private:
 
     //////////////////////////////////////////////////
     // 3D image viewer
-    Eigen::MatrixXd V;
-    Eigen::MatrixXi F;
+    Eigen::MatrixXd V_texture;  // used to draw imagee (texture) & compute projectiong
+    Eigen::MatrixXi F_texture;
     int imageViewerType;
     int imageViewerCompressType;
     float imageViewerDarkenFactor_max, imageViewerDarkenFactor_avg;

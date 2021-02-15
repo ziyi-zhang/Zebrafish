@@ -378,16 +378,18 @@ void GUI::Draw3DImage() {
     static const Eigen::Vector3d ambient = Eigen::Vector3d(146./255., 172./255., 178./255.);
     static const Eigen::Vector3d diffuse = Eigen::Vector3d(146./255., 172./255., 178./255.);
     static const Eigen::Vector3d specular = Eigen::Vector3d(0., 0., 0.);
-    static Eigen::MatrixXd UV(4, 2);
+    static Eigen::MatrixXd UV = [] {
+        Eigen::MatrixXd tmp(4, 2);
+        tmp << 0, 1, 1, 1, 1, 0, 0, 0;
+        return tmp;
+    }();
     static int layerBegin_cache = -1, layerEnd_cache = -1;
     static int imgCols_cache = -1, imgRows_cache = -1;
-    UV << 0, 1, 1, 1, 1, 0, 0, 0;
-    V << 0, 0, 0, imgCols, 0, 0, imgCols, imgRows, 0, 0, imgRows, 0;
-    F << 0, 1, 2, 2, 3, 0;
 
     if (imageViewerType == 0) {
         // compressed view
 
+        V_texture << 0, 0, 0, imgCols, 0, 0, imgCols, imgRows, 0, 0, imgRows, 0;
         if (layerBegin_cache != layerBegin || layerEnd_cache != layerEnd) {
             // if depth crop has updated
             // Note: only frame 0 in stage 1 could reach here
@@ -407,13 +409,17 @@ void GUI::Draw3DImage() {
     } else {
         // per slice view
 
+        V_texture << 0, 0, sliceToShow, 
+             imgCols, 0, sliceToShow, 
+             imgCols, imgRows, sliceToShow, 
+             0, imgRows, sliceToShow;
         image_t &imgChosen = imgData[frameToShow];
         texture = (imgChosen[sliceToShow].array() * 255).cast<unsigned char>();
         texture.transposeInPlace();
     }
 
-    viewer.core().align_camera_center(V);
-    viewer.data().set_mesh(V, F);
+    if (stage <= 2) viewer.core().align_camera_center(V_texture);
+    viewer.data().set_mesh(V_texture, F_texture);
     viewer.data().set_uv(UV);
     viewer.data().uniform_colors(ambient, diffuse, specular);
     viewer.data().show_faces = true;
@@ -1232,8 +1238,9 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     analysisPara.upsample = 3;  // upsample for a denser mesh
 
     // 3D image viewer
-    V.resize(4, 3);
-    F.resize(2, 3);
+    V_texture.resize(4, 3);
+    F_texture.resize(2, 3);
+    F_texture << 0, 1, 2, 2, 3, 0;
     imageViewerType = 0;
     imageViewerCompressType = COMPRESS_MAX;
     imageViewerDarkenFactor_avg = 1.0;
