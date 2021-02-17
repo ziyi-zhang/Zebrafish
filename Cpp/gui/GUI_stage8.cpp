@@ -375,7 +375,7 @@ namespace zebrafish
 
             // ring padding
             static int lastVRows;
-            if (analysisPara.rawMeshVRows == 0) analysisPara.rawMeshVRows = analysisPara.V[0].rows();
+            if (analysisPara.rawMeshVRows == 0 && analysisPara.V.size() > 0) analysisPara.rawMeshVRows = analysisPara.V[0].rows();
             if (ImGui::Button("Padding")) {
                 Eigen::MatrixXd appendV;
                 Eigen::MatrixXi appendF;
@@ -386,6 +386,23 @@ namespace zebrafish
                 padding::AddOneRingForAll(appendV, appendF, appendRCMap, analysisPara.V, analysisPara.F, analysisPara.markerRCMap);
                 padding::HarmonicForAll(analysisPara.V, analysisPara.F, analysisPara.rawMeshVRows, lastVRows);
                 UpdateAnalysisPointLocArray();
+
+                logger().info("#Verts = {}", analysisPara.V[0].rows());
+            }
+
+            // estimate mean edge length
+            if (analysisPara.F.size() > 0) {
+            double meanL = 0.0;
+            for (int i=0; i<analysisPara.F.rows(); i++) {
+                int t0 = analysisPara.F(i, 0);
+                int t1 = analysisPara.F(i, 1);
+                int t2 = analysisPara.F(i, 2);
+                meanL += (analysisPara.V[0].row(t1) - analysisPara.V[0].row(t2)).norm();
+                meanL += (analysisPara.V[0].row(t0) - analysisPara.V[0].row(t2)).norm();
+                meanL += (analysisPara.V[0].row(t0) - analysisPara.V[0].row(t1)).norm();
+            }
+            meanL /= double(analysisPara.F.rows() * 3);
+            logger().info("meanL = {}", meanL);
             }
 
             // average displacement area crop
