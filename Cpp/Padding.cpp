@@ -1,5 +1,6 @@
 #include <zebrafish/Common.h>
 #include <zebrafish/Padding.h>
+#include <igl/harmonic.h>
 
 #include <unordered_set>
 #include <array>
@@ -196,6 +197,50 @@ void padding::AddOneRingForAll(const Eigen::MatrixXd &appendV, const Eigen::Matr
         padding::AddOneRing<Eigen::MatrixXd>(appendV, appendF, V[i], F);
     }
     RCMap.insert(appendRCMap.begin(), appendRCMap.end());
+}
+
+
+void padding::Harmonic(Eigen::MatrixXd &V, const Eigen::MatrixXi &F, int rawMeshVerts, int lastPadIndex, int order) {
+
+    const int Nv = V.rows();
+    const int Nv_rep = lastPadIndex - rawMeshVerts;  // #z-coordinates to be replaced
+    Eigen::MatrixXd V_xy = V.block(0, 0, Nv, 2);  // we only need xy location for input
+    Eigen::VectorXd Z, bc;
+    // boundary
+    Eigen::VectorXi b = Eigen::VectorXi::LinSpaced(Nv, 0, Nv-1);
+    b.segment(rawMeshVerts, Nv-lastPadIndex) = b.tail(Nv-lastPadIndex);
+    b.conservativeResize(Nv-Nv_rep, 1);
+    // boundary condition
+    bc.resize(b.rows());
+    for (int i=0; i<b.rows(); i++) {
+        int ii = b(i);
+        bc(i) = V(ii, 2);
+    }
+
+    // harmonic
+    igl::harmonic(V_xy, F, b, bc, order, Z);
+    // replace z-coordinate
+    V.block(rawMeshVerts, 2, Nv_rep, 1) = Z.segment(rawMeshVerts, Nv_rep);
+    // assert
+    double m = (V.block(0, 2, rawMeshVerts, 1) - Z.head(rawMeshVerts)).minCoeff();
+    if (m != 0)
+        std::cerr << "Z-coordinate not preversed " << m << std::endl;
+}
+
+
+void padding::HarmonicForAll(std::vector<Eigen::MatrixXd> &V, const Eigen::MatrixXi &F, int rawMeshVerts, int lastPadIndex, int order) {
+
+    // set outmost ring to have z = mean_z
+    double meanZ = V[0].block(0, 2, rawMeshVerts, 1).mean();
+    V[0].block(lastPadIndex, 2, V[0].rows()-lastPadIndex, 1) = Eigen::VectorXd::Constant(V[0].rows()-lastPadIndex, meanZ);
+
+    // harmonic
+    padding::Harmonic(V[0], F, rawMeshVerts, lastPadIndex, order);
+
+    // replace for all frames
+    for (int i=1; i<V.size(); i++) {
+        V[i].block(rawMeshVerts, 2, V[i].rows()-rawMeshVerts, 1) = V[0].block(rawMeshVerts, 2, V[0].rows()-rawMeshVerts, 1);
+    }
 }
 
 }  // namespace zebrafish

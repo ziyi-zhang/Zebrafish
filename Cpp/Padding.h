@@ -24,6 +24,8 @@ public:
     template <typename T>
     static void AddOneRing(const Eigen::MatrixXd &appendV, const Eigen::MatrixXi &appendF, T &V, Eigen::MatrixXi &F);
     static void AddOneRingForAll(const Eigen::MatrixXd &appendV, const Eigen::MatrixXi &appendF, const RCMap_t &appendRCMap, std::vector<Eigen::MatrixXd> &V, Eigen::MatrixXi &F, RCMap_t &RCMap);
+    static void Harmonic(Eigen::MatrixXd &V, const Eigen::MatrixXi &F, int rawMeshVerts, int lastPadIndex, int order);
+    static void HarmonicForAll(std::vector<Eigen::MatrixXd> &V, const Eigen::MatrixXi &F, int rawMeshVerts, int lastPadIndex, int order = 2);
 };
 
 }  // namespace zebrafish

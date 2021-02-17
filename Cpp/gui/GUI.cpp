@@ -1107,7 +1107,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
 
     // Analysis
     analysisPara.offset = 1;  // Diagonal multiplier for box mesh
-    analysisPara.radius_edge_ratio = 1.2;  // Radius edge ratio used by tetgen
+    analysisPara.radius_edge_ratio = 1.414;  // Radius edge ratio used by tetgen
     analysisPara.max_tet_vol = 25;  // Minimum tet area used by tetgen
     analysisPara.E = 566.7;  // Young's modulus 566.7Pa
     analysisPara.nu = 0.45;  // Poisson's ratio
@@ -1116,6 +1116,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     analysisPara.n_refs = 0;  // Number of mesh uniform refinements
     analysisPara.vismesh_rel_area = 0.00001;  // Desnsity of the output visualization
     analysisPara.upsample = 3;  // upsample for a denser mesh
+    analysisPara.rawMeshVRows = 0;
 
     // 3D image viewer
     V_texture.resize(4, 3);
@@ -1271,6 +1272,7 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
             for (int i=0; i<frames; i++) {
                 analysisPara.V.push_back(V_concatenated.block(Nverts*i, 0, Nverts, 3));
             }
+            analysisPara.rawMeshVRows = Nverts;
 
             // reconstruct RC map
             Eigen::MatrixXi markerRCMap_mat;

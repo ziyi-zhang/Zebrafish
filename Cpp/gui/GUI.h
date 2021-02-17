@@ -143,6 +143,8 @@ typedef struct analysis_t {
     double vismesh_rel_area;  // Desnsity of the output visualization
     int upsample;  // upsample for a denser mesh
 
+    int rawMeshVRows;  // the mesh size before padding
+
     RCMap_t markerRCMap;  // map marker index in "markerMeshArray" to (row, col) in regular triangular mesh
     std::vector<Eigen::MatrixXd> V;  // only used by analysis input file
     Eigen::MatrixXi F;  // only used by analysis input file
