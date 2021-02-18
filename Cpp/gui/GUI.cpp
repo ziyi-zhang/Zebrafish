@@ -1024,6 +1024,7 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     showTooltip = true;
     lineWidth = 4.0;
     reverseColor = false;
+    preLoadAllFrames = false;
 
     // image (imageData)
     layerPerImg = 1;  // a random guess to preview the image file

@@ -62,6 +62,15 @@ void GUI::DrawStage7() {
 
     ImGui::Separator(); /////////////////////////////////////////
 
+    if (preLoadAllFrames) {
+        static bool run_once = true;
+        if (run_once) {
+            currentLoadedFrames = currentLoadedFrames_temp;
+            InitializeMarkerRelated();
+            run_once = false;
+        }
+        ImGui::Text("Frames already loaded & prepared in stage-2.");
+    } else {
     if (ImGui::CollapsingHeader("Load Frames", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         const float inputWidth = ImGui::GetWindowWidth() / 3.0;
@@ -70,6 +79,7 @@ void GUI::DrawStage7() {
         ImGui::SliderInt("Desired #frames", &desiredFrames, 1, ttlFrames, "%d frames");
         if (ImGui::Button("Prepare all frames")) {
             LoadSubsequentFrames();
+            InitializeMarkerRelated();
             ComputeBsplineForAllFrames();
             logger().debug("   <button> Prepare all frames");
         }
@@ -92,6 +102,7 @@ void GUI::DrawStage7() {
         }
 
         ImGui::PopItemWidth();
+    }
     }
 
     ImGui::Separator(); /////////////////////////////////////////
@@ -162,6 +173,20 @@ void GUI::DrawStage7() {
 // Load helper
 
 
+void GUI::InitializeMarkerRelated() {
+
+    // initialize with the markers in the first frame
+    markerArray.resize(desiredFrames, markerArray[0]);
+    // initialize with zero matrices
+    opticalFlowCorrection.resize(desiredFrames - 1);
+    for (int i=0; i<desiredFrames - 1; i++) {
+        opticalFlowCorrection[i] = Eigen::MatrixXd::Zero(markerArray[0].num, 3);
+    }
+    // Update visualization array
+    UpdateMarkerPointLocArray();
+}
+
+
 void GUI::LoadSubsequentFrames() {
 
     // reserve space
@@ -169,13 +194,6 @@ void GUI::LoadSubsequentFrames() {
     compressedImgTextureArray.resize(desiredFrames);
     bsplineArray.resize(desiredFrames);
     markerDepthCorrectionSuccess.resize(desiredFrames);
-        // initialize with the markers in the first frame
-    markerArray.resize(desiredFrames, markerArray[0]);
-        // initialize with zero matrices
-    opticalFlowCorrection.resize(desiredFrames - 1);
-    for (int i=0; i<desiredFrames - 1; i++) {
-        opticalFlowCorrection[i] = Eigen::MatrixXd::Zero(markerArray[0].num, 3);
-    }
 
     // only support loading one channel
     std::vector<bool> channelVec(channelPerSlice, false);
@@ -183,8 +201,6 @@ void GUI::LoadSubsequentFrames() {
     // Read all desired frame to "imgData"
     ReadTif(imagePath, layerPerImg, channelVec, desiredFrames, imgData, imageCrop.r0, imageCrop.c0, imageCrop.r1, imageCrop.c1);
     currentLoadedFrames = desiredFrames;
-    // Update visualization array
-    UpdateMarkerPointLocArray();
 
     // quantile curtail
     for (int i=0; i<currentLoadedFrames; i++) {
@@ -207,17 +223,24 @@ void GUI::ComputeBsplineForAllFrames() {
     }
 
     // Parallel B-spline computation
-    logger().info(">>>>>>>>>> Before B-spline >>>>>>>>>>");
-    logger().info("B-spline #frames = {}", currentLoadedFrames-1);
-    tbb::parallel_for( tbb::blocked_range<int>(1, currentLoadedFrames),
-        [this/*.bsplineArray[ii], .imgData[ii]*/, bsplineDegree](const tbb::blocked_range<int> &r) {
+    // logger().info(">>>>>>>>>> Before B-spline >>>>>>>>>>");
+    // logger().info("B-spline #frames = {}", currentLoadedFrames-1);
+    // tbb::parallel_for( tbb::blocked_range<int>(1, currentLoadedFrames),
+    //     [this/*.bsplineArray[ii], .imgData[ii]*/, bsplineDegree](const tbb::blocked_range<int> &r) {
 
-            for (int ii = r.begin(); ii != r.end(); ++ii) {
-                bsplineArray[ii].CalcControlPts(imgData[ii], 0.7, 0.7, 0.7, bsplineDegree);
-                std::cout << "B-spline computed for frame " << ii << std::endl;
-            }
-        });
-    logger().info("<<<<<<<<<< After B-spline <<<<<<<<<<");
+    //         for (int ii = r.begin(); ii != r.end(); ++ii) {
+    //             bsplineArray[ii].CalcControlPts(imgData[ii], 0.7, 0.7, 0.7, bsplineDegree);
+    //             std::cout << "B-spline computed for frame " << ii << std::endl;
+    //         }
+    //     });
+    // logger().info("<<<<<<<<<< After B-spline <<<<<<<<<<");
+    
+    // DO NOT GO PARALLEL HERE: it could take too much memory and lead to crash!!!!
+    for (int i=1; i<currentLoadedFrames; i++) {
+        bsplineArray[i].CalcControlPts(imgData[i], 0.7, 0.7, 0.7, bsplineDegree);
+        std::cout << "B-spline computed for frame " << i << std::endl;
+    }
+
 
     // DEBUG PURPOSE
     // used to test the correctness of parallel B-spline

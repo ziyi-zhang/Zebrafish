@@ -138,6 +138,31 @@ void GUI::DrawStage2() {
         ImGui::SameLine();
         ImGui::Text("%s", bsplineStr.c_str());
     }
+
+    ImGui::Separator(); /////////////////////////////////////////
+
+    if (ImGui::CollapsingHeader("Load All Frames", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+        const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+        ImGui::PushItemWidth(inputWidth);
+
+        ImGui::SliderInt("Desired #frames", &desiredFrames, 1, ttlFrames, "%d frames");
+        if (ImGui::Button("Prepare all frames")) {
+            LoadSubsequentFrames();
+            ComputeBsplineForAllFrames();
+            // do not really change "currentLoadedFrames" now. Will crash something
+            currentLoadedFrames_temp = currentLoadedFrames;
+            currentLoadedFrames = 1;
+
+            preLoadAllFrames = true;
+            logger().debug("   <button> Prepare all frames");
+        }
+        if (showTooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("[Optional] Load desired number of frames and prepare them for optimization. This may take some time.\nThis is optional as it can be postponed to stage-7.");
+        }
+
+        ImGui::PopItemWidth();
+    }
 }
 
 

@@ -178,6 +178,7 @@ private:
     bool showTooltip;
     float lineWidth;
     bool reverseColor;
+    bool preLoadAllFrames;
 
     //////////////////////////////////////////////////
     // core
@@ -333,7 +334,7 @@ private:
     bool manualOverrideMarkerVis, showAllMarkers;
     int sliceToShow;  // which slice in the 3D image to show
     int frameToShow;  // which frame to show
-    int currentLoadedFrames;
+    int currentLoadedFrames, currentLoadedFrames_temp;
     UIsize_t UIsize;
     bool UIsize_redraw;  // redraw after window resize
 
@@ -494,6 +495,7 @@ private:
 
     //////////////////////////////////////////////////
     // Stage 7 Optical Flow
+    void InitializeMarkerRelated();
     void LoadSubsequentFrames();
     void ComputeBsplineForAllFrames();
     void RunOpticalFlow();
