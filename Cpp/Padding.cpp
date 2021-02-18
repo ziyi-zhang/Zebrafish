@@ -193,10 +193,14 @@ template void padding::AddOneRing(const Eigen::MatrixXd &appendV, const Eigen::M
 void padding::AddOneRingForAll(const Eigen::MatrixXd &appendV, const Eigen::MatrixXi &appendF, const RCMap_t &appendRCMap, std::vector<Eigen::MatrixXd> &V, Eigen::MatrixXi &F, RCMap_t &RCMap) {
 
     const int N = V.size();
+    const int M = F.rows();
     for (int i=0; i<N; i++) {
         padding::AddOneRing<Eigen::MatrixXd>(appendV, appendF, V[i], F);
     }
     RCMap.insert(appendRCMap.begin(), appendRCMap.end());
+
+    // Fix F (we append it for N times)
+    F.conservativeResize(M + appendF.rows(), 3);
 }
 
 

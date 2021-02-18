@@ -16,6 +16,8 @@
 #include <string>
 #include <ctime>
 #include <stdio.h>
+#include <math.h>
+
 
 namespace zebrafish
 {
@@ -375,8 +377,9 @@ namespace zebrafish
 
             // ring padding
             static int lastVRows;
-            if (analysisPara.rawMeshVRows == 0 && analysisPara.V.size() > 0) analysisPara.rawMeshVRows = analysisPara.V[0].rows();
-            if (ImGui::Button("Padding")) {
+            if (!analysisInputPath.empty() && ImGui::Button("One-Ring Padding")) {
+
+                if (analysisPara.rawMeshVRows == 0) analysisPara.rawMeshVRows = analysisPara.V[0].rows();
                 Eigen::MatrixXd appendV;
                 Eigen::MatrixXi appendF;
                 RCMap_t appendRCMap;
@@ -388,21 +391,6 @@ namespace zebrafish
                 UpdateAnalysisPointLocArray();
 
                 logger().info("#Verts = {}", analysisPara.V[0].rows());
-            }
-
-            // estimate mean edge length
-            if (analysisPara.F.size() > 0) {
-            double meanL = 0.0;
-            for (int i=0; i<analysisPara.F.rows(); i++) {
-                int t0 = analysisPara.F(i, 0);
-                int t1 = analysisPara.F(i, 1);
-                int t2 = analysisPara.F(i, 2);
-                meanL += (analysisPara.V[0].row(t1) - analysisPara.V[0].row(t2)).norm();
-                meanL += (analysisPara.V[0].row(t0) - analysisPara.V[0].row(t2)).norm();
-                meanL += (analysisPara.V[0].row(t0) - analysisPara.V[0].row(t1)).norm();
-            }
-            meanL /= double(analysisPara.F.rows() * 3);
-            logger().info("meanL = {}", meanL);
             }
 
             // average displacement area crop
@@ -420,6 +408,39 @@ namespace zebrafish
 
             ImGui::Separator(); /////////////////////////////////////////
 
+            static bool re_estimate_meanL = true;
+            const auto EstimateVol = [](const Eigen::MatrixXd &V, const Eigen::MatrixXi &F, int upsample) -> double {
+                double meanL = 0.0;
+                for (int i=0; i<F.rows(); i++) {
+                    int t0 = F(i, 0);
+                    int t1 = F(i, 1);
+                    int t2 = F(i, 2);
+                    meanL += (V.row(t1) - V.row(t2)).norm();
+                    meanL += (V.row(t0) - V.row(t2)).norm();
+                    meanL += (V.row(t0) - V.row(t1)).norm();
+                }
+                meanL /= double(F.rows() * 3);
+                meanL /= std::pow(2.0, upsample);
+
+                logger().info("Mean edge length after upsample = {}", meanL);
+                double vol = (meanL*meanL*meanL)/(6.0*std::sqrt(3));
+                logger().info("Regular tetrahedron of this edge length has volume = {}", vol);
+                return vol * 10.0;
+            };
+
+            // estimate mean edge length
+            if (analysisInputPath.empty() && re_estimate_meanL) {  // only estimate this once in first-round
+                analysisPara.max_tet_vol = EstimateVol(markerPointLocArray[0], markerMeshArray, analysisPara.upsample);
+                re_estimate_meanL = false;
+            }
+            if (!analysisInputPath.empty()) {
+                if (ImGui::Button("Estimate Volume")) {
+                    analysisPara.max_tet_vol = EstimateVol(analysisPara.V[0], analysisPara.F, analysisPara.upsample);
+                }
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////
+
             if (ImGui::TreeNode("Advanced analysis")) {
 
                 const float inputWidth = ImGui::GetWindowWidth() / 3.0;
@@ -427,6 +448,12 @@ namespace zebrafish
                 ImGui::InputDouble("offset", &analysisPara.offset);
                 if (showTooltip && ImGui::IsItemHovered()) {
                     ImGui::SetTooltip("Diagonal multiplier for box mesh");
+                }
+                if (ImGui::InputInt("upsample", &analysisPara.upsample)) {
+                    re_estimate_meanL = true;
+                }
+                if (showTooltip && ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Recursively upsample to get a finer mesh");
                 }
                 ImGui::InputDouble("radius-edge ratio", &analysisPara.radius_edge_ratio);
                 if (showTooltip && ImGui::IsItemHovered()) {
@@ -454,13 +481,13 @@ namespace zebrafish
                 if (showTooltip && ImGui::IsItemHovered()) {
                     ImGui::SetTooltip("Desnsity of the output visualization");
                 }
-                ImGui::InputInt("upsample", &analysisPara.upsample);
-                if (showTooltip && ImGui::IsItemHovered()) {
-                    ImGui::SetTooltip("Recursively upsample to get a finer mesh");
-                }
                 ImGui::PopItemWidth();
 
                 ImGui::TreePop();
+            }
+
+            if (ImGui::Button("print F")) {
+                std::cerr << std::endl << analysisPara.F << std::endl;
             }
 
             static std::string runAnalysisStr = "";

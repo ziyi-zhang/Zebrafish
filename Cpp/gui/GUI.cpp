@@ -1108,14 +1108,14 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     // Analysis
     analysisPara.offset = 1;  // Diagonal multiplier for box mesh
     analysisPara.radius_edge_ratio = 1.414;  // Radius edge ratio used by tetgen
-    analysisPara.max_tet_vol = 25;  // Minimum tet area used by tetgen
+    analysisPara.max_tet_vol = 500;  // Minimum tet area used by tetgen
     analysisPara.E = 566.7;  // Young's modulus 566.7Pa
     analysisPara.nu = 0.45;  // Poisson's ratio
     analysisPara.is_linear = true;  // Use non-linear material
     analysisPara.discr_order = 1;  // Analysis discretization order
     analysisPara.n_refs = 0;  // Number of mesh uniform refinements
     analysisPara.vismesh_rel_area = 0.00001;  // Desnsity of the output visualization
-    analysisPara.upsample = 3;  // upsample for a denser mesh
+    analysisPara.upsample = 2;  // upsample for a denser mesh
     analysisPara.rawMeshVRows = 0;
 
     // 3D image viewer

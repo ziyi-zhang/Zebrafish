@@ -245,7 +245,11 @@ void GUI::DrawMarkerMesh() {
     );
 
     if (!analysisInputPath.empty()) {
-        viewer.core().align_camera_center(tempV);
+        static bool align_once = true;
+        if (align_once) {
+            viewer.core().align_camera_center(tempV);
+            align_once = false;
+        }
     }
 }
 
