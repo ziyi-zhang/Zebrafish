@@ -486,10 +486,6 @@ namespace zebrafish
                 ImGui::TreePop();
             }
 
-            if (ImGui::Button("print F")) {
-                std::cerr << std::endl << analysisPara.F << std::endl;
-            }
-
             static std::string runAnalysisStr = "";
             if (ImGui::Button("Run analysis")) {
                 try {
