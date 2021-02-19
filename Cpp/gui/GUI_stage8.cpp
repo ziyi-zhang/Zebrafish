@@ -437,6 +437,23 @@ namespace zebrafish
                 if (ImGui::Button("Estimate Volume")) {
                     analysisPara.max_tet_vol = EstimateVol(analysisPara.V[0], analysisPara.F, analysisPara.upsample);
                 }
+                if (showTooltip && ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Update the max_tet_vol based on current mesh density. It is suggested to update this after modifying upsample number.\nThe updated value is 10x (volume of regular tetrahedron with mean edge length).");
+                }
+            }
+
+            // in-out filter
+            static bool useWindingNumber = false;
+            static bool windingNumberOtherSide = false;
+            if (!analysisInputPath.empty()) {
+                ImGui::Checkbox("In-out filter", &useWindingNumber);
+                if (showTooltip && ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("If checked, only use one side for traction force simulation.");
+                }
+                ImGui::Checkbox("Use another side", &windingNumberOtherSide);
+                if (showTooltip && ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("If checked, use the other side for traction force simulation.");
+                }
             }
 
             //////////////////////////////////////////////////////////////////////////////////
@@ -508,7 +525,7 @@ namespace zebrafish
                             analysisPara.markerRCMap,
                             imgRows, imgCols, layerPerImg,
                             resolutionX, resolutionY, resolutionZ, 
-                            false);
+                            false, useWindingNumber);
                     }
                     else {
 

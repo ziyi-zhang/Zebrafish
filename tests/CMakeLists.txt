@@ -6,6 +6,7 @@ set(test_sources
 	CylinderTest.cpp
 	InterpTest.cpp
 	PaddingTest.cpp
+	WindingTest.cpp
 )
 
 

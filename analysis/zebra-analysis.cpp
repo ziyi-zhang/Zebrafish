@@ -12,6 +12,7 @@
 #include <igl/doublearea.h>
 #include <igl/write_triangle_mesh.h>
 #include <igl/remove_unreferenced.h>
+#include <igl/winding_number.h>
 #include <highfive/H5Easy.hpp>
 
 
@@ -24,7 +25,7 @@ namespace zebrafish
                           const int discr_order, const bool is_linear, const int n_refs, const double vismesh_rel_area, const int upsample,
                           const std::map<int, std::array<int, 2> > &markerRCMap, const int imgRows, const int imgCols, const int layerPerImg,
                           const double resolutionX, const double resolutionY, const double resolutionZ,
-                          const bool saveinput)
+                          const bool saveinput, bool useWindingNumber, bool windingNumberOtherSide)
     {
 
         //const std::string rbf_function = "gaussian";
@@ -106,8 +107,8 @@ namespace zebrafish
         Eigen::MatrixXd barys;
         igl::barycenter(V0, F, barys);
 
-        const auto set_bc = [&barys](const Eigen::MatrixXd &v, const bool boundary) {
-            if (boundary)
+        const auto set_bc = [&barys, &useWindingNumber](const Eigen::MatrixXd &v, const bool boundary) {
+            if (!useWindingNumber && boundary)
                 return 1;
             double min = std::numeric_limits<double>::max();
             int min_index = 0;
@@ -121,6 +122,8 @@ namespace zebrafish
 
             if (min < 1)
                 return 2;
+            if (useWindingNumber && boundary)
+                return 1;
             return 0;
         };
 
@@ -192,6 +195,41 @@ namespace zebrafish
         Eigen::MatrixXi elem, faces;
         const std::string switches = "zpq" + std::to_string(radius_edge_ratio) + "a" + std::to_string(max_tet_vol) + "VYY";
         igl::copyleft::tetgen::tetrahedralize(mesh_v, mesh_f, switches, nodes, elem, faces);
+
+        //////////////////////////////////////////////////////////////
+        // In-out filter
+        const auto RemoveTet = [&windingNumberOtherSide](Eigen::MatrixXi &T, Eigen::VectorXd &wnumber) {
+            int cnt = 0;
+            if (windingNumberOtherSide) 
+                wnumber.array() *= -1;
+            for (int i=0; i<T.rows(); i++) {
+                if (wnumber(i) > 0) {
+                    T.row(cnt) = T.row(i);
+                    cnt++;
+                }
+            }
+            T.conservativeResize(cnt, 4);
+        };
+        const auto WriteToMsh = [&nodes, &elem](const char* fileName) {
+
+            H5Easy::File file("./" + std::string(fileName), H5Easy::File::ReadWrite | H5Easy::File::Create);
+            H5Easy::dump(file, "V", nodes);
+            H5Easy::dump(file, "T", elem);
+
+            // Eigen::MatrixXi F, J, K;
+            // igl::boundary_facets(elem, F, J, K);
+            // igl::writeMESH(std::string(fileName), nodes, elem, F);
+        };
+
+        Eigen::VectorXd wnumber;
+        // WriteToMsh("before_filter.h5");
+        if (useWindingNumber) {
+            Eigen::MatrixXd bc;
+            igl::barycenter(nodes, elem, bc);
+            igl::winding_number(V0, F, bc, wnumber);
+            RemoveTet(elem, wnumber);
+            // WriteToMsh("after_filter.h5");
+        }
 
         //////////////////////////////////////////////////////////////
         // polyfem
