@@ -71,8 +71,8 @@ bool ValidDerivative(const Eigen::MatrixXd &secondDerivative, int i, int j) {
 // whether the second derivative is small near the minimum point?
 
     const int cols = secondDerivative.cols();
-    int colStart = std::max(0, j-8);
-    int colEnd = std::min(cols-1, j+8);
+    int colStart = std::max(0, j-4);
+    int colEnd = std::min(cols-1, j+4);
     int count = 0;
 
     for (int col=colStart; col<=colEnd; col++) {
