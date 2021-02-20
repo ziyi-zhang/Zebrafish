@@ -36,6 +36,7 @@ const auto Init = [](Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
          5, 3, 1;
 };
 
+
 TEST_CASE("cage", "[CageTest]") {
 
     Eigen::MatrixXd V, Va, Vb;
@@ -45,8 +46,13 @@ TEST_CASE("cage", "[CageTest]") {
 
     cage::ComputeCage(V, F, Va, Fa, true);
     cage::ComputeCage(V, F, Vb, Fb, false);
-    cage::AddCage(Va, Fa, V, F);
-    cage::AddCage(Vb, Fb, V, F);
+    int vertCnt = V.rows();
+    cage::AddCage(Va, Fa, V, F, vertCnt);
+    cage::AddCage(Vb, Fb, V, F, vertCnt);
+
+    REQUIRE(V.rows() == 18);
+    //std::cout << F.rows() << std::endl;
+    REQUIRE(F.rows() == 36);
 
     ///////////////////////////////////
     // Viewer

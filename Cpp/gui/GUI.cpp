@@ -1107,6 +1107,10 @@ GUI::GUI() : pointRecord(), clusterRecord() {
     optimMaxXYDisp = 4.0;  // depth correction allowed XY displacement
 
     // Analysis
+    Va_cage.resize(0, 3);
+    Vb_cage.resize(0, 3);
+    Fa_cage.resize(0, 3);
+    Fb_cage.resize(0, 3);
     analysisPara.offset = 1;  // Diagonal multiplier for box mesh
     analysisPara.radius_edge_ratio = 1.414;  // Radius edge ratio used by tetgen
     analysisPara.max_tet_vol = 500;  // Minimum tet area used by tetgen
@@ -1349,6 +1353,7 @@ void GUI::init(std::string imagePath_, std::string maskPath_, std::string analys
     int defaultMeshID = viewer.selected_data_index;
     meshID = viewer.append_mesh();
     visualID = viewer.append_mesh();
+    analysisID = viewer.append_mesh();
     viewer.selected_data_index = defaultMeshID;
     viewer.plugins.push_back(this);
 

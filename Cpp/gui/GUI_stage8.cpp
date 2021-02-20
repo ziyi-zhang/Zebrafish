@@ -7,6 +7,7 @@
 #include <zebrafish/TiffReader.h>
 #include <zebrafish/zebra-analysis.hpp>
 #include <zebrafish/Padding.h>
+#include <zebrafish/Cage.h>
 
 #include <tbb/task_scheduler_init.h>
 #include <tbb/parallel_for.h>
@@ -286,6 +287,7 @@ namespace zebrafish
         MarkerDragVisualization();
 
         DrawReferenceDots();
+        DrawAnalysisCage();
 
         ImGui::Separator(); /////////////////////////////////////////
 
@@ -394,12 +396,31 @@ namespace zebrafish
             }
 
             // cages
-            if (!analysisInputPath.empty() && ImGui::Button("Generate Cage (above)")) {
+            static int baseVa, baseVb;
+            if (!analysisInputPath.empty()) {
+                if (Va_cage.size() == 0) {
+                    if (ImGui::Button("Generate Cage (above)")) {
+                        cage::ComputeCage(analysisPara.V[0], analysisPara.F, Va_cage, Fa_cage, true);
+                        baseVa = analysisPara.V[0].rows();
+                    }
+                } else {
+                    if (ImGui::Button("Remove Cage (above)")) {
+                        Va_cage.resize(0, 3);
+                        Fa_cage.resize(0, 3);
+                    }
+                }
 
-            }
-
-            if (!analysisInputPath.empty() && ImGui::Button("Generate Cage (below)")) {
-
+                if (Vb_cage.size() == 0) {
+                    if (ImGui::Button("Generate Cage (below)")) {
+                        cage::ComputeCage(analysisPara.V[0], analysisPara.F, Vb_cage, Fb_cage, false);
+                        baseVb = analysisPara.V[0].rows();
+                    }
+                } else {
+                    if (ImGui::Button("Remove Cage (below)")) {
+                        Vb_cage.resize(0, 3);
+                        Fb_cage.resize(0, 3);
+                    }
+                }
             }
 
             // average displacement area crop
@@ -516,6 +537,9 @@ namespace zebrafish
             if (ImGui::Button("Run analysis")) {
                 try {
                     if (!analysisInputPath.empty()) {
+                        // pre-task (only in re-analysis)
+                        cage::AddCageForAll(Va_cage, Fa_cage, analysisPara.V, analysisPara.F, baseVa);
+                        cage::AddCageForAll(Vb_cage, Fb_cage, analysisPara.V, analysisPara.F, baseVb);
                         // re-run a previous experiment result
                         compute_analysis(
                             analysisPara.V,

@@ -32,7 +32,6 @@ void cage::ComputeCage(
     Eigen::VectorXi boundary;
     igl::boundary_loop(F, boundary);
     sideF.resize(F.rows() + boundary.size() * 2, 3);
-    sideF.conservativeResize(F.rows(), 3);
     // flat bottom/top
     Eigen::MatrixXd box_min = V.colwise().minCoeff();
     Eigen::MatrixXd box_max = V.colwise().maxCoeff();
@@ -42,7 +41,13 @@ void cage::ComputeCage(
     sideV.block(N, 2, N, 1) = Eigen::ArrayXd::Constant(N, targetZ);
     sideF.topRows(F.rows()) = F.array() + N;
     // side surface
-
+    int cnt = F.rows();
+    for (int i=0; i<boundary.size(); i++) {
+        int base0 = boundary(i);
+        int base1 = boundary((i+1) % boundary.size());
+        sideF.row(cnt++) << base0+N, base0, base1;
+        sideF.row(cnt++) << base1, base1+N, base0+N;
+    }
 }
 
 
@@ -50,18 +55,22 @@ void cage::AddCage(
     const Eigen::MatrixXd &sideV, 
     const Eigen::MatrixXi &sideF, 
     Eigen::MatrixXd &V, 
-    Eigen::MatrixXi &F) {
+    Eigen::MatrixXi &F, 
+    int baseV,
+    bool updateF) {
 
     const int Nv = V.rows();
-    int baseV = std::min(Nv, int(sideV.rows()));
+    // int baseV = std::min(Nv, int(sideV.rows()));
+    /*
     for (int i=0; i<baseV; i++) {
         if (!V.row(i).isApprox(sideV.row(i), 0.0)) {
-            baseV = i-1;
+            baseV = i;
             break;
         }
     }
-    if (baseV<0) {
-        logger().error("AddCage no match V");
+    */
+    if (baseV==0) {
+        logger().error("AddCage: vertCnt not properly registered");
         return;
     }
 
@@ -69,12 +78,30 @@ void cage::AddCage(
     V.conservativeResize(Nv + sideV.rows()-baseV, 3);
     V.bottomRows(sideV.rows()-baseV) = sideV.bottomRows(sideV.rows()-baseV);
     // F
-    F.conservativeResize(F.rows() + sideF.rows(), 3);
-    F.bottomRows(sideF.rows()) = sideF;
-    for (int i=F.rows()-sideF.rows(); i<F.rows(); i++)
-        for (int j=0; j<3; j++) {
-            if (F(i, j) >= baseV) F(i, j) += Nv-baseV;
-        }
+    if (updateF) {
+        F.conservativeResize(F.rows() + sideF.rows(), 3);
+        F.bottomRows(sideF.rows()) = sideF;
+        for (int i=F.rows()-sideF.rows(); i<F.rows(); i++)
+            for (int j=0; j<3; j++) {
+                if (F(i, j) >= baseV) F(i, j) += Nv-baseV;
+            }
+    }
+}
+
+
+void cage::AddCageForAll(
+    const Eigen::MatrixXd &sideV, 
+    const Eigen::MatrixXi &sideF, 
+    std::vector<Eigen::MatrixXd> &V, 
+    Eigen::MatrixXi &F, 
+    int baseV) {
+
+    if (sideV.size() == 0 || sideF.size() == 0) return;
+    int frames = V.size();
+
+    for (int i=0; i<frames; i++) {
+        cage::AddCage(sideV, sideF, V[i], F, baseV, i==0);
+    }
 }
 
 }  // namespace zebrafish

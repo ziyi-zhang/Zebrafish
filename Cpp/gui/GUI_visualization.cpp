@@ -301,4 +301,33 @@ void GUI::UpdateAnalysisPointLocArray() {
     showMarkerMesh = true;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Visualize analysis related effects
+
+
+void GUI::DrawAnalysisCage() {
+
+    viewer.data(analysisID).clear();
+
+    // do not draw if not needed
+    if (Va_cage.size()==0 && Vb_cage.size()==0) return;
+    if (Fa_cage.size()==0 && Fb_cage.size()==0) return;
+    if (stage < 8) return;  // do not visualize cage before stage 8: analysis
+
+    // show mesh
+    Eigen::MatrixXd tempV(Va_cage.rows() + Vb_cage.rows(), 3);
+    Eigen::MatrixXi tempF(Fa_cage.rows() + Fb_cage.rows(), 3);
+    tempV << Va_cage, Vb_cage;
+    tempF << Fa_cage, Fb_cage.array()+Va_cage.rows();
+
+    viewer.data(analysisID).show_faces = false;
+    viewer.data(analysisID).show_lines = true;
+    viewer.data(analysisID).show_texture = false;
+    // viewer.data(meshID).set_colors(Eigen::RowVector3d(0.78, 0.82, 0.83));
+    viewer.data(analysisID).line_width = lineWidth;
+    viewer.data(analysisID).shininess = 0;
+    viewer.data(analysisID).set_mesh(tempV, tempF);
+}
+
 }  // namespace zebrafish

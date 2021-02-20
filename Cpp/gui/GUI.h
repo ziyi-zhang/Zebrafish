@@ -289,6 +289,9 @@ private:
 
     //////////////////////////////////////////////////
     // Analysis
+    int analysisID;  // viewer mesh ID
+    Eigen::MatrixXd Va_cage, Vb_cage;
+    Eigen::MatrixXi Fa_cage, Fb_cage;
     analysis_t analysisPara;
 
     //////////////////////////////////////////////////
@@ -503,6 +506,7 @@ private:
     //////////////////////////////////////////////////
     // Stage 8 Displacement
     void GetMarkersInAvgDispArea(std::vector<bool> &markerInAvgDispArea);
+    void DrawAnalysisCage();
     bool OptimizeAllFrames(bool logEnergy);
     void ApplyOpticalFlow(int prevFrameIdx);
     void OptimizeOneFrame(int prevFrameIdx);
