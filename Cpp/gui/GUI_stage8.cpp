@@ -393,6 +393,15 @@ namespace zebrafish
                 logger().info("#Verts = {}", analysisPara.V[0].rows());
             }
 
+            // cages
+            if (!analysisInputPath.empty() && ImGui::Button("Generate Cage (above)")) {
+
+            }
+
+            if (!analysisInputPath.empty() && ImGui::Button("Generate Cage (below)")) {
+
+            }
+
             // average displacement area crop
             if (analysisInputPath.empty() && ImGui::Checkbox("[Mouse] global disp area", &meanCrop.cropActive)) {  // no mean crop in re-analysis
                 if (!meanCrop.cropActive)

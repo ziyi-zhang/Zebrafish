@@ -14,6 +14,8 @@ set(SOURCES
     OpticalFlow.h
     Padding.cpp
     Padding.h
+    Cage.cpp
+    Cage.h
     Quad.ipp
 )
 

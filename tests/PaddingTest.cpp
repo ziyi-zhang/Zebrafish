@@ -85,6 +85,7 @@ const auto Initialize2 = [](Eigen::MatrixXd &V, Eigen::MatrixXi &F, RCMap_t &RCM
 ////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("Padding_9", "[PaddingTest]") {
+    // DEPRECATED: the V, F are not ordered as in the GUI
 
     Eigen::MatrixXd V, appendV;
     Eigen::MatrixXi F, appendF;

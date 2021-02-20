@@ -365,4 +365,4 @@ namespace zebrafish
             // state.save_vtu(out_path + ".all.vtu", 0);
         }
     }
-} // namespace zebrafish
+}  // namespace zebrafish
