@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     int n_refs = 0;
     double vismesh_rel_area = 0.00001;
     int upsample = 3;
-    std::map<int, std::array<int, 2> > markerRCMap;  // dummy
+    std::map<int, std::array<int, 2>> markerRCMap; // dummy
 
     CLI::App command_line{"ZebraFishAnalysis"};
     command_line.add_option("-p,--path", path, "Input folder with objs to process")->check(CLI::ExistingDirectory);
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
         igl::read_triangle_mesh(path + file_name + std::to_string(i) + ".obj", V[i], F);
     }
 
-    zebrafish::compute_analysis(V, F, out, E, nu, offset, radius_edge_ratio, min_area, discr_order, is_linear, n_refs, vismesh_rel_area, upsample, markerRCMap, 0, 0, 0, 0, 0, 0, false);
+    zebrafish::compute_analysis(V, F, V[0].rows(), F.rows(), out, E, nu, offset, radius_edge_ratio, min_area, discr_order, is_linear, n_refs, vismesh_rel_area, upsample, markerRCMap, 0, 0, 0, 0, 0, 0, false);
 
     return EXIT_SUCCESS;
 }

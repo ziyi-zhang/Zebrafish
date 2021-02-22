@@ -19,7 +19,6 @@
 #include <stdio.h>
 #include <math.h>
 
-
 namespace zebrafish
 {
 
@@ -159,25 +158,31 @@ namespace zebrafish
             }
         }
 
-        void GetPhysicalLocation(const std::vector<Eigen::MatrixXd> &locArray, double resolutionX, double resolutionY, double resolutionZ, std::vector<Eigen::MatrixXd> &locArray_out) {
+        void GetPhysicalLocation(const std::vector<Eigen::MatrixXd> &locArray, double resolutionX, double resolutionY, double resolutionZ, std::vector<Eigen::MatrixXd> &locArray_out)
+        {
 
             const int N = locArray.size();
             locArray_out.resize(N);
             bool physical;
 
-            if (resolutionX > 0 && resolutionY > 0 && resolutionZ > 0) {
+            if (resolutionX > 0 && resolutionY > 0 && resolutionZ > 0)
+            {
                 physical = true;
                 logger().info("Using physical unit. Row dist = {}, col dist = {}, depth dist = {}", resolutionX, resolutionY, resolutionZ);
-            } else {
+            }
+            else
+            {
                 physical = false; // the user does not input valid physical resolution
                 logger().info("Physical resolution invalid. Using pixel as unit.");
             }
 
-            for (int i = 0; i < locArray.size(); i++) {
+            for (int i = 0; i < locArray.size(); i++)
+            {
 
                 // Note: locArray has inverted XY
                 locArray_out[i] = locArray[i];
-                if (physical) {
+                if (physical)
+                {
                     locArray_out[i].col(0) *= resolutionY;
                     locArray_out[i].col(1) *= resolutionX;
                     locArray_out[i].col(2) *= resolutionZ;
@@ -231,20 +236,26 @@ namespace zebrafish
 
         // Visualize marker cluster points
         static int pointSize = 7;
-        if (showMarkerPoints) {
+        if (showMarkerPoints)
+        {
 
             viewer.data().point_size = pointSize;
 
-            if (!markerPointLocArray.empty()) {
+            if (!markerPointLocArray.empty())
+            {
                 // show optimized markers
-                if (!manualOverrideMarkerVis) {
+                if (!manualOverrideMarkerVis)
+                {
                     // show markers in the frame that is currently focused
                     viewer.data().add_points(
                         markerPointLocArray[frameToShow],
                         markerPointColor);
-                } else {
+                }
+                else
+                {
                     // show markers in manually selected frames
-                    for (int i = 0; i < markerPointStatusArray.rows(); i++) {
+                    for (int i = 0; i < markerPointStatusArray.rows(); i++)
+                    {
                         if (!markerPointStatusArray(i))
                             continue;
                         viewer.data().add_points(
@@ -291,39 +302,49 @@ namespace zebrafish
 
         ImGui::Separator(); /////////////////////////////////////////
 
-        if (analysisInputPath.empty() && ImGui::CollapsingHeader("Displacement", ImGuiTreeNodeFlags_DefaultOpen)) {  // do not draw if in re-analysis mode
+        if (analysisInputPath.empty() && ImGui::CollapsingHeader("Displacement", ImGuiTreeNodeFlags_DefaultOpen))
+        { // do not draw if in re-analysis mode
 
             static bool logEnergy = false;
             static std::string calcDispStr = "";
-            if (ImGui::TreeNode("Advanced depth correction")) {
+            if (ImGui::TreeNode("Advanced depth correction"))
+            {
 
                 const float inputWidth = ImGui::GetWindowWidth() / 3.0;
                 ImGui::PushItemWidth(inputWidth);
 
-                if (ImGui::SliderFloat("DC gap", &depthCorrectionGap, 0, 0.3, "%.3f pixels")) {
+                if (ImGui::SliderFloat("DC gap", &depthCorrectionGap, 0, 0.3, "%.3f pixels"))
+                {
                     calcDispStr = "";
                 }
-                if (showTooltip && ImGui::IsItemHovered()) {
+                if (showTooltip && ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("Depth search gap in pixels");
                 }
-                if (ImGui::SliderInt("DC trial numbers", &depthCorrectionNum, 0, 50, "%d * gap")) {
+                if (ImGui::SliderInt("DC trial numbers", &depthCorrectionNum, 0, 50, "%d * gap"))
+                {
                     calcDispStr = "";
                 }
-                if (showTooltip && ImGui::IsItemHovered()) {
+                if (showTooltip && ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("Depth search trial numbers. A vertical interval of length [2*num+1]x[gap] pixels will be searched to determine whether the depth should be modified.");
                 }
-                if (ImGui::SliderFloat("Max XY displacement", &optimMaxXYDisp, 0.5, 9, "%.2f pixels")) {
+                if (ImGui::SliderFloat("Max XY displacement", &optimMaxXYDisp, 0.5, 9, "%.2f pixels"))
+                {
                     calcDispStr = "";
                 }
-                if (showTooltip && ImGui::IsItemHovered()) {
+                if (showTooltip && ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("Maximum displacement in XY plane during depth correction");
                 }
                 ImGui::Checkbox("Second round DC", &secondRoundDepthCorrection);
-                if (showTooltip && ImGui::IsItemHovered()) {
+                if (showTooltip && ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("Increase depth search precision but time-consuming");
                 }
                 ImGui::Checkbox("Log energy matrix", &logEnergy);
-                if (showTooltip && ImGui::IsItemHovered()) {
+                if (showTooltip && ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("[Debug purpose] whether log the energy for all depth trials");
                 }
 
@@ -333,20 +354,25 @@ namespace zebrafish
                 ImGui::Separator();
             }
 
-            if (ImGui::Button("Calculate Displacement")) {
-                try {
+            if (ImGui::Button("Calculate Displacement"))
+            {
+                try
+                {
                     if (OptimizeAllFrames(logEnergy))
                         calcDispStr = "Successful";
                     else
                         calcDispStr = "exception: see log";
                     logger().debug("   <button> Calculate Displacement");
-                } catch (const std::exception &e) {
+                }
+                catch (const std::exception &e)
+                {
                     logger().error("   <button> [Calculate Displacement] Fatal error encountered.");
                     std::cerr << "   <button> [Calculate Displacement] Fatal error encountered." << std::endl;
                     calcDispStr = "Fatal error";
                 }
             }
-            if (showTooltip && ImGui::IsItemHovered()) {
+            if (showTooltip && ImGui::IsItemHovered())
+            {
                 ImGui::SetTooltip("Calculate displacement for all loaded frames");
             }
             ImGui::SameLine();
@@ -354,7 +380,8 @@ namespace zebrafish
 
             ImGui::Separator(); /////////////////////////////////////////
 
-            if (ImGui::TreeNode("Advanced visualization     ")) {
+            if (ImGui::TreeNode("Advanced visualization     "))
+            {
 
                 const float inputWidth = ImGui::GetWindowWidth() / 3.0;
                 ImGui::PushItemWidth(inputWidth);
@@ -375,13 +402,16 @@ namespace zebrafish
 
         ImGui::Separator(); /////////////////////////////////////////
 
-        if (ImGui::CollapsingHeader("Analysis", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::CollapsingHeader("Analysis", ImGuiTreeNodeFlags_DefaultOpen))
+        {
 
             // ring padding
             static int lastVRows;
-            if (!analysisInputPath.empty() && ImGui::Button("One-Ring Padding")) {
+            if (!analysisInputPath.empty() && ImGui::Button("One-Ring Padding"))
+            {
 
-                if (analysisPara.rawMeshVRows == 0) analysisPara.rawMeshVRows = analysisPara.V[0].rows();
+                if (analysisPara.rawMeshVRows == 0)
+                    analysisPara.rawMeshVRows = analysisPara.V[0].rows();
                 Eigen::MatrixXd appendV;
                 Eigen::MatrixXi appendF;
                 RCMap_t appendRCMap;
@@ -397,26 +427,37 @@ namespace zebrafish
 
             // cages
             static int baseVa, baseVb;
-            if (!analysisInputPath.empty()) {
-                if (Va_cage.size() == 0) {
-                    if (ImGui::Button("Generate Cage (above)")) {
+            if (!analysisInputPath.empty())
+            {
+                if (Va_cage.size() == 0)
+                {
+                    if (ImGui::Button("Generate Cage (above)"))
+                    {
                         cage::ComputeCage(analysisPara.V[0], analysisPara.F, Va_cage, Fa_cage, true);
                         baseVa = analysisPara.V[0].rows();
                     }
-                } else {
-                    if (ImGui::Button("Remove Cage (above)")) {
+                }
+                else
+                {
+                    if (ImGui::Button("Remove Cage (above)"))
+                    {
                         Va_cage.resize(0, 3);
                         Fa_cage.resize(0, 3);
                     }
                 }
 
-                if (Vb_cage.size() == 0) {
-                    if (ImGui::Button("Generate Cage (below)")) {
+                if (Vb_cage.size() == 0)
+                {
+                    if (ImGui::Button("Generate Cage (below)"))
+                    {
                         cage::ComputeCage(analysisPara.V[0], analysisPara.F, Vb_cage, Fb_cage, false);
                         baseVb = analysisPara.V[0].rows();
                     }
-                } else {
-                    if (ImGui::Button("Remove Cage (below)")) {
+                }
+                else
+                {
+                    if (ImGui::Button("Remove Cage (below)"))
+                    {
                         Vb_cage.resize(0, 3);
                         Fb_cage.resize(0, 3);
                     }
@@ -424,15 +465,18 @@ namespace zebrafish
             }
 
             // average displacement area crop
-            if (analysisInputPath.empty() && ImGui::Checkbox("[Mouse] global disp area", &meanCrop.cropActive)) {  // no mean crop in re-analysis
+            if (analysisInputPath.empty() && ImGui::Checkbox("[Mouse] global disp area", &meanCrop.cropActive))
+            { // no mean crop in re-analysis
                 if (!meanCrop.cropActive)
                     logger().debug("[Mouse] global disp area: de-activated.");
-                else {
+                else
+                {
                     logger().debug("[Mouse] global disp area: activated.");
                     meanCrop.showCropArea = true;
                 }
             }
-            if (showTooltip && ImGui::IsItemHovered()) {
+            if (showTooltip && ImGui::IsItemHovered())
+            {
                 ImGui::SetTooltip("Crop an area that will be used to estimate the global displacement.\nGlobal displacement will be subtracted in analysis. By default we use the entire image.");
             }
 
@@ -441,7 +485,8 @@ namespace zebrafish
             static bool re_estimate_meanL = true;
             const auto EstimateVol = [](const Eigen::MatrixXd &V, const Eigen::MatrixXi &F, int upsample) -> double {
                 double meanL = 0.0;
-                for (int i=0; i<F.rows(); i++) {
+                for (int i = 0; i < F.rows(); i++)
+                {
                     int t0 = F(i, 0);
                     int t1 = F(i, 1);
                     int t2 = F(i, 2);
@@ -453,21 +498,25 @@ namespace zebrafish
                 meanL /= std::pow(2.0, upsample);
 
                 logger().info("Mean edge length after upsample = {}", meanL);
-                double vol = (meanL*meanL*meanL)/(6.0*std::sqrt(3));
+                double vol = (meanL * meanL * meanL) / (6.0 * std::sqrt(3));
                 logger().info("Regular tetrahedron of this edge length has volume = {}", vol);
                 return vol * 10.0;
             };
 
             // estimate mean edge length
-            if (analysisInputPath.empty() && re_estimate_meanL) {  // only estimate this once in first-round
+            if (analysisInputPath.empty() && re_estimate_meanL)
+            { // only estimate this once in first-round
                 analysisPara.max_tet_vol = EstimateVol(markerPointLocArray[0], markerMeshArray, analysisPara.upsample);
                 re_estimate_meanL = false;
             }
-            if (!analysisInputPath.empty()) {
-                if (ImGui::Button("Estimate Volume")) {
+            if (!analysisInputPath.empty())
+            {
+                if (ImGui::Button("Estimate Volume"))
+                {
                     analysisPara.max_tet_vol = EstimateVol(analysisPara.V[0], analysisPara.F, analysisPara.upsample);
                 }
-                if (showTooltip && ImGui::IsItemHovered()) {
+                if (showTooltip && ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("Update the max_tet_vol based on current mesh density. It is suggested to update this after modifying upsample number.\nThe updated value is 10x (volume of regular tetrahedron with mean edge length).");
                 }
             }
@@ -475,57 +524,70 @@ namespace zebrafish
             // in-out filter
             static bool useWindingNumber = false;
             static bool windingNumberOtherSide = false;
-            if (!analysisInputPath.empty()) {
+            if (!analysisInputPath.empty())
+            {
                 ImGui::Checkbox("In-out filter", &useWindingNumber);
-                if (showTooltip && ImGui::IsItemHovered()) {
+                if (showTooltip && ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("If checked, only use one side for traction force simulation.");
                 }
                 ImGui::Checkbox("Use another side", &windingNumberOtherSide);
-                if (showTooltip && ImGui::IsItemHovered()) {
+                if (showTooltip && ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("If checked, use the other side for traction force simulation.");
                 }
             }
 
             //////////////////////////////////////////////////////////////////////////////////
 
-            if (ImGui::TreeNode("Advanced analysis")) {
+            if (ImGui::TreeNode("Advanced analysis"))
+            {
 
                 const float inputWidth = ImGui::GetWindowWidth() / 3.0;
                 ImGui::PushItemWidth(inputWidth);
                 ImGui::InputDouble("offset", &analysisPara.offset);
-                if (showTooltip && ImGui::IsItemHovered()) {
+                if (showTooltip && ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("Diagonal multiplier for box mesh");
                 }
-                if (ImGui::InputInt("upsample", &analysisPara.upsample)) {
+                if (ImGui::InputInt("upsample", &analysisPara.upsample))
+                {
                     re_estimate_meanL = true;
                 }
-                if (showTooltip && ImGui::IsItemHovered()) {
+                if (showTooltip && ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("Recursively upsample to get a finer mesh");
                 }
                 ImGui::InputDouble("radius-edge ratio", &analysisPara.radius_edge_ratio);
-                if (showTooltip && ImGui::IsItemHovered()) {
+                if (showTooltip && ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("Radius-edge ratio in TetGen. Cannot be smaller than 0.707.");
                 }
                 ImGui::InputDouble("max tetrahedral volume", &analysisPara.max_tet_vol);
-                if (showTooltip && ImGui::IsItemHovered()) {
+                if (showTooltip && ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("Maximum tetrahedral volume in TetGen");
                 }
                 ImGui::InputDouble("E (Young's modulus)", &analysisPara.E);
-                if (showTooltip && ImGui::IsItemHovered()) {
+                if (showTooltip && ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("Young's Modulus [Pascal]");
                 }
                 ImGui::InputDouble("nu (Poisson's ratio)", &analysisPara.nu);
                 ImGui::Checkbox("linear material", &analysisPara.is_linear);
-                if (showTooltip && ImGui::IsItemHovered()) {
+                if (showTooltip && ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("Use non-linear material");
                 }
                 ImGui::InputInt("discretization order", &analysisPara.discr_order);
                 ImGui::InputInt("#refine", &analysisPara.n_refs);
-                if (showTooltip && ImGui::IsItemHovered()) {
+                if (showTooltip && ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("Number of mesh uniform refinements");
                 }
                 ImGui::InputDouble("vismesh_rel_area", &analysisPara.vismesh_rel_area);
-                if (showTooltip && ImGui::IsItemHovered()) {
+                if (showTooltip && ImGui::IsItemHovered())
+                {
                     ImGui::SetTooltip("Desnsity of the output visualization");
                 }
                 ImGui::PopItemWidth();
@@ -534,16 +596,23 @@ namespace zebrafish
             }
 
             static std::string runAnalysisStr = "";
-            if (ImGui::Button("Run analysis")) {
-                try {
-                    if (!analysisInputPath.empty()) {
+            if (ImGui::Button("Run analysis"))
+            {
+                try
+                {
+                    if (!analysisInputPath.empty())
+                    {
                         // pre-task (only in re-analysis)
+                        int offset_v = analysisPara.V[0].rows();
+                        int offset_f = analysisPara.F.rows();
                         cage::AddCageForAll(Va_cage, Fa_cage, analysisPara.V, analysisPara.F, baseVa);
                         cage::AddCageForAll(Vb_cage, Fb_cage, analysisPara.V, analysisPara.F, baseVb);
                         // re-run a previous experiment result
                         compute_analysis(
                             analysisPara.V,
                             analysisPara.F,
+                            offset_v,
+                            offset_f,
                             analysisInputPath,
                             analysisPara.E,
                             analysisPara.nu,
@@ -557,28 +626,31 @@ namespace zebrafish
                             analysisPara.upsample,
                             analysisPara.markerRCMap,
                             imgRows, imgCols, layerPerImg,
-                            resolutionX, resolutionY, resolutionZ, 
+                            resolutionX, resolutionY, resolutionZ,
                             false, useWindingNumber);
                     }
-                    else {
+                    else
+                    {
 
                         // prepare the displacement
                         std::vector<Eigen::MatrixXd> analysisDisplacementVec;
-                            // Do NOT compute physical location here
-                            // std::vector<Eigen::MatrixXd> markerPointLocArray_phy;
-                            // GetPhysicalLocation(markerPointLocArray, resolutionX, resolutionY, resolutionZ, markerPointLocArray_phy);
+                        // Do NOT compute physical location here
+                        // std::vector<Eigen::MatrixXd> markerPointLocArray_phy;
+                        // GetPhysicalLocation(markerPointLocArray, resolutionX, resolutionY, resolutionZ, markerPointLocArray_phy);
                         // determine markers that are used to compute global displacement
                         std::vector<bool> markerInAvgDispArea;
                         GetMarkersInAvgDispArea(markerInAvgDispArea);
                         // remove global displacement
-                        for (int i = 0; i < currentLoadedFrames; i++) {
+                        for (int i = 0; i < currentLoadedFrames; i++)
+                        {
 
                             Eigen::MatrixXd V_analysis = markerPointLocArray[i];
                             // remove the global movement
                             Eigen::RowVectorXd meanV(1, 3); // (V_analysis - markerPointLocArray[0]).colwise().mean();
                             meanV << 0.0f, 0.0f, 0.0f;
                             int count = 0;
-                            for (int j = 0; j < markerInAvgDispArea.size(); j++) {
+                            for (int j = 0; j < markerInAvgDispArea.size(); j++)
+                            {
                                 if (!markerInAvgDispArea[j])
                                     continue;
                                 meanV += V_analysis.row(j) - markerPointLocArray[0].row(j);
@@ -596,34 +668,38 @@ namespace zebrafish
                         std::string path = GetFileName(imagePath, -1, "", "analysis");
                         // [NOTE]: E is in unit of [Pascal], displacement is in unit of [um]. So multiply by 1e-6
                         compute_analysis(
-                            analysisDisplacementVec, 
-                            markerMeshArray, 
-                            path, 
-                            analysisPara.E, 
-                            analysisPara.nu, 
-                            analysisPara.offset, 
+                            analysisDisplacementVec,
+                            markerMeshArray,
+                            analysisDisplacementVec[0].rows(),
+                            markerMeshArray.rows(),
+                            path,
+                            analysisPara.E,
+                            analysisPara.nu,
+                            analysisPara.offset,
                             analysisPara.radius_edge_ratio,
-                            analysisPara.max_tet_vol, 
-                            analysisPara.discr_order, 
-                            analysisPara.is_linear, 
-                            analysisPara.n_refs, 
-                            analysisPara.vismesh_rel_area, 
-                            analysisPara.upsample, 
+                            analysisPara.max_tet_vol,
+                            analysisPara.discr_order,
+                            analysisPara.is_linear,
+                            analysisPara.n_refs,
+                            analysisPara.vismesh_rel_area,
+                            analysisPara.upsample,
                             analysisPara.markerRCMap,
                             imgRows, imgCols, layerPerImg,
-                            resolutionX, resolutionY, resolutionZ, 
+                            resolutionX, resolutionY, resolutionZ,
                             true);
                     }
 
                     runAnalysisStr = "Done";
                 }
-                catch (const std::exception &e) {
+                catch (const std::exception &e)
+                {
                     logger().error("   <button> [Run analysis] Fatal error encountered.");
                     std::cerr << "   <button> [Run analysis] Fatal error encountered." << std::endl;
                     runAnalysisStr = "Fatal error";
                 }
             }
-            if (showTooltip && ImGui::IsItemHovered()) {
+            if (showTooltip && ImGui::IsItemHovered())
+            {
                 ImGui::SetTooltip("Run simulation and save result to analysis VTU file");
             }
             ImGui::SameLine();
@@ -661,11 +737,13 @@ namespace zebrafish
         }
 
         // static bool saveEntireImage = false;
-        if (analysisInputPath.empty() && ImGui::CollapsingHeader("Save & Export", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (analysisInputPath.empty() && ImGui::CollapsingHeader("Save & Export", ImGuiTreeNodeFlags_DefaultOpen))
+        {
 
             static std::string saveStr;
             static bool meshPointSaveFlag, meshCellSaveFlag, imageSaveFlag;
-            if (ImGui::Button("Export TIFF (and VTU)")) {
+            if (ImGui::Button("Export TIFF (and VTU)"))
+            {
 
                 meshPointSaveFlag = true;
                 meshCellSaveFlag = true;
@@ -684,13 +762,15 @@ namespace zebrafish
 
                 logger().debug("   <button> Export VTU & TIFF");
             }
-            if (showTooltip && ImGui::IsItemHovered()) {
+            if (showTooltip && ImGui::IsItemHovered())
+            {
                 ImGui::SetTooltip("Export the cropped area as new TIFF images. (Optional) Save the raw displacements and the moving mesh. ");
             }
             ImGui::SameLine();
             ImGui::Text("%s", saveStr.c_str());
 
-            if (ImGui::TreeNode("Advanced export")) {
+            if (ImGui::TreeNode("Advanced export"))
+            {
 
                 ImGui::Checkbox("Save cropped image (marker channel)", &saveMarkerImage);
                 ImGui::Checkbox("Save cropped image (cell channel)", &saveCellImage);
@@ -787,7 +867,8 @@ namespace zebrafish
     ////////////////////////////////////////////////////////////////////////////////////////
     // Optimization
 
-    void GUI::GetMarkersInAvgDispArea(std::vector<bool> &markerInAvgDispArea) {
+    void GUI::GetMarkersInAvgDispArea(std::vector<bool> &markerInAvgDispArea)
+    {
 
         const int N = markerArray[0].num;
         markerInAvgDispArea.resize(N);
@@ -798,24 +879,30 @@ namespace zebrafish
         int y0 = (meanCrop.c0 == -1) ? 0 : meanCrop.c0;
         int y1 = (meanCrop.c1 == -1) ? imgCols : meanCrop.c1;
 
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < N; i++)
+        {
             if (markerArray[0].loc(i, 0) > x0 && markerArray[0].loc(i, 0) < x1 &&
-                markerArray[0].loc(i, 1) > y0 && markerArray[0].loc(i, 1) < y1) {
+                markerArray[0].loc(i, 1) > y0 && markerArray[0].loc(i, 1) < y1)
+            {
                 markerInAvgDispArea[i] = true;
                 count += 1;
-            } else {
+            }
+            else
+            {
                 markerInAvgDispArea[i] = false;
             }
         }
         logger().info("#markerInAvgDispArea = {}", count);
     }
 
-    bool GUI::OptimizeAllFrames(bool logEnergy) {
+    bool GUI::OptimizeAllFrames(bool logEnergy)
+    {
 
         bool res = true;
         int currentFrame;
 
-        for (currentFrame = 0; currentFrame < currentLoadedFrames - 1; currentFrame++) {
+        for (currentFrame = 0; currentFrame < currentLoadedFrames - 1; currentFrame++)
+        {
 
             // OptimizeOneFrame(currentFrame);
             /// Note: why don't we optimize here anymore?
@@ -826,7 +913,8 @@ namespace zebrafish
             ApplyOpticalFlow(currentFrame);
 
             // depth correction for the frame that was just updated
-            if (!MarkerRecursiveDepthCorrection(currentFrame + 1, depthCorrectionNum, depthCorrectionGap, logEnergy, true, true)) {
+            if (!MarkerRecursiveDepthCorrection(currentFrame + 1, depthCorrectionNum, depthCorrectionGap, logEnergy, true, true))
+            {
                 res = false;
                 logger().warn("Depth search unsuccessful on frame {}. See above for detailed reasons.", currentFrame + 1);
             }
@@ -873,54 +961,54 @@ namespace zebrafish
         // Optimization
         logger().info(">>>>>>>>>> Before optimization >>>>>>>>>>");
         tbb::parallel_for(tbb::blocked_range<int>(0, N),
-            //////////////////////////////////////
-            // lambda function for parallel_for //
-            //////////////////////////////////////
-            [this /*.markerArray[?], &bsplineArray[?], .opticalFlowCorrection*/, &param, prevFrameIdx](const tbb::blocked_range<int> &r) {
-                // NOTE: LBFGSSolver is NOT thread safe. This must be instantiated for every thread
-                LBFGSpp::LBFGSSolver<double> solver(param);
+                          //////////////////////////////////////
+                          // lambda function for parallel_for //
+                          //////////////////////////////////////
+                          [this /*.markerArray[?], &bsplineArray[?], .opticalFlowCorrection*/, &param, prevFrameIdx](const tbb::blocked_range<int> &r) {
+                              // NOTE: LBFGSSolver is NOT thread safe. This must be instantiated for every thread
+                              LBFGSpp::LBFGSSolver<double> solver(param);
 
-                // NOTE: the "variable count" used by "Autodiff" will be stored in
-                //       thread-local memory, so this must be set for every thread
-                DiffScalarBase::setVariableCount(3);
+                              // NOTE: the "variable count" used by "Autodiff" will be stored in
+                              //       thread-local memory, so this must be set for every thread
+                              DiffScalarBase::setVariableCount(3);
 
-                for (int ii = r.begin(); ii != r.end(); ++ii)
-                {
+                              for (int ii = r.begin(); ii != r.end(); ++ii)
+                              {
 
-                    Eigen::VectorXd vec(3, 1);
-                    vec(0) = markerArray[prevFrameIdx].loc(ii, 0) + opticalFlowCorrection[prevFrameIdx](ii, 0); // x
-                    vec(1) = markerArray[prevFrameIdx].loc(ii, 1) + opticalFlowCorrection[prevFrameIdx](ii, 1); // y
-                    vec(2) = markerArray[prevFrameIdx].loc(ii, 3);                                              // r
-                    double res;
+                                  Eigen::VectorXd vec(3, 1);
+                                  vec(0) = markerArray[prevFrameIdx].loc(ii, 0) + opticalFlowCorrection[prevFrameIdx](ii, 0); // x
+                                  vec(1) = markerArray[prevFrameIdx].loc(ii, 1) + opticalFlowCorrection[prevFrameIdx](ii, 1); // y
+                                  vec(2) = markerArray[prevFrameIdx].loc(ii, 3);                                              // r
+                                  double res;
 
-                    ///////////////////////////////////
-                    // lambda function for optimizer //
-                    ///////////////////////////////////
-                    auto func = [this /*.markerArray[?], .bsplineArray[?], .opticalFlowCorrection*/, ii, prevFrameIdx](const Eigen::VectorXd &x, Eigen::VectorXd &grad) {
-                        DScalar ans;
+                                  ///////////////////////////////////
+                                  // lambda function for optimizer //
+                                  ///////////////////////////////////
+                                  auto func = [this /*.markerArray[?], .bsplineArray[?], .opticalFlowCorrection*/, ii, prevFrameIdx](const Eigen::VectorXd &x, Eigen::VectorXd &grad) {
+                                      DScalar ans;
 
-                        if (!cylinder::IsValid(bsplineArray[prevFrameIdx + 1], x(0), x(1), markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2), x(2), cylinder::H))
-                        {
-                            grad.setZero();
-                            return 1.0;
-                        }
-                        cylinder::EvaluateCylinder(bsplineArray[prevFrameIdx + 1], DScalar(0, x(0)), DScalar(1, x(1)), markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2), DScalar(2, x(2)), cylinder::H, ans, reverseColor);
-                        grad.resize(3, 1);
-                        grad = ans.getGradient();
-                        return ans.getValue();
-                    };
-                    // NOTE: the template of "solver.minimize" does not accept a temprary variable (due to non-const argument)
-                    //       so we define a "func" and pass it in
-                    int it = solver.minimize(func, vec, res);
-                    ///////////////////////////////////
+                                      if (!cylinder::IsValid(bsplineArray[prevFrameIdx + 1], x(0), x(1), markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2), x(2), cylinder::H))
+                                      {
+                                          grad.setZero();
+                                          return 1.0;
+                                      }
+                                      cylinder::EvaluateCylinder(bsplineArray[prevFrameIdx + 1], DScalar(0, x(0)), DScalar(1, x(1)), markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2), DScalar(2, x(2)), cylinder::H, ans, reverseColor);
+                                      grad.resize(3, 1);
+                                      grad = ans.getGradient();
+                                      return ans.getValue();
+                                  };
+                                  // NOTE: the template of "solver.minimize" does not accept a temprary variable (due to non-const argument)
+                                  //       so we define a "func" and pass it in
+                                  int it = solver.minimize(func, vec, res);
+                                  ///////////////////////////////////
 
-                    markerArray[prevFrameIdx + 1].loc(ii, 0) = vec(0);                                                                            // x
-                    markerArray[prevFrameIdx + 1].loc(ii, 1) = vec(1);                                                                            // y
-                    markerArray[prevFrameIdx + 1].loc(ii, 2) = markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2); // z
-                    markerArray[prevFrameIdx + 1].loc(ii, 3) = vec(2);                                                                            // r
-                    markerArray[prevFrameIdx + 1].energy(ii) = res;                                                                               // energy
-                }
-            });
+                                  markerArray[prevFrameIdx + 1].loc(ii, 0) = vec(0);                                                                            // x
+                                  markerArray[prevFrameIdx + 1].loc(ii, 1) = vec(1);                                                                            // y
+                                  markerArray[prevFrameIdx + 1].loc(ii, 2) = markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2); // z
+                                  markerArray[prevFrameIdx + 1].loc(ii, 3) = vec(2);                                                                            // r
+                                  markerArray[prevFrameIdx + 1].energy(ii) = res;                                                                               // energy
+                              }
+                          });
         logger().info("<<<<<<<<<< After optimization <<<<<<<<<<");
     }
 
