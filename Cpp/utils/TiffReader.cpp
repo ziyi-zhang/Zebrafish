@@ -96,7 +96,7 @@ bool GetDescription(const std::string &path, int &layerPerImg, int &numChannel, 
                 return false;
         }
 
-        logger().info("Image description successfully phased: layerPerImg={} numChannel={} frames={}", layerPerImg, numChannel, ttlFrames);
+        logger().info("Image description successfully parsed: layerPerImg={} numChannel={} frames={}", layerPerImg, numChannel, ttlFrames);
         return true;
     }
 
@@ -167,7 +167,7 @@ bool ReadTif(const std::string &path, const int layerPerImg, const std::vector<b
 
                 // read data to "sliceMat"
                 uint16_t samples = TinyTIFFReader_getBitsPerSample(tiffr);
-                if(samples == 8) {
+                if (samples == 8) {
                     ok = read_mem_to_eigen<uint8_t>(tiffr, buffer8, sliceMat);
                     // scale to 0~1 for visualization
                     sliceMat /= double((1 << 8) - 1);

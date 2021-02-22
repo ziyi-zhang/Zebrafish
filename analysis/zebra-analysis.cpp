@@ -13,6 +13,7 @@
 #include <igl/write_triangle_mesh.h>
 #include <igl/remove_unreferenced.h>
 #include <igl/winding_number.h>
+#include <igl/point_mesh_squared_distance.h>
 #include <highfive/H5Easy.hpp>
 
 namespace zebrafish
@@ -27,10 +28,10 @@ namespace zebrafish
                           const double resolutionX, const double resolutionY, const double resolutionZ,
                           const bool saveinput, bool useWindingNumber, bool windingNumberOtherSide)
     {
-        //Necesary for the scaling!
+        // Necesary for the scaling!
         std::vector<Eigen::MatrixXd> V = VV;
 
-        //RBF setup
+        // RBF setup
         //const std::string rbf_function = "gaussian";
         const std::string rbf_function = "thin-plate";
         // const std::string rbf_function = "cubic";
@@ -115,12 +116,30 @@ namespace zebrafish
         // Generate tet mesh
         Eigen::MatrixXd nodes;
         Eigen::MatrixXi elem, faces;
-        //TODO: not use YY and update result_v, result_f
-        const std::string switches = "zpq" + std::to_string(radius_edge_ratio) + "a" + std::to_string(max_tet_vol) + "VYY";
+        // allow exterior steiner points
+        const std::string switches = "zpq" + std::to_string(radius_edge_ratio) + "a" + std::to_string(max_tet_vol) + "V";
         igl::copyleft::tetgen::tetrahedralize(V0, F, switches, nodes, elem, faces);
-        //potentially refined bm_v and bm_f
-        const Eigen::MatrixXd result_v = bm_v;
-        const Eigen::MatrixXi result_f = bm_f;
+        // potentially refined bm_v and bm_f
+        Eigen::MatrixXd result_v = bm_v;
+        Eigen::MatrixXi result_f(faces.rows(), 3);
+        std::vector<bool> on_bm_surface(nodes.rows(), false);
+        Eigen::VectorXd squaredDist;
+        Eigen::MatrixXd I, C;
+        igl::point_mesh_squared_distance(nodes, bm_v, bm_f, squaredDist, I, C);
+        std::cout << squaredDist << std::endl;
+        for (int i=0; i<nodes.rows(); i++) {
+            if (squaredDist(i) < 1e-14) on_bm_surface[i] = true;
+        }
+        int cntFaces = 0;
+        for (int i=0; i<faces.rows(); i++) {
+            if (on_bm_surface[faces(i, 0)] && on_bm_surface[faces(i, 1)] && on_bm_surface[faces(i, 2)]) {
+                result_f.row(cntFaces) = faces.row(i);
+                cntFaces++;
+            }
+        }
+        result_f.conservativeResize(cntFaces, 3);
+        // should clean mesh here TODO
+        std::cout << "bm_f.size = " << bm_f.rows() << " result_f.size = " << cntFaces << std::endl;
 
         //lamda for bc
         Eigen::MatrixXd barys;
@@ -138,7 +157,7 @@ namespace zebrafish
                 if (fabs(v(2) - box_min(2)) < 0.1)
                     return 1;
                 if (fabs(v(2) - box_max(2)) < 0.1)
-                    return 1; //change me to 0 if free to move
+                    return 1;  // change me to 0 if free to move
 
                 return 0;
             }

@@ -39,7 +39,7 @@ namespace zebrafish
         Eigen::MatrixXd box_max = V.colwise().maxCoeff();
         const double diag = (box_max - box_min).norm();
         const double meanZ = V.col(2).mean();
-        const double targetZ = meanZ + (above ? 1 : -1) * diag;
+        const double targetZ = meanZ + (above ? 0.5 : -0.5) * diag;
         sideV.block(N, 2, N, 1) = Eigen::ArrayXd::Constant(N, targetZ);
         sideF.topRows(F.rows()) = F.array() + N;
         // side surface

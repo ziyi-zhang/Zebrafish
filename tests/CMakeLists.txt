@@ -8,6 +8,7 @@ set(test_sources
 	PaddingTest.cpp
 	WindingTest.cpp
 	CageTest.cpp
+	PointMeshDistance.cpp
 )
 
 

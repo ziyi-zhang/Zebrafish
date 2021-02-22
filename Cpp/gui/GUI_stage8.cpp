@@ -529,7 +529,7 @@ namespace zebrafish
                 ImGui::Checkbox("In-out filter", &useWindingNumber);
                 if (showTooltip && ImGui::IsItemHovered())
                 {
-                    ImGui::SetTooltip("If checked, only use one side for traction force simulation.");
+                    ImGui::SetTooltip("Dummy");
                 }
                 ImGui::Checkbox("Use another side", &windingNumberOtherSide);
                 if (showTooltip && ImGui::IsItemHovered())
@@ -556,7 +556,7 @@ namespace zebrafish
                 }
                 if (showTooltip && ImGui::IsItemHovered())
                 {
-                    ImGui::SetTooltip("Recursively upsample to get a finer mesh");
+                    ImGui::SetTooltip("Dummy");
                 }
                 ImGui::InputDouble("radius-edge ratio", &analysisPara.radius_edge_ratio);
                 if (showTooltip && ImGui::IsItemHovered())
