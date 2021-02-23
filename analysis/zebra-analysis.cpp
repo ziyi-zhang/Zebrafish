@@ -245,15 +245,6 @@ namespace zebrafish
         assert(box_max.size() == 3);
 
         const auto set_bc = [&barys, &box_min, &box_max](const Eigen::MatrixXd &v, const bool boundary) {
-            if (boundary)
-            {
-                if (fabs(v(2) - box_min(2)) < 0.01)
-                    return 1;
-                if (fabs(v(2) - box_max(2)) < 0.01)
-                    return 1; // change me to 0 if free to move
-
-                return 0;
-            }
             double min = std::numeric_limits<double>::max();
             int min_index = 0;
             for (int i = 0; i < barys.rows(); ++i)
@@ -268,6 +259,16 @@ namespace zebrafish
 
             if (min < 0.01)
                 return 2;
+
+            if (boundary)
+            {
+                if (fabs(v(2) - box_min(2)) < 0.01)
+                    return 1;
+                if (fabs(v(2) - box_max(2)) < 0.01)
+                    return 1; // change me to 0 if free to move
+
+                return 0;
+            }
 
             return 0;
         };
@@ -384,7 +385,7 @@ namespace zebrafish
 
             const std::string out_path = path + "-frame" + std::to_string(sim) + ".vtu";
             std::cerr << out_path << std::endl;
-            state.save_vtu(out_path, 0);
+
             polyfem::VTUWriter writer;
             writer.add_field("displacement", vals);
             writer.add_field("traction_forces", vertex_traction_forces);
@@ -406,6 +407,7 @@ namespace zebrafish
             writer.write_mesh(out_path, result_v, result_f);
 
             state.save_vtu(out_path + ".all.vtu", 0);
+            state.save_surface(out_path + ".surf.vtu");
         }
     }
 } // namespace zebrafish
