@@ -118,78 +118,106 @@ namespace zebrafish
         Eigen::MatrixXd nodes;
         Eigen::MatrixXi elem, faces;
         // allow exterior steiner points
-        const std::string switches = "zpq" + std::to_string(radius_edge_ratio) + "a" + std::to_string(max_tet_vol) + "V";
-        igl::copyleft::tetgen::tetrahedralize(V0, F, switches, nodes, elem, faces);
+        // const std::string switches = "zpq" + std::to_string(radius_edge_ratio) + "a" + std::to_string(max_tet_vol) + "V";
+        std::stringstream buf;
+        buf.precision(100);
+        buf.setf(std::ios::fixed, std::ios::floatfield);
+        buf << "Qpq1.414a" << max_tet_vol;
+        igl::copyleft::tetgen::tetrahedralize(V0, F, buf.str(), nodes, elem, faces);
+
+        igl::writeMESH("out.mesh", nodes, elem, faces);
+
         Eigen::MatrixXd tetMeshBC;
         igl::barycenter(nodes, elem, tetMeshBC);
         const auto AboveBM = [&bm_v, &bm_f, &tetMeshBC](int i) -> bool {
             Eigen::VectorXd wnumber;
             igl::winding_number(bm_v, bm_f, tetMeshBC.row(i), wnumber);
-            return wnumber(0)>0;
+            return wnumber(0) > 0;
         };
 
         // DEBUG
-        std::vector<int> ss;        
+        std::vector<int> ss;
 
         // after TetGen {bm_v, bm_f} -> {result_v, result_f}
         Eigen::MatrixXd result_v = nodes;
-        Eigen::MatrixXi result_f(elem.rows()*4, 3);
+        Eigen::MatrixXi result_f(faces.rows(), 3);
         std::vector<bool> on_bm_surface(nodes.rows(), false);
         Eigen::VectorXd squaredDist;
         Eigen::MatrixXd I, C;
         igl::point_mesh_squared_distance(nodes, bm_v, bm_f, squaredDist, I, C);
         const double thres = 1e-14;
-        for (int i=0; i<nodes.rows(); i++) {
-            if (squaredDist(i) < thres) on_bm_surface[i] = true;
+        for (int i = 0; i < nodes.rows(); i++)
+        {
+            if (squaredDist(i) < thres)
+            {
+                on_bm_surface[i] = true;
+            }
         }
+
+        Eigen::MatrixXi igl_faces(4, 3);
+        igl_faces << 0, 1, 2,
+            0, 1, 3,
+            1, 2, 3,
+            2, 0, 3;
+
         int cntFaces = 0, cntInvert = 0;
-        for (int i=0; i<elem.rows(); i++) {
-            for (int j=0; j<4; j++) {
-                int f0 = elem(i, (j+1)%4);
-                int f1 = elem(i, (j+2)%4);
-                int f2 = elem(i, (j+3)%4);
-                if (on_bm_surface[f0] && on_bm_surface[f1] && on_bm_surface[f2]) {
-                    // make sure this face is on bm
+        for (int i = 0; i < elem.rows(); i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                int f0 = elem(i, igl_faces(j, 0));
+                int f1 = elem(i, igl_faces(j, 1));
+                int f2 = elem(i, igl_faces(j, 2));
+                if (on_bm_surface[f0] && on_bm_surface[f1] && on_bm_surface[f2])
+                {
+                    // // make sure this face is on bm
                     Eigen::MatrixXi f(1, 3);
                     f << f0, f1, f2;
                     Eigen::MatrixXd bc;
                     igl::barycenter(nodes, f, bc);
                     igl::point_mesh_squared_distance(bc, bm_v, bm_f, squaredDist, I, C);
-                    if (squaredDist(0) > thres) continue;  // a pseudo on-bm face, a bridge!
+                    if (squaredDist(0) > thres)
+                        continue; // a pseudo on-bm face, a bridge!
                     // orientation matters here
-                    if (AboveBM(i)) {
+                    if (AboveBM(i))
+                    {
                         result_f.row(cntFaces) << f0, f1, f2;
                         cntFaces++;
-                        ss.push_back(i);  // may have duplicated tet indices
-                    } else {
+                        ss.push_back(i); // may have duplicated tet indices
+                    }
+                    else
+                    {
                         cntInvert++;
                     }
                 }
             }
         }
         result_f.conservativeResize(cntFaces, 3);
-        
+
+        igl::write_triangle_mesh("extracted.obj", result_v, result_f);
+
         // TODO: should clean mesh (especially V) here, remove un-used
 
         // log
         int cntV = 0;
-        for (int i=0; i<on_bm_surface.size(); i++)
-            if (on_bm_surface[i]) cntV++;
+        for (int i = 0; i < on_bm_surface.size(); i++)
+            if (on_bm_surface[i])
+                cntV++;
         std::cout << "bm_v.size = " << bm_v.rows() << " cntV = " << cntV << std::endl;
         std::cout << "bm_f.size = " << bm_f.rows() << " result_f.size = " << cntFaces << " | invert.size = " << cntInvert << std::endl;
 
         // DEBUG
-        const auto SaveMsh = [&bm_v, &bm_f, &ss, &result_f](const char* fileName, Eigen::MatrixXd &V, Eigen::MatrixXi &T) {
-            H5Easy::File file("./" + std::string(fileName), H5Easy::File::Overwrite);
-            H5Easy::dump(file, "V", V);
-            H5Easy::dump(file, "T", T);
+        // const auto SaveMsh = [&bm_v, &bm_f, &ss, &result_f](const char *fileName, Eigen::MatrixXd &V, Eigen::MatrixXi &T) {
+        //     H5Easy::File file("./" + std::string(fileName), H5Easy::File::Overwrite);
+        //     H5Easy::dump(file, "V", V);
+        //     H5Easy::dump(file, "T", T);
 
-            H5Easy::dump(file, "bm_v", bm_v);
-            H5Easy::dump(file, "bm_f", bm_f);
-            H5Easy::dump(file, "Tid", ss);
-            H5Easy::dump(file, "result_f", result_f);
-        };
-        SaveMsh("test.h5", nodes, elem);
+        //     H5Easy::dump(file, "bm_v", bm_v);
+        //     H5Easy::dump(file, "bm_f", bm_f);
+        //     H5Easy::dump(file, "Tid", ss);
+        //     H5Easy::dump(file, "result_f", result_f);
+        // };
+        // SaveMsh("test.h5", nodes, elem);
 
         // assert bm surface area
         double bm_area = 0, result_area = 0;
@@ -198,10 +226,10 @@ namespace zebrafish
         bm_area = areaV.sum();
         igl::doublearea(result_v, result_f, areaV);
         result_area = areaV.sum();
-        if (std::fabs(bm_area - result_area) > 1e-10) {
+        if (std::fabs(bm_area - result_area) > 1e-10)
+        {
             std::cerr << "[WARNING] bm_area = " << bm_area << " result_area = " << result_area << std::endl;
         }
-
 
         // lamda for bc
         Eigen::MatrixXd barys;
@@ -219,7 +247,7 @@ namespace zebrafish
                 if (fabs(v(2) - box_min(2)) < 0.1)
                     return 1;
                 if (fabs(v(2) - box_max(2)) < 0.1)
-                    return 1;  // change me to 0 if free to move
+                    return 1; // change me to 0 if free to move
 
                 return 0;
             }
