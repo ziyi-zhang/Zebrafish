@@ -139,7 +139,7 @@ namespace zebrafish
             v01 = nodes.row(p1) - nodes.row(p0);
             v02 = nodes.row(p2) - nodes.row(p0);
             v_cross = v01.cross(v02);
-            return v_cross(2)>0;  // cannot == 0
+            return v_cross(2) > 0; // cannot == 0
         };
 
         // DEBUG
@@ -147,7 +147,7 @@ namespace zebrafish
 
         // after TetGen {bm_v, bm_f} -> {result_v, result_f}
         Eigen::MatrixXd result_v = nodes;
-        Eigen::MatrixXi result_f(elem.rows()*4, 3);
+        Eigen::MatrixXi result_f(elem.rows() * 4, 3);
         std::vector<bool> on_bm_surface(nodes.rows(), false);
         Eigen::VectorXd squaredDist;
         Eigen::MatrixXd I, C;
@@ -166,9 +166,9 @@ namespace zebrafish
         {
             for (int j = 0; j < 4; j++)
             {
-                int f0 = elem(i, (j+1)%4);
-                int f1 = elem(i, (j+2)%4);
-                int f2 = elem(i, (j+3)%4);
+                int f0 = elem(i, (j + 1) % 4);
+                int f1 = elem(i, (j + 2) % 4);
+                int f2 = elem(i, (j + 3) % 4);
                 if (on_bm_surface[f0] && on_bm_surface[f1] && on_bm_surface[f2])
                 {
                     // // make sure this face is on bm
@@ -180,14 +180,15 @@ namespace zebrafish
                     if (squaredDist(0) > thres)
                         continue; // a pseudo on-bm face, a bridge!
                     // orientation matters here
-                    if (AboveBM(i)) {
+                    if (AboveBM(i))
+                    {
                         if (NormalPointingUp(f0, f1, f2))
                             result_f.row(cntFaces) << f0, f1, f2;
                         else
                             result_f.row(cntFaces) << f1, f0, f2;
 
                         cntFaces++;
-                        ss.push_back(i);  // may have duplicated tet indices
+                        ss.push_back(i); // may have duplicated tet indices
                     }
                     else
                     {
@@ -246,9 +247,9 @@ namespace zebrafish
         const auto set_bc = [&barys, &box_min, &box_max](const Eigen::MatrixXd &v, const bool boundary) {
             if (boundary)
             {
-                if (fabs(v(2) - box_min(2)) < 0.1)
+                if (fabs(v(2) - box_min(2)) < 0.01)
                     return 1;
-                if (fabs(v(2) - box_max(2)) < 0.1)
+                if (fabs(v(2) - box_max(2)) < 0.01)
                     return 1; // change me to 0 if free to move
 
                 return 0;
@@ -265,7 +266,7 @@ namespace zebrafish
                 }
             }
 
-            if (min < 0.1)
+            if (min < 0.01)
                 return 2;
 
             return 0;
