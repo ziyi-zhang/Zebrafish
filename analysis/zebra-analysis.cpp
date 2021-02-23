@@ -120,29 +120,20 @@ namespace zebrafish
         // allow exterior steiner points
         const std::string switches = "zpq" + std::to_string(radius_edge_ratio) + "a" + std::to_string(max_tet_vol) + "V";
         igl::copyleft::tetgen::tetrahedralize(V0, F, switches, nodes, elem, faces);
-        const auto AboveBM = [&bm_v, &bm_f, &nodes](int p3) -> bool {
+        Eigen::MatrixXd tetMeshBC;
+        igl::barycenter(nodes, elem, tetMeshBC);
+        const auto AboveBM = [&bm_v, &bm_f, &tetMeshBC](int i) -> bool {
             Eigen::VectorXd wnumber;
-            igl::winding_number(bm_v, bm_f, nodes.row(p3), wnumber);
+            igl::winding_number(bm_v, bm_f, tetMeshBC.row(i), wnumber);
             return wnumber(0)>0;
         };
 
         // DEBUG
-        std::vector<int> ss;
-
-        Eigen::MatrixXd result_v = nodes;
-        Eigen::MatrixXi result_f(elem.rows()*4, 3);
-        const auto SaveMsh = [&bm_v, &bm_f, &ss, &result_f](const char* fileName, Eigen::MatrixXd &V, Eigen::MatrixXi &T) {
-            H5Easy::File file("./" + std::string(fileName), H5Easy::File::Overwrite);
-            H5Easy::dump(file, "V", V);
-            H5Easy::dump(file, "T", T);
-
-            H5Easy::dump(file, "bm_v", bm_v);
-            H5Easy::dump(file, "bm_f", bm_f);
-            H5Easy::dump(file, "Tid", ss);
-            H5Easy::dump(file, "result_f", result_f);
-        };
+        std::vector<int> ss;        
 
         // after TetGen {bm_v, bm_f} -> {result_v, result_f}
+        Eigen::MatrixXd result_v = nodes;
+        Eigen::MatrixXi result_f(elem.rows()*4, 3);
         std::vector<bool> on_bm_surface(nodes.rows(), false);
         Eigen::VectorXd squaredDist;
         Eigen::MatrixXd I, C;
@@ -166,12 +157,14 @@ namespace zebrafish
                     igl::point_mesh_squared_distance(bc, bm_v, bm_f, squaredDist, I, C);
                     if (squaredDist(0) > thres) continue;  // a pseudo on-bm face, a bridge!
                     // orientation matters here
-                    if (AboveBM(elem(i, j))) {
+                    if (AboveBM(i)) {
                         result_f.row(cntFaces) << f0, f1, f2;
                         cntFaces++;
                         ss.push_back(i);  // may have duplicated tet indices
                     } else {
                         cntInvert++;
+                        std::cerr << ">>>>> " << i << " " << j << std::endl;
+                        std::cerr << AboveBM(i)<< std::endl;
                     }
                 }
             }
@@ -186,6 +179,16 @@ namespace zebrafish
         std::cout << "bm_f.size = " << bm_f.rows() << " result_f.size = " << cntFaces << " | invert = " << cntInvert << std::endl;
 
         // DEBUG
+        const auto SaveMsh = [&bm_v, &bm_f, &ss, &result_f](const char* fileName, Eigen::MatrixXd &V, Eigen::MatrixXi &T) {
+            H5Easy::File file("./" + std::string(fileName), H5Easy::File::Overwrite);
+            H5Easy::dump(file, "V", V);
+            H5Easy::dump(file, "T", T);
+
+            H5Easy::dump(file, "bm_v", bm_v);
+            H5Easy::dump(file, "bm_f", bm_f);
+            H5Easy::dump(file, "Tid", ss);
+            H5Easy::dump(file, "result_f", result_f);
+        };
         SaveMsh("test.h5", nodes, elem);
 
         // assert bm surface area
@@ -195,10 +198,10 @@ namespace zebrafish
         bm_area = areaV.sum();
         igl::doublearea(result_v, result_f, areaV);
         result_area = areaV.sum();
-        if (bm_area != result_area) {
-            std::cerr << "bm_area = " << bm_area << " result_area = " << result_area << std::endl;
+        if (std::fabs(bm_area - result_area) > 1e-10) {
+            std::cerr << "[WARNING] bm_area = " << bm_area << " result_area = " << result_area << std::endl;
         }
-        
+
 
         // lamda for bc
         Eigen::MatrixXd barys;
