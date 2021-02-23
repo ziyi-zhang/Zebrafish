@@ -163,20 +163,20 @@ namespace zebrafish
                         ss.push_back(i);  // may have duplicated tet indices
                     } else {
                         cntInvert++;
-                        std::cerr << ">>>>> " << i << " " << j << std::endl;
-                        std::cerr << AboveBM(i)<< std::endl;
                     }
                 }
             }
         }
         result_f.conservativeResize(cntFaces, 3);
-        // should clean mesh here TODO
+        
+        // TODO: should clean mesh (especially V) here, remove un-used
+
         // log
         int cntV = 0;
         for (int i=0; i<on_bm_surface.size(); i++)
             if (on_bm_surface[i]) cntV++;
         std::cout << "bm_v.size = " << bm_v.rows() << " cntV = " << cntV << std::endl;
-        std::cout << "bm_f.size = " << bm_f.rows() << " result_f.size = " << cntFaces << " | invert = " << cntInvert << std::endl;
+        std::cout << "bm_f.size = " << bm_f.rows() << " result_f.size = " << cntFaces << " | invert.size = " << cntInvert << std::endl;
 
         // DEBUG
         const auto SaveMsh = [&bm_v, &bm_f, &ss, &result_f](const char* fileName, Eigen::MatrixXd &V, Eigen::MatrixXi &T) {

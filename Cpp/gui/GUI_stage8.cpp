@@ -500,7 +500,7 @@ namespace zebrafish
                 logger().info("Mean edge length after upsample = {}", meanL);
                 double vol = (meanL * meanL * meanL) / (6.0 * std::sqrt(3));
                 logger().info("Regular tetrahedron of this edge length has volume = {}", vol);
-                return vol * 10.0;
+                return vol * 3.0;
             };
 
             // estimate mean edge length
@@ -517,7 +517,7 @@ namespace zebrafish
                 }
                 if (showTooltip && ImGui::IsItemHovered())
                 {
-                    ImGui::SetTooltip("Update the max_tet_vol based on current mesh density. It is suggested to update this after modifying upsample number.\nThe updated value is 10x (volume of regular tetrahedron with mean edge length).");
+                    ImGui::SetTooltip("Update the max_tet_vol based on current mesh density. It is suggested to update this after modifying upsample number.\nThe updated value is 3x (volume of regular tetrahedron with mean edge length).");
                 }
             }
 
