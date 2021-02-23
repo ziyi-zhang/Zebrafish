@@ -146,8 +146,9 @@ namespace zebrafish
         Eigen::VectorXd squaredDist;
         Eigen::MatrixXd I, C;
         igl::point_mesh_squared_distance(nodes, bm_v, bm_f, squaredDist, I, C);
+        const double thres = 1e-14;
         for (int i=0; i<nodes.rows(); i++) {
-            if (squaredDist(i) < 1e-14) on_bm_surface[i] = true;
+            if (squaredDist(i) < thres) on_bm_surface[i] = true;
         }
         int cntFaces = 0, cntInvert = 0;
         for (int i=0; i<elem.rows(); i++) {
@@ -156,6 +157,13 @@ namespace zebrafish
                 int f1 = elem(i, (j+2)%4);
                 int f2 = elem(i, (j+3)%4);
                 if (on_bm_surface[f0] && on_bm_surface[f1] && on_bm_surface[f2]) {
+                    // make sure this face is on bm
+                    Eigen::MatrixXi f(1, 3);
+                    f << f0, f1, f2;
+                    Eigen::MatrixXd bc;
+                    igl::barycenter(nodes, f, bc);
+                    igl::point_mesh_squared_distance(bc, bm_v, bm_f, squaredDist, I, C);
+                    if (squaredDist(0) > thres) continue;  // a fake on-bm face
                     // orientation matters here
                     if (AboveBM(elem(i, j))) {
                         result_f.row(cntFaces) << f0, f1, f2;
@@ -173,13 +181,11 @@ namespace zebrafish
         int cntV = 0;
         for (int i=0; i<on_bm_surface.size(); i++)
             if (on_bm_surface[i]) cntV++;
-        std::cout << "bm_v.size = " << bm_v.rows() << "cntV = " << cntV << std::endl;
+        std::cout << "bm_v.size = " << bm_v.rows() << " cntV = " << cntV << std::endl;
         std::cout << "bm_f.size = " << bm_f.rows() << " result_f.size = " << cntFaces << " | invert = " << cntInvert << std::endl;
 
         // DEBUG
-        SaveMsh("test.h5", nodes, elem);
-        igl::Save
-        return;
+        // SaveMsh("test.h5", nodes, elem);
 
         // assert bm surface area
         double bm_area = 0, result_area = 0;
@@ -191,8 +197,6 @@ namespace zebrafish
         if (bm_area != result_area) {
             std::cerr << "bm_area = " << bm_area << " result_area = " << result_area << std::endl;
         }
-
-
         
 
         // lamda for bc
