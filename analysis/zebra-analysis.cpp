@@ -129,7 +129,9 @@ namespace zebrafish
         // DEBUG
         std::vector<int> ss;
 
-        const auto SaveMsh = [&bm_v, &bm_f, &ss](const char* fileName, Eigen::MatrixXd &V, Eigen::MatrixXi &T) {
+        Eigen::MatrixXd result_v = nodes;
+        Eigen::MatrixXi result_f(elem.rows()*4, 3);
+        const auto SaveMsh = [&bm_v, &bm_f, &ss, &result_f](const char* fileName, Eigen::MatrixXd &V, Eigen::MatrixXi &T) {
             H5Easy::File file("./" + std::string(fileName), H5Easy::File::Overwrite);
             H5Easy::dump(file, "V", V);
             H5Easy::dump(file, "T", T);
@@ -137,11 +139,10 @@ namespace zebrafish
             H5Easy::dump(file, "bm_v", bm_v);
             H5Easy::dump(file, "bm_f", bm_f);
             H5Easy::dump(file, "Tid", ss);
+            H5Easy::dump(file, "result_f", result_f);
         };
 
         // after TetGen {bm_v, bm_f} -> {result_v, result_f}
-        Eigen::MatrixXd result_v = bm_v;
-        Eigen::MatrixXi result_f(elem.rows()*4, 3);
         std::vector<bool> on_bm_surface(nodes.rows(), false);
         Eigen::VectorXd squaredDist;
         Eigen::MatrixXd I, C;
@@ -163,12 +164,12 @@ namespace zebrafish
                     Eigen::MatrixXd bc;
                     igl::barycenter(nodes, f, bc);
                     igl::point_mesh_squared_distance(bc, bm_v, bm_f, squaredDist, I, C);
-                    if (squaredDist(0) > thres) continue;  // a fake on-bm face
+                    if (squaredDist(0) > thres) continue;  // a pseudo on-bm face, a bridge!
                     // orientation matters here
                     if (AboveBM(elem(i, j))) {
                         result_f.row(cntFaces) << f0, f1, f2;
                         cntFaces++;
-                        ss.push_back(i);
+                        ss.push_back(i);  // may have duplicated tet indices
                     } else {
                         cntInvert++;
                     }
@@ -177,7 +178,7 @@ namespace zebrafish
         }
         result_f.conservativeResize(cntFaces, 3);
         // should clean mesh here TODO
-        // DEBUG
+        // log
         int cntV = 0;
         for (int i=0; i<on_bm_surface.size(); i++)
             if (on_bm_surface[i]) cntV++;
@@ -185,7 +186,7 @@ namespace zebrafish
         std::cout << "bm_f.size = " << bm_f.rows() << " result_f.size = " << cntFaces << " | invert = " << cntInvert << std::endl;
 
         // DEBUG
-        // SaveMsh("test.h5", nodes, elem);
+        SaveMsh("test.h5", nodes, elem);
 
         // assert bm surface area
         double bm_area = 0, result_area = 0;
