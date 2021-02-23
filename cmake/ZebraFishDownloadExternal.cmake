@@ -111,3 +111,12 @@ function(zerba_download_HighFive)
         GIT_TAG        v2.2.2
     )
 endfunction()
+
+
+## mmg
+function(zebra_download_mmg)
+    zebra_download_project(mmg
+        GIT_REPOSITORY https://github.com/MmgTools/mmg.git
+        GIT_TAG        88e2dd6cc773c43141b137fd0972c0eb2f4bbd2a
+    )
+endfunction()
