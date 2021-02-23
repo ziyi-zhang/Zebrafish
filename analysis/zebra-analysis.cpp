@@ -119,29 +119,54 @@ namespace zebrafish
         // allow exterior steiner points
         const std::string switches = "zpq" + std::to_string(radius_edge_ratio) + "a" + std::to_string(max_tet_vol) + "V";
         igl::copyleft::tetgen::tetrahedralize(V0, F, switches, nodes, elem, faces);
-        // potentially refined bm_v and bm_f
+        const auto AboveBM = [&bm_v, &bm_f, &nodes](int p3) -> bool {
+            Eigen::VectorXd wnumber;
+            igl::winding_number(bm_v, bm_f, nodes.row(p3), wnumber);
+            return wnumber(0)>0;
+        };
+        // after TetGen {bm_v, bm_f} -> {result_v, result_f}
         Eigen::MatrixXd result_v = bm_v;
-        Eigen::MatrixXi result_f(faces.rows(), 3);
+        Eigen::MatrixXi result_f(elem.rows()*4, 3);
         std::vector<bool> on_bm_surface(nodes.rows(), false);
         Eigen::VectorXd squaredDist;
         Eigen::MatrixXd I, C;
         igl::point_mesh_squared_distance(nodes, bm_v, bm_f, squaredDist, I, C);
-        std::cout << squaredDist << std::endl;
         for (int i=0; i<nodes.rows(); i++) {
             if (squaredDist(i) < 1e-14) on_bm_surface[i] = true;
         }
-        int cntFaces = 0;
-        for (int i=0; i<faces.rows(); i++) {
-            if (on_bm_surface[faces(i, 0)] && on_bm_surface[faces(i, 1)] && on_bm_surface[faces(i, 2)]) {
-                result_f.row(cntFaces) = faces.row(i);
-                cntFaces++;
+        int cntFaces = 0, cntInvert = 0;
+        for (int i=0; i<elem.rows(); i++) {
+            for (int j=0; j<4; j++) {
+                int f0 = elem(i, (j+1)%4);
+                int f1 = elem(i, (j+2)%4);
+                int f2 = elem(i, (j+3)%4);
+                if (on_bm_surface[f0] && on_bm_surface[f1] && on_bm_surface[f2]) {
+                    // orientation matters here
+                    if (AboveBM(elem(i, j))) {
+                        result_f.row(cntFaces) << f0, f1, f2;
+                        cntFaces++;
+                    } else {
+                        cntInvert++;
+                    }
+                }
             }
         }
         result_f.conservativeResize(cntFaces, 3);
         // should clean mesh here TODO
-        std::cout << "bm_f.size = " << bm_f.rows() << " result_f.size = " << cntFaces << std::endl;
+        std::cout << "bm_f.size = " << bm_f.rows() << " result_f.size = " << cntFaces << " | invert = " << cntInvert << std::endl;
 
-        //lamda for bc
+        // assert bm surface area
+        double bm_area = 0, result_area = 0;
+        Eigen::VectorXd areaV;
+        igl::doublearea(bm_v, bm_f, areaV);
+        bm_area = areaV.sum();
+        igl::doublearea(result_v, result_f, areaV);
+        result_area = areaV.sum();
+        if (bm_area != result_area) {
+            std::cerr << "bm_area = " << bm_area << " result_area = " << result_area << std::endl;
+        }
+
+        // lamda for bc
         Eigen::MatrixXd barys;
         igl::barycenter(result_v, result_f, barys);
 
