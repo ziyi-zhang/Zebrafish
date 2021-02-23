@@ -11,6 +11,7 @@
 #include <igl/upsample.h>
 #include <igl/doublearea.h>
 #include <igl/write_triangle_mesh.h>
+#include <igl/writeMESH.h>
 #include <igl/remove_unreferenced.h>
 #include <igl/winding_number.h>
 #include <igl/point_mesh_squared_distance.h>
@@ -124,6 +125,20 @@ namespace zebrafish
             igl::winding_number(bm_v, bm_f, nodes.row(p3), wnumber);
             return wnumber(0)>0;
         };
+
+        // DEBUG
+        std::vector<int> ss;
+
+        const auto SaveMsh = [&bm_v, &bm_f, &ss](const char* fileName, Eigen::MatrixXd &V, Eigen::MatrixXi &T) {
+            H5Easy::File file("./" + std::string(fileName), H5Easy::File::Overwrite);
+            H5Easy::dump(file, "V", V);
+            H5Easy::dump(file, "T", T);
+
+            H5Easy::dump(file, "bm_v", bm_v);
+            H5Easy::dump(file, "bm_f", bm_f);
+            H5Easy::dump(file, "Tid", ss);
+        };
+
         // after TetGen {bm_v, bm_f} -> {result_v, result_f}
         Eigen::MatrixXd result_v = bm_v;
         Eigen::MatrixXi result_f(elem.rows()*4, 3);
@@ -145,6 +160,7 @@ namespace zebrafish
                     if (AboveBM(elem(i, j))) {
                         result_f.row(cntFaces) << f0, f1, f2;
                         cntFaces++;
+                        ss.push_back(i);
                     } else {
                         cntInvert++;
                     }
@@ -153,7 +169,17 @@ namespace zebrafish
         }
         result_f.conservativeResize(cntFaces, 3);
         // should clean mesh here TODO
+        // DEBUG
+        int cntV = 0;
+        for (int i=0; i<on_bm_surface.size(); i++)
+            if (on_bm_surface[i]) cntV++;
+        std::cout << "bm_v.size = " << bm_v.rows() << "cntV = " << cntV << std::endl;
         std::cout << "bm_f.size = " << bm_f.rows() << " result_f.size = " << cntFaces << " | invert = " << cntInvert << std::endl;
+
+        // DEBUG
+        SaveMsh("test.h5", nodes, elem);
+        igl::Save
+        return;
 
         // assert bm surface area
         double bm_area = 0, result_area = 0;
@@ -165,6 +191,9 @@ namespace zebrafish
         if (bm_area != result_area) {
             std::cerr << "bm_area = " << bm_area << " result_area = " << result_area << std::endl;
         }
+
+
+        
 
         // lamda for bc
         Eigen::MatrixXd barys;
