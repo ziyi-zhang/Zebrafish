@@ -57,7 +57,7 @@ int main(int argc, char **argv)
         igl::read_triangle_mesh(path + file_name + std::to_string(i) + ".obj", V[i], F);
     }
 
-    zebrafish::compute_analysis(V, F, V[0].rows(), F.rows(), out, E, nu, offset, min_area, discr_order, is_linear, n_refs, vismesh_rel_area, upsample, markerRCMap, 0, 0, 0, 0, 0, 0, false);
+    zebrafish::compute_analysis(V, F, V[0].rows(), F.rows(), out, E, nu, min_area, discr_order, is_linear, n_refs, vismesh_rel_area, upsample, markerRCMap, 0, 0, 0, 0, 0, 0, false);
 
     return EXIT_SUCCESS;
 }

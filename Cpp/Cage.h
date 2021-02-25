@@ -19,7 +19,7 @@ private:
 public:
     static void ComputeCage(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F, Eigen::MatrixXd &sideV, Eigen::MatrixXi &sideF, bool above = true);
     static void AddCage(const Eigen::MatrixXd &sideV, const Eigen::MatrixXi &sideF, Eigen::MatrixXd &V, Eigen::MatrixXi &F, int baseV, bool updateF = true);
-    static void AddCageForAll(const Eigen::MatrixXd &sideV, const Eigen::MatrixXi &sideF, std::vector<Eigen::MatrixXd> &V, Eigen::MatrixXi &F, int baseV);
+    static bool AddCageForAll(const Eigen::MatrixXd &sideV, const Eigen::MatrixXi &sideF, std::vector<Eigen::MatrixXd> &V, Eigen::MatrixXi &F, int baseV);
 };
 
 }  // namespace zebrafish

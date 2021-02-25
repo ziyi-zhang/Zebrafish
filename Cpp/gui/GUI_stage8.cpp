@@ -435,8 +435,13 @@ namespace zebrafish
             {
                 if (ImGui::Button("Generate Cage (above)"))
                 {
-                    cage::ComputeCage(analysisPara.V[0], analysisPara.F, Va_cage, Fa_cage, true);
-                    baseVa = analysisPara.V[0].rows();
+                    if (analysisInputPath.empty()) {
+                        cage::ComputeCage(markerPointLocArray[0], markerMeshArray, Va_cage, Fa_cage, true);
+                        baseVa = markerPointLocArray[0].rows();
+                    } else {
+                        cage::ComputeCage(analysisPara.V[0], analysisPara.F, Va_cage, Fa_cage, true);
+                        baseVa = analysisPara.V[0].rows();
+                    }
                 }
             }
             else
@@ -452,8 +457,13 @@ namespace zebrafish
             {
                 if (ImGui::Button("Generate Cage (below)"))
                 {
-                    cage::ComputeCage(analysisPara.V[0], analysisPara.F, Vb_cage, Fb_cage, false);
-                    baseVb = analysisPara.V[0].rows();
+                    if (analysisInputPath.empty()) {
+                        cage::ComputeCage(markerPointLocArray[0], markerMeshArray, Vb_cage, Fb_cage, false);
+                        baseVb = markerPointLocArray[0].rows();
+                    } else {
+                        cage::ComputeCage(analysisPara.V[0], analysisPara.F, Vb_cage, Fb_cage, false);
+                        baseVb = analysisPara.V[0].rows();
+                    }
                 }
             }
             else
@@ -480,7 +490,7 @@ namespace zebrafish
             }
             if (showTooltip && ImGui::IsItemHovered())
             {
-                ImGui::SetTooltip("Crop an area that will be used to estimate the global displacement.\nGlobal displacement will be subtracted in analysis. By default we use the entire image.");
+                ImGui::SetTooltip("Crop an area that will be used to estimate the global displacement.\nGlobal displacement will be removed in analysis. By default use the entire image.");
             }
 
             ImGui::Separator(); /////////////////////////////////////////
@@ -551,18 +561,13 @@ namespace zebrafish
 
                 const float inputWidth = ImGui::GetWindowWidth() / 3.0;
                 ImGui::PushItemWidth(inputWidth);
-                ImGui::InputDouble("offset", &analysisPara.offset);
-                if (showTooltip && ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Diagonal multiplier for box mesh");
-                }
                 if (ImGui::InputInt("upsample", &analysisPara.upsample))
                 {
                     re_estimate_meanL = true;
                 }
                 if (showTooltip && ImGui::IsItemHovered())
                 {
-                    ImGui::SetTooltip("Dummy");
+                    ImGui::SetTooltip("Density of the tetrahedral mesh");
                 }
                 /*
                 ImGui::InputDouble("radius-edge ratio", &analysisPara.radius_edge_ratio);
@@ -582,12 +587,19 @@ namespace zebrafish
                     ImGui::SetTooltip("Young's Modulus [Pascal]");
                 }
                 ImGui::InputDouble("nu (Poisson's ratio)", &analysisPara.nu);
+                /*
+                // must be linear
                 ImGui::Checkbox("linear material", &analysisPara.is_linear);
                 if (showTooltip && ImGui::IsItemHovered())
                 {
                     ImGui::SetTooltip("Use non-linear material");
                 }
+                */
                 ImGui::InputInt("discretization order", &analysisPara.discr_order);
+                if (showTooltip && ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Tetrahedron degree");
+                }
                 ImGui::InputInt("#refine", &analysisPara.n_refs);
                 if (showTooltip && ImGui::IsItemHovered())
                 {
@@ -608,35 +620,40 @@ namespace zebrafish
             {
                 try
                 {
-                    if (!analysisInputPath.empty())
+                    runAnalysisStr = "";
+                    bool success = false;
+                    if (!analysisInputPath.empty())  // re-analysis mode
                     {
-                        // pre-task (only in re-analysis)
+                        // pre-task
                         int offset_v = analysisPara.V[0].rows();
                         int offset_f = analysisPara.F.rows();
-                        cage::AddCageForAll(Va_cage, Fa_cage, analysisPara.V, analysisPara.F, baseVa);
-                        cage::AddCageForAll(Vb_cage, Fb_cage, analysisPara.V, analysisPara.F, baseVb);
-                        // re-run a previous experiment result
-                        compute_analysis(
-                            analysisPara.V,
-                            analysisPara.F,
-                            offset_v,
-                            offset_f,
-                            analysisInputPath,
-                            analysisPara.E,
-                            analysisPara.nu,
-                            analysisPara.offset,
-                            analysisPara.max_tet_vol,
-                            analysisPara.discr_order,
-                            analysisPara.is_linear,
-                            analysisPara.n_refs,
-                            analysisPara.vismesh_rel_area,
-                            analysisPara.upsample,
-                            analysisPara.markerRCMap,
-                            imgRows, imgCols, layerPerImg,
-                            resolutionX, resolutionY, resolutionZ,
-                            false);
+                        bool aboveCage = cage::AddCageForAll(Va_cage, Fa_cage, analysisPara.V, analysisPara.F, baseVa);
+                        bool belowCage = cage::AddCageForAll(Vb_cage, Fb_cage, analysisPara.V, analysisPara.F, baseVb);
+                        if (aboveCage || belowCage) {
+                            // re-run a previous experiment result
+                            success = compute_analysis(
+                                analysisPara.V,
+                                analysisPara.F,
+                                offset_v, 
+                                offset_f,
+                                analysisInputPath,
+                                analysisPara.E,
+                                analysisPara.nu,
+                                analysisPara.max_tet_vol,
+                                analysisPara.discr_order,
+                                analysisPara.is_linear,
+                                analysisPara.n_refs,
+                                analysisPara.vismesh_rel_area,
+                                analysisPara.upsample,
+                                analysisPara.markerRCMap,
+                                imgRows, imgCols, layerPerImg,
+                                resolutionX, resolutionY, resolutionZ,
+                                false, aboveCage, belowCage);
+                        } else {
+                            runAnalysisStr = "No cage";
+                        }
                     }
-                    else
+                    else  // regular analysis
                     {
 
                         // prepare the displacement
@@ -679,29 +696,41 @@ namespace zebrafish
 
                         // run analysis
                         std::string path = GetFileName(imagePath, -1, "", "analysis");
-                        // [NOTE]: E is in unit of [Pascal], displacement is in unit of [um]. So multiply by 1e-6
-                        compute_analysis(
-                            analysisDisplacementVec,
-                            markerMeshArray,
-                            analysisDisplacementVec[0].rows(),
-                            markerMeshArray.rows(),
-                            path,
-                            analysisPara.E,
-                            analysisPara.nu,
-                            analysisPara.offset,
-                            analysisPara.max_tet_vol,
-                            analysisPara.discr_order,
-                            analysisPara.is_linear,
-                            analysisPara.n_refs,
-                            analysisPara.vismesh_rel_area,
-                            analysisPara.upsample,
-                            analysisPara.markerRCMap,
-                            imgRows, imgCols, layerPerImg,
-                            resolutionX, resolutionY, resolutionZ,
-                            true);
-                    }
 
-                    runAnalysisStr = "Done";
+                        // pre-task
+                        int offset_v = analysisDisplacementVec[0].rows();
+                        int offset_f = markerMeshArray.rows();
+                        Eigen::MatrixXi markerMeshArray_ = markerMeshArray;  // for some reason, we cannot use it here
+                        bool aboveCage = cage::AddCageForAll(Va_cage, Fa_cage, analysisDisplacementVec, markerMeshArray_, baseVa);
+                        bool belowCage = cage::AddCageForAll(Vb_cage, Fb_cage, analysisDisplacementVec, markerMeshArray_, baseVb);
+                        // run analysis
+                        if (aboveCage || belowCage) {
+                            success = compute_analysis(
+                                analysisDisplacementVec,
+                                markerMeshArray_,
+                                offset_v,
+                                offset_f,
+                                path,
+                                analysisPara.E,
+                                analysisPara.nu,
+                                analysisPara.max_tet_vol,
+                                analysisPara.discr_order,
+                                analysisPara.is_linear,
+                                analysisPara.n_refs,
+                                analysisPara.vismesh_rel_area,
+                                analysisPara.upsample,
+                                analysisPara.markerRCMap,
+                                imgRows, imgCols, layerPerImg,
+                                resolutionX, resolutionY, resolutionZ,
+                                true, aboveCage, belowCage);
+                        } else {
+                            runAnalysisStr = "No cage";
+                        }
+                    }  // analysisInputPath.empty()
+
+                    if (runAnalysisStr.empty()) {
+                        if (success) runAnalysisStr = "Done"; else runAnalysisStr = "Failed";
+                    }
                 }
                 catch (const std::exception &e)
                 {

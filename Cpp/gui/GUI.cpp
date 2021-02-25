@@ -1245,7 +1245,7 @@ namespace zebrafish
         Vb_cage.resize(0, 3);
         Fa_cage.resize(0, 3);
         Fb_cage.resize(0, 3);
-        analysisPara.offset = 1;                 // Diagonal multiplier for box mesh
+        // analysisPara.offset = 1;                 // Diagonal multiplier for box mesh
         // analysisPara.radius_edge_ratio = 1.414;  // Radius edge ratio used by tetgen
         analysisPara.max_tet_vol = 500;          // Minimum tet area used by tetgen
         analysisPara.E = 566.7;                  // Young's modulus 566.7Pa
@@ -1392,7 +1392,6 @@ namespace zebrafish
                 H5Easy::File file(analysisInputPath_, H5Easy::File::ReadOnly);
                 analysisPara.E = H5Easy::load<double>(file, "E");
                 analysisPara.nu = H5Easy::load<double>(file, "nu");
-                analysisPara.offset = H5Easy::load<double>(file, "offset");
                 analysisPara.max_tet_vol = H5Easy::load<double>(file, "max_tet_vol");
                 analysisPara.discr_order = H5Easy::load<int>(file, "discr_order");
                 analysisPara.is_linear = H5Easy::load<bool>(file, "is_linear");
@@ -1458,7 +1457,6 @@ namespace zebrafish
                 analysisInputPath,
                 analysisPara.E, // no need to scale here
                 analysisPara.nu,
-                analysisPara.offset,
                 analysisPara.max_tet_vol,
                 analysisPara.discr_order,
                 analysisPara.is_linear,

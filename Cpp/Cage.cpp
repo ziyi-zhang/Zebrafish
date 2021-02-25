@@ -95,7 +95,7 @@ namespace zebrafish
         }
     }
 
-    void cage::AddCageForAll(
+    bool cage::AddCageForAll(
         const Eigen::MatrixXd &sideV,
         const Eigen::MatrixXi &sideF,
         std::vector<Eigen::MatrixXd> &V,
@@ -104,13 +104,14 @@ namespace zebrafish
     {
 
         if (sideV.size() == 0 || sideF.size() == 0)
-            return;
+            return false;
         int frames = V.size();
 
         for (int i = 0; i < frames; i++)
         {
             cage::AddCage(sideV, sideF, V[i], F, baseV, i == 0);
         }
+        return true;
     }
 
 } // namespace zebrafish

@@ -19,15 +19,15 @@
 
 namespace zebrafish
 {
-    void compute_analysis(const std::vector<Eigen::MatrixXd> &VV, const Eigen::MatrixXi &F,
+    bool compute_analysis(const std::vector<Eigen::MatrixXd> &VV, const Eigen::MatrixXi &F,
                           const int bm_offset_v, const int bm_offset_f,
                           const std::string &path,
                           const double E, const double nu,
-                          const double offset, const double max_tet_vol,
+                          const double max_tet_vol,
                           const int discr_order, const bool is_linear, const int n_refs, const double vismesh_rel_area, const int upsample,
                           const std::map<int, std::array<int, 2>> &markerRCMap, const int imgRows, const int imgCols, const int layerPerImg,
                           const double resolutionX, const double resolutionY, const double resolutionZ,
-                          const bool saveinput)
+                          const bool saveinput, const bool aboveCage, const bool belowCage)
     {
         // Necesary for the scaling!
         std::vector<Eigen::MatrixXd> V = VV;
@@ -39,15 +39,17 @@ namespace zebrafish
         const double eps = 10;
 
         // save to analysis file for future re-analysis
-        const auto WriteInputToFile = [&V, &F, &path, &E, &nu, &offset, &max_tet_vol, &discr_order, &is_linear, &n_refs, &vismesh_rel_area, &upsample,
+        const auto WriteInputToFile = [&V, &F, &bm_offset_v, &bm_offset_f, &path, &E, &nu, &max_tet_vol, &discr_order, &is_linear, &n_refs, &vismesh_rel_area, &upsample,
                                        &markerRCMap, &imgRows, &imgCols, &layerPerImg, &resolutionX, &resolutionY, &resolutionZ]() {
+            // NOTE: only store the part of {V, F} without the cage
+            
             const int frames = V.size();
-            const int Nverts = V[0].rows();
+            const int Nverts = bm_offset_v;
 
             Eigen::MatrixXd V_concatenated(frames * Nverts, 3);
             for (int i = 0; i < frames; i++)
             {
-                V_concatenated.block(Nverts * i, 0, Nverts, 3) = V[i];
+                V_concatenated.block(Nverts * i, 0, Nverts, 3) = V[i].topRows(Nverts);
             }
 
             Eigen::MatrixXi markerRCMap_mat(markerRCMap.size(), 3);
@@ -64,7 +66,6 @@ namespace zebrafish
             H5Easy::File file(fileName, H5Easy::File::ReadWrite | H5Easy::File::Create);
             H5Easy::dump(file, "E", E);
             H5Easy::dump(file, "nu", nu);
-            H5Easy::dump(file, "offset", offset);
             H5Easy::dump(file, "max_tet_vol", max_tet_vol);
             H5Easy::dump(file, "discr_order", discr_order);
             H5Easy::dump(file, "is_linear", is_linear);
@@ -85,7 +86,7 @@ namespace zebrafish
             H5Easy::dump(file, "frames", frames);
             H5Easy::dump(file, "Nverts", Nverts);
             H5Easy::dump(file, "V", V_concatenated);
-            H5Easy::dump(file, "F", F);
+            H5Easy::dump(file, "F", F.topRows(bm_offset_f));
             // for ring padding
             H5Easy::dump(file, "markerRCMap_mat", markerRCMap_mat);
         };
@@ -218,8 +219,8 @@ namespace zebrafish
             H5Easy::dump(file, "Tid", ss);
             H5Easy::dump(file, "result_f", result_f);
         };
-        SaveMsh("test.h5", nodes, elem);
-        igl::write_triangle_mesh("extracted.obj", result_v, result_f);
+        // SaveMsh("test.h5", nodes, elem);
+        // igl::write_triangle_mesh("extracted.obj", result_v, result_f);
 
         // assert bm surface area
         double bm_area = 0, result_area = 0;
@@ -231,7 +232,7 @@ namespace zebrafish
         if (std::fabs(bm_area - result_area) > 1e-10)
         {
             std::cerr << "[WARNING] bm_area = " << bm_area << " result_area = " << result_area << std::endl;
-            return;
+            return false;
         }
 
         // lamda for bc
@@ -409,5 +410,7 @@ namespace zebrafish
             state.save_vtu(out_path + ".all.vtu", 0);
             state.save_surface(out_path + ".surf.vtu");
         }
+    
+        return true;
     }
 } // namespace zebrafish
