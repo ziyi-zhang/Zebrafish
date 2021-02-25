@@ -8,6 +8,7 @@
 #include <zebrafish/zebra-analysis.hpp>
 #include <zebrafish/Padding.h>
 #include <zebrafish/Cage.h>
+#include <igl/procrustes.h>
 
 #include <tbb/task_scheduler_init.h>
 #include <tbb/parallel_for.h>
@@ -406,6 +407,8 @@ namespace zebrafish
         {
 
             // ring padding
+            // DEPRECATED: do not add ring-padding. It is providing false data for analysis (the added ring is not fixed in reality)
+            /*
             static int lastVRows;
             if (!analysisInputPath.empty() && ImGui::Button("One-Ring Padding"))
             {
@@ -424,45 +427,45 @@ namespace zebrafish
 
                 logger().info("#Verts = {}", analysisPara.V[0].rows());
             }
+            */
 
             // cages
             static int baseVa, baseVb;
-            if (!analysisInputPath.empty())
+            if (Va_cage.size() == 0)
             {
-                if (Va_cage.size() == 0)
+                if (ImGui::Button("Generate Cage (above)"))
                 {
-                    if (ImGui::Button("Generate Cage (above)"))
-                    {
-                        cage::ComputeCage(analysisPara.V[0], analysisPara.F, Va_cage, Fa_cage, true);
-                        baseVa = analysisPara.V[0].rows();
-                    }
-                }
-                else
-                {
-                    if (ImGui::Button("Remove Cage (above)"))
-                    {
-                        Va_cage.resize(0, 3);
-                        Fa_cage.resize(0, 3);
-                    }
-                }
-
-                if (Vb_cage.size() == 0)
-                {
-                    if (ImGui::Button("Generate Cage (below)"))
-                    {
-                        cage::ComputeCage(analysisPara.V[0], analysisPara.F, Vb_cage, Fb_cage, false);
-                        baseVb = analysisPara.V[0].rows();
-                    }
-                }
-                else
-                {
-                    if (ImGui::Button("Remove Cage (below)"))
-                    {
-                        Vb_cage.resize(0, 3);
-                        Fb_cage.resize(0, 3);
-                    }
+                    cage::ComputeCage(analysisPara.V[0], analysisPara.F, Va_cage, Fa_cage, true);
+                    baseVa = analysisPara.V[0].rows();
                 }
             }
+            else
+            {
+                if (ImGui::Button("Undo (above)"))
+                {
+                    Va_cage.resize(0, 3);
+                    Fa_cage.resize(0, 3);
+                }
+            }
+
+            if (Vb_cage.size() == 0)
+            {
+                if (ImGui::Button("Generate Cage (below)"))
+                {
+                    cage::ComputeCage(analysisPara.V[0], analysisPara.F, Vb_cage, Fb_cage, false);
+                    baseVb = analysisPara.V[0].rows();
+                }
+            }
+            else
+            {
+                if (ImGui::Button("Undo (below)"))
+                {
+                    Vb_cage.resize(0, 3);
+                    Fb_cage.resize(0, 3);
+                }
+            }
+
+            ImGui::Spacing();
 
             // average displacement area crop
             if (analysisInputPath.empty() && ImGui::Checkbox("[Mouse] global disp area", &meanCrop.cropActive))
@@ -522,6 +525,8 @@ namespace zebrafish
             }
 
             // in-out filter
+            // DEPRECATED: now we use cages for analysis, which is easier to control which side to analyze
+            /*
             static bool useWindingNumber = false;
             static bool windingNumberOtherSide = false;
             if (!analysisInputPath.empty())
@@ -537,6 +542,7 @@ namespace zebrafish
                     ImGui::SetTooltip("If checked, use the other side for traction force simulation.");
                 }
             }
+            */
 
             //////////////////////////////////////////////////////////////////////////////////
 
@@ -558,11 +564,13 @@ namespace zebrafish
                 {
                     ImGui::SetTooltip("Dummy");
                 }
+                /*
                 ImGui::InputDouble("radius-edge ratio", &analysisPara.radius_edge_ratio);
                 if (showTooltip && ImGui::IsItemHovered())
                 {
                     ImGui::SetTooltip("Radius-edge ratio in TetGen. Cannot be smaller than 0.707.");
                 }
+                */
                 ImGui::InputDouble("max tetrahedral volume", &analysisPara.max_tet_vol);
                 if (showTooltip && ImGui::IsItemHovered())
                 {
@@ -617,7 +625,6 @@ namespace zebrafish
                             analysisPara.E,
                             analysisPara.nu,
                             analysisPara.offset,
-                            analysisPara.radius_edge_ratio,
                             analysisPara.max_tet_vol,
                             analysisPara.discr_order,
                             analysisPara.is_linear,
@@ -627,7 +634,7 @@ namespace zebrafish
                             analysisPara.markerRCMap,
                             imgRows, imgCols, layerPerImg,
                             resolutionX, resolutionY, resolutionZ,
-                            false, useWindingNumber);
+                            false);
                     }
                     else
                     {
@@ -643,7 +650,12 @@ namespace zebrafish
                         // remove global displacement
                         for (int i = 0; i < currentLoadedFrames; i++)
                         {
-
+                            Eigen::MatrixXd global_R;
+                            Eigen::VectorXd global_T;
+                            EstimateGlobalMovement(i, markerInAvgDispArea, global_R, global_T);
+                            logger().debug("frame {} global R=[{} {} {}; {} {} {}; {} {} {}], T=[{} {} {}]", i, global_R(0, 0), global_R(0, 1), global_R(0, 2), global_R(1, 0), global_R(1, 1), global_R(1, 2), global_R(2, 0), global_R(2, 1), global_R(2, 2), global_T(0), global_T(1), global_T(2));
+                            analysisDisplacementVec.push_back( (markerPointLocArray[i] * global_R).rowwise() + global_T.transpose() );
+                            /*
                             Eigen::MatrixXd V_analysis = markerPointLocArray[i];
                             // remove the global movement
                             Eigen::RowVectorXd meanV(1, 3); // (V_analysis - markerPointLocArray[0]).colwise().mean();
@@ -662,6 +674,7 @@ namespace zebrafish
                             V_analysis.rowwise() -= meanV;
                             // push to new analysis vector
                             analysisDisplacementVec.push_back(V_analysis); // want accumulativeDisplacement (relative)
+                            */
                         }
 
                         // run analysis
@@ -676,7 +689,6 @@ namespace zebrafish
                             analysisPara.E,
                             analysisPara.nu,
                             analysisPara.offset,
-                            analysisPara.radius_edge_ratio,
                             analysisPara.max_tet_vol,
                             analysisPara.discr_order,
                             analysisPara.is_linear,
@@ -894,6 +906,28 @@ namespace zebrafish
         }
         logger().info("#markerInAvgDispArea = {}", count);
     }
+
+
+    void GUI::EstimateGlobalMovement(int frame, const std::vector<bool> &markerInAvgDispArea, Eigen::MatrixXd &R, Eigen::VectorXd &T) {
+
+        const int N = markerInAvgDispArea.size();
+        Eigen::MatrixXd pt_list0(N, 3);
+        Eigen::MatrixXd pt_listx(N, 3);
+
+        int cnt = 0;
+        for (int i=0; i<N; i++) {
+            if (markerInAvgDispArea[i]) {
+                pt_list0.row(cnt) = markerPointLocArray[0].row(i);
+                pt_listx.row(cnt) = markerPointLocArray[frame].row(i);
+                cnt++;
+            }
+        }
+        pt_list0.conservativeResize(cnt, 3);
+        pt_listx.conservativeResize(cnt, 3);
+
+        igl::procrustes(pt_listx, pt_list0, false, false, R, T);
+    }
+
 
     bool GUI::OptimizeAllFrames(bool logEnergy)
     {

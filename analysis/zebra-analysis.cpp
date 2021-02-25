@@ -23,11 +23,11 @@ namespace zebrafish
                           const int bm_offset_v, const int bm_offset_f,
                           const std::string &path,
                           const double E, const double nu,
-                          const double offset, const double radius_edge_ratio, const double max_tet_vol,
+                          const double offset, const double max_tet_vol,
                           const int discr_order, const bool is_linear, const int n_refs, const double vismesh_rel_area, const int upsample,
                           const std::map<int, std::array<int, 2>> &markerRCMap, const int imgRows, const int imgCols, const int layerPerImg,
                           const double resolutionX, const double resolutionY, const double resolutionZ,
-                          const bool saveinput, bool useWindingNumber, bool windingNumberOtherSide)
+                          const bool saveinput)
     {
         // Necesary for the scaling!
         std::vector<Eigen::MatrixXd> V = VV;
@@ -39,7 +39,7 @@ namespace zebrafish
         const double eps = 10;
 
         // save to analysis file for future re-analysis
-        const auto WriteInputToFile = [&V, &F, &path, &E, &nu, &offset, &radius_edge_ratio, &max_tet_vol, &discr_order, &is_linear, &n_refs, &vismesh_rel_area, &upsample,
+        const auto WriteInputToFile = [&V, &F, &path, &E, &nu, &offset, &max_tet_vol, &discr_order, &is_linear, &n_refs, &vismesh_rel_area, &upsample,
                                        &markerRCMap, &imgRows, &imgCols, &layerPerImg, &resolutionX, &resolutionY, &resolutionZ]() {
             const int frames = V.size();
             const int Nverts = V[0].rows();
@@ -65,7 +65,6 @@ namespace zebrafish
             H5Easy::dump(file, "E", E);
             H5Easy::dump(file, "nu", nu);
             H5Easy::dump(file, "offset", offset);
-            H5Easy::dump(file, "radius_edge_ratio", radius_edge_ratio);
             H5Easy::dump(file, "max_tet_vol", max_tet_vol);
             H5Easy::dump(file, "discr_order", discr_order);
             H5Easy::dump(file, "is_linear", is_linear);
@@ -232,6 +231,7 @@ namespace zebrafish
         if (std::fabs(bm_area - result_area) > 1e-10)
         {
             std::cerr << "[WARNING] bm_area = " << bm_area << " result_area = " << result_area << std::endl;
+            return;
         }
 
         // lamda for bc

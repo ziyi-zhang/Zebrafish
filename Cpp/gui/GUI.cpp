@@ -1246,12 +1246,12 @@ namespace zebrafish
         Fa_cage.resize(0, 3);
         Fb_cage.resize(0, 3);
         analysisPara.offset = 1;                 // Diagonal multiplier for box mesh
-        analysisPara.radius_edge_ratio = 1.414;  // Radius edge ratio used by tetgen
+        // analysisPara.radius_edge_ratio = 1.414;  // Radius edge ratio used by tetgen
         analysisPara.max_tet_vol = 500;          // Minimum tet area used by tetgen
         analysisPara.E = 566.7;                  // Young's modulus 566.7Pa
         analysisPara.nu = 0.45;                  // Poisson's ratio
         analysisPara.is_linear = true;           // Use non-linear material
-        analysisPara.discr_order = 1;            // Analysis discretization order
+        analysisPara.discr_order = 2;            // Analysis discretization order
         analysisPara.n_refs = 0;                 // Number of mesh uniform refinements
         analysisPara.vismesh_rel_area = 0.00001; // Desnsity of the output visualization
         analysisPara.upsample = 2;               // upsample for a denser mesh
@@ -1393,7 +1393,6 @@ namespace zebrafish
                 analysisPara.E = H5Easy::load<double>(file, "E");
                 analysisPara.nu = H5Easy::load<double>(file, "nu");
                 analysisPara.offset = H5Easy::load<double>(file, "offset");
-                analysisPara.radius_edge_ratio = H5Easy::load<double>(file, "radius_edge_ratio");
                 analysisPara.max_tet_vol = H5Easy::load<double>(file, "max_tet_vol");
                 analysisPara.discr_order = H5Easy::load<int>(file, "discr_order");
                 analysisPara.is_linear = H5Easy::load<bool>(file, "is_linear");
@@ -1460,7 +1459,6 @@ namespace zebrafish
                 analysisPara.E, // no need to scale here
                 analysisPara.nu,
                 analysisPara.offset,
-                analysisPara.radius_edge_ratio,
                 analysisPara.max_tet_vol,
                 analysisPara.discr_order,
                 analysisPara.is_linear,

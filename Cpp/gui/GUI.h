@@ -133,7 +133,7 @@ typedef struct padding_t {
 typedef struct analysis_t {
 
     double offset;  // Diagonal multiplier for box mesh
-    double radius_edge_ratio;  // Radius edge ratio used by tetgen
+    // double radius_edge_ratio;  // Radius edge ratio used by tetgen
     double max_tet_vol;  // Maximum tet vol used by tetgen
     double E;  // Young's modulus (default 566.7Pa)
     double nu;  // Poisson's ratio
@@ -506,6 +506,7 @@ private:
     //////////////////////////////////////////////////
     // Stage 8 Displacement
     void GetMarkersInAvgDispArea(std::vector<bool> &markerInAvgDispArea);
+    void EstimateGlobalMovement(int frame, const std::vector<bool> &markerInAvgDispArea, Eigen::MatrixXd &R, Eigen::VectorXd &T);
     void DrawAnalysisCage();
     bool OptimizeAllFrames(bool logEnergy);
     void ApplyOpticalFlow(int prevFrameIdx);
