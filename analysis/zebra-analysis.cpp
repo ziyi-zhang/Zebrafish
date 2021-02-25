@@ -15,7 +15,10 @@
 #include <igl/remove_unreferenced.h>
 #include <igl/winding_number.h>
 #include <igl/point_mesh_squared_distance.h>
+#include <igl/boundary_loop.h>
 #include <highfive/H5Easy.hpp>
+
+#include <algorithm>
 
 namespace zebrafish
 {
@@ -113,7 +116,7 @@ namespace zebrafish
         const Eigen::MatrixXd bm_v = V0.block(0, 0, bm_offset_v, 3);
         const Eigen::MatrixXi bm_f = F.block(0, 0, bm_offset_f, 3);
 
-        //////////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////////////////////////////////////
         // Generate tet mesh
         Eigen::MatrixXd nodes;
         Eigen::MatrixXi elem, faces;
@@ -129,10 +132,13 @@ namespace zebrafish
 
         Eigen::MatrixXd tetMeshBC;
         igl::barycenter(nodes, elem, tetMeshBC);
-        const auto AboveBM = [&bm_v, &bm_f, &tetMeshBC](int i) -> bool {
+        const auto AboveBM = [&bm_v, &bm_f, &tetMeshBC, &aboveCage](int i) -> bool {
             Eigen::VectorXd wnumber;
             igl::winding_number(bm_v, bm_f, tetMeshBC.row(i), wnumber);
-            return wnumber(0) > 0;
+            if (aboveCage)
+                return wnumber(0) < 0;
+            else
+                return wnumber(0) > 0;
         };
         const auto NormalPointingUp = [&nodes](int p0, int p1, int p2) -> bool {
             Eigen::Vector3d v01, v02, v_cross;
@@ -274,7 +280,7 @@ namespace zebrafish
             return 0;
         };
 
-        //////////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////////////////////////////////////
         // polyfem
         polyfem::State state;
         state.mesh = std::make_unique<polyfem::Mesh3D>();
@@ -285,38 +291,28 @@ namespace zebrafish
         state.load_mesh();
         state.mesh->compute_boundary_ids(set_bc);
 
-        {
-            Eigen::MatrixXd points;
-            Eigen::MatrixXi faces;
-            Eigen::MatrixXd sidesets;
+        // {
+        //     Eigen::MatrixXd points;
+        //     Eigen::MatrixXi faces;
+        //     Eigen::MatrixXd sidesets;
 
-            state.get_sidesets(points, faces, sidesets);
-            igl::write_triangle_mesh("text.obj", points, faces);
-            igl::write_triangle_mesh("text1.obj", V0, F);
-        }
+        //     state.get_sidesets(points, faces, sidesets);
+        //     igl::write_triangle_mesh("text.obj", points, faces);
+        //     igl::write_triangle_mesh("text1.obj", V0, F);
+        // }
 
         const Eigen::RowVector3d zero(0, 0, 0);
-        Eigen::MatrixXd vals;
-        Eigen::MatrixXd traction_forces, traction_forces_flip;
-        Eigen::MatrixXd stress, stress_flip;
-        Eigen::MatrixXd mises, mises_flip;
-        Eigen::MatrixXi result_f_flip = result_f;
-        result_f_flip.col(0) = result_f.col(1);
-        result_f_flip.col(1) = result_f.col(0);
 
         for (int sim = 1; sim < V.size(); ++sim)
         {
             const json args = {
                 {"tensor_formulation", is_linear ? "LinearElasticity" : "NeoHookean"},
                 {"discr_order", discr_order},
-
-                {"params", {{"E", E / double(1e6)}, {"nu", nu}}}, // E has unit [Pascal], convert that to [um] unit
-
-                {"problem", "PointBasedTensor"}};
+                {"params", {{"E", E / double(1e6)}, {"nu", nu}}},  // E has unit [Pascal], convert that to [um] unit
+                {"problem", "PointBasedTensor"}
+            };
 
             const Eigen::MatrixXd currentv = V[sim].block(0, 0, bm_offset_v, 3) - bm_v;
-            // Eigen::MatrixXd currentv = V[sim] - ref_v;
-            // currentv.setConstant(.5);
 
             state.init(args);
             polyfem::PointBasedTensorProblem &tproblem = *dynamic_cast<polyfem::PointBasedTensorProblem *>(state.problem.get());
@@ -327,90 +323,136 @@ namespace zebrafish
             tproblem.add_function(2, currentv, twod, rbf_function, eps, 2, dirichet_dims);
             state.solve();
 
-            //output
-            state.interpolate_boundary_function_at_vertices(result_v, result_f, state.sol, vals);
-            state.interpolate_boundary_tensor_function(result_v, result_f, state.sol, vals, true, traction_forces, stress, mises);
-            state.interpolate_boundary_tensor_function(result_v, result_f_flip, state.sol, vals, true, traction_forces_flip, stress_flip, mises_flip);
+            // output
+            const auto OutputHelper = [&state, &belowCage, &aboveCage](const std::string &out_path, const Eigen::MatrixXd &mesh_v, const MatrixXi &mesh_f) {
 
-            Eigen::MatrixXd vertex_traction_forces(result_v.rows(), 3);
-            vertex_traction_forces.setZero();
+                Eigen::MatrixXd displacement_vec;
+                Eigen::MatrixXd traction_forces, traction_forces_flip;
+                Eigen::MatrixXd stress, stress_flip;
+                Eigen::MatrixXd mises, mises_flip;
+                Eigen::MatrixXi mesh_f_flip = mesh_f;
+                mesh_f_flip.col(0) = mesh_f.col(1);
+                mesh_f_flip.col(1) = mesh_f.col(0);
 
-            Eigen::MatrixXd vertex_stress(result_v.rows(), 9);
-            vertex_stress.setZero();
+                state.interpolate_boundary_function_at_vertices(mesh_v, mesh_f, state.sol, displacement_vec);
+                // guaranteed that (belowCage || aboveCage) == True
+                if (belowCage)
+                    state.interpolate_boundary_tensor_function(mesh_v, mesh_f, state.sol, displacement_vec, true, traction_forces, stress, mises);
+                if (aboveCage)
+                    state.interpolate_boundary_tensor_function(mesh_v, mesh_f_flip, state.sol, displacement_vec, true, traction_forces_flip, stress_flip, mises_flip);
 
-            Eigen::MatrixXd vertex_mises(result_v.rows(), 1);
-            vertex_mises.setZero();
+                // per-triangle data -> per-vertex data by taking average
+                const auto ToVertexData = [&mesh_v, &mesh_f](
+                    const Eigen::MatrixXd &traction_forces_tri, 
+                    const Eigen::MatrixXd &stress_tri, 
+                    const Eigen::MatrixXd &mises_tri, 
+                    Eigen::MatrixXd &traction_forces_ver, 
+                    Eigen::MatrixXd &stress_ver, 
+                    Eigen::MatrixXd &mises_ver) {
 
-            Eigen::MatrixXd vertex_traction_forces_flip(result_v.rows(), 3);
-            vertex_traction_forces_flip.setZero();
+                    traction_forces_ver = Eigen::MatrixXd::Zero(mesh_v.rows(), 3);
+                    stress_ver = Eigen::MatrixXd::Zero(mesh_v.rows(), 9);  // 3x3 matrix
+                    mises_ver = Eigen::MatrixXd::Zero(mesh_v.rows(), 1);
 
-            Eigen::MatrixXd vertex_stress_flip(result_v.rows(), 9);
-            vertex_stress_flip.setZero();
+                    Eigen::VectorXd area, vertex_area(mesh_v.rows());
+                    vertex_area.setZero();
+                    igl::doublearea(mesh_v, mesh_f, area);
 
-            Eigen::MatrixXd vertex_mises_flip(result_v.rows(), 1);
-            vertex_mises_flip.setZero();
+                    for (int f = 0; f < mesh_f.rows(); ++f) {
+                        for (int d = 0; d < 3; ++d) {
+                            int vid = mesh_f(f, d);
+                            traction_forces_ver.row(vid) += traction_forces_tri.row(f) * area(f);
+                            stress_ver.row(vid) += stress_tri.row(f) * area(f);
+                            mises_ver(vid) += mises_tri(f) * area(f);
+                            vertex_area(vid) += area(f);
+                        }
+                    }
 
-            Eigen::MatrixXd area, vertex_area(result_v.rows(), 1);
-            vertex_area.setZero();
-            igl::doublearea(result_v, result_f, area);
+                    for (int d = 0; d < 3; ++d) {
+                        traction_forces_ver.col(d).array() /= vertex_area.array();
+                    }
+                    for (int d = 0; d < 9; ++d) {
+                        stress_ver.col(d).array() /= vertex_area.array();
+                    }
+                    mises_ver.array() /= vertex_area.array();
+                };
 
-            for (int f = 0; f < result_f.rows(); ++f)
-            {
-                for (int d = 0; d < 3; ++d)
-                {
-                    vertex_traction_forces.row(result_f(f, d)) += traction_forces.row(f) * area(f);
-                    vertex_traction_forces_flip.row(result_f(f, d)) += traction_forces_flip.row(f) * area(f);
-
-                    vertex_stress.row(result_f(f, d)) += stress.row(f) * area(f);
-                    vertex_stress_flip.row(result_f(f, d)) += stress_flip.row(f) * area(f);
-
-                    vertex_mises(result_f(f, d)) += mises(f) * area(f);
-                    vertex_mises_flip(result_f(f, d)) += mises_flip(f) * area(f);
-
-                    vertex_area(result_f(f, d)) += area(f);
+                // triangle to vertex
+                Eigen::MatrixXd traction_force_v, traction_force_v_flip, traction_force_res;
+                Eigen::MatrixXd stress_v, stress_v_flip, stress_res;
+                Eigen::MatrixXd mises_v, mises_v_flip, mises_res;
+                if (belowCage)
+                    ToVertexData(traction_forces, stress, mises, traction_force_v, stress_v, mises_v);
+                if (aboveCage)
+                    ToVertexData(traction_forces_flip, stress_flip, mises_flip, traction_force_v_flip, stress_v_flip, mises_v_flip);
+                std::string suffix = "";
+                if (aboveCage && !belowCage) {
+                    traction_force_res = traction_force_v_flip;
+                    stress_res = stress_v_flip;
+                    mises_res = mises_v_flip;
+                    suffix = "_above";
+                } else if (!aboveCage && belowCage) {
+                    traction_force_res = traction_force_v;
+                    stress_res = stress_v;
+                    mises_res = mises_v;
+                    suffix = "_below";
+                } else if (aboveCage && belowCage) {
+                    traction_force_res = (traction_force_v_flip - traction_force_v).array() / 2.0;
+                    stress_res = (stress_v_flip - stress_v).array() / 2.0;
+                    mises_res = (mises_v_flip - mises_v).array() / 2.0;
+                    suffix = "_avg";
+                } else {
+                    std::cerr << "neither aboveCage or belowCage? impossible!" << std::endl;
+                    return;
                 }
-            }
 
-            for (int d = 0; d < 3; ++d)
-            {
-                vertex_traction_forces.col(d).array() /= vertex_area.array();
-                vertex_traction_forces_flip.col(d).array() /= vertex_area.array();
-            }
-            for (int d = 0; d < 9; ++d)
-            {
-                vertex_stress.col(d).array() /= vertex_area.array();
-                vertex_stress_flip.col(d).array() /= vertex_area.array();
-            }
-            vertex_mises.array() /= vertex_area.array();
-            vertex_mises_flip.array() /= vertex_area.array();
+                // write to VTU
+                polyfem::VTUWriter VTUwriter;
+                VTUwriter.add_field("displacement", displacement_vec);
+                VTUwriter.add_field("traction_forces" + suffix, traction_force_res);
 
-            const std::string out_path = path + "-frame" + std::to_string(sim) + ".vtu";
-            std::cerr << out_path << std::endl;
-
-            polyfem::VTUWriter writer;
-            writer.add_field("displacement", vals);
-            writer.add_field("traction_forces", vertex_traction_forces);
-            writer.add_field("traction_forces_other", vertex_traction_forces_flip);
-
-            for (int i = 0; i < 3; ++i)
-            {
-                for (int j = 0; j < 3; ++j)
-                {
-                    const std::string index = "_" + std::to_string(i) + std::to_string(j);
-                    writer.add_field("stress" + index, vertex_stress.col(i * 3 + j));
-                    writer.add_field("stress_other" + index, vertex_stress_flip.col(i * 3 + j));
+                for (int i = 0; i < 3; ++i) {
+                    for (int j = 0; j < 3; ++j) {
+                        const std::string index = "_" + std::to_string(i) + std::to_string(j);
+                        VTUwriter.add_field("stress" + suffix + index, stress_res.col(i * 3 + j));
+                    }
                 }
-            }
 
-            writer.add_field("von_mises", vertex_mises);
-            writer.add_field("von_mises_other", vertex_mises_flip);
+                VTUwriter.add_field("von_mises" + suffix, mises_res);
 
-            writer.write_mesh(out_path, result_v, result_f);
+                VTUwriter.write_mesh(out_path, mesh_v, mesh_f);
+            };  // OutputHelper lambda function
 
+            const auto RemoveOneRing = [&result_f](Eigen::MatrixXi &new_f) {
+                std::vector<int> boundary_v;
+                igl::boundary_loop(result_f, boundary_v);
+                new_f.resizeLike(result_f);
+                int cnt = 0;
+                for (int i=0; i<result_f.rows(); i++) {
+                    if (std::find(boundary_v.begin(), boundary_v.end(), result_f(i, 0)) != boundary_v.end() ||
+                        std::find(boundary_v.begin(), boundary_v.end(), result_f(i, 1)) != boundary_v.end() ||
+                        std::find(boundary_v.begin(), boundary_v.end(), result_f(i, 2)) != boundary_v.end()) {
+                        // if this triangle is at boundary
+                        continue;
+                    } else {
+                        new_f.row(cnt) = result_f.row(i);
+                        cnt++;
+                    }
+                }
+                new_f.conservativeResize(cnt, 3);
+            };  // KillOneRing lambda function
+
+            const std::string out_path = path + "-frame" + std::to_string(sim);
+            Eigen::MatrixXi result_f_without_boundary;
+            RemoveOneRing(result_f_without_boundary);
+            OutputHelper(out_path + ".withBoundary.vtu", result_v, result_f);
+            OutputHelper(out_path + ".vtu", result_v, result_f_without_boundary);
             state.save_vtu(out_path + ".all.vtu", 0);
             state.save_surface(out_path + ".surf.vtu");
+
+            std::cout << out_path << std::endl;
         }
     
         return true;
     }
-} // namespace zebrafish
+}  // namespace zebrafish

@@ -9,6 +9,7 @@
 #include <zebrafish/Padding.h>
 #include <zebrafish/Cage.h>
 #include <igl/procrustes.h>
+#include <polyfem/VTUWriter.hpp>
 
 #include <tbb/task_scheduler_init.h>
 #include <tbb/parallel_for.h>
@@ -522,6 +523,8 @@ namespace zebrafish
                 analysisPara.max_tet_vol = EstimateVol(markerPointLocArray[0], markerMeshArray, analysisPara.upsample);
                 re_estimate_meanL = false;
             }
+            /*
+            // don't need this anymore. It is called whenever upsample is changed
             if (!analysisInputPath.empty())
             {
                 if (ImGui::Button("Estimate Volume"))
@@ -533,6 +536,7 @@ namespace zebrafish
                     ImGui::SetTooltip("Update the max_tet_vol based on current mesh density. It is suggested to update this after modifying upsample number.\nThe updated value is 3x (volume of regular tetrahedron with mean edge length).");
                 }
             }
+            */
 
             // in-out filter
             // DEPRECATED: now we use cages for analysis, which is easier to control which side to analyze
@@ -563,7 +567,10 @@ namespace zebrafish
                 ImGui::PushItemWidth(inputWidth);
                 if (ImGui::InputInt("upsample", &analysisPara.upsample))
                 {
-                    re_estimate_meanL = true;
+                    re_estimate_meanL = true;  // this is for first round
+                    if (!analysisInputPath.empty()) {
+                        analysisPara.max_tet_vol = EstimateVol(analysisPara.V[0], analysisPara.F, analysisPara.upsample);
+                    }
                 }
                 if (showTooltip && ImGui::IsItemHovered())
                 {
@@ -745,6 +752,25 @@ namespace zebrafish
             }
             ImGui::SameLine();
             ImGui::Text("%s", runAnalysisStr.c_str());
+        }
+
+        if (!analysisInputPath.empty())
+        {
+            if (ImGui::TreeNode("Optional export"))
+            {
+                if (ImGui::Button("Save Marker Disp"))
+                {
+                    for (int frame=0; frame!=currentLoadedFrames; frame++) {
+                        polyfem::VTUWriter VTUwriter;
+                        VTUwriter.write_mesh(analysisInputPath + "-frame" + std::to_string(frame) + ".markerDisp.vtu", analysisPara.V[frame], analysisPara.F);
+                    }
+                }
+                if (showTooltip && ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Save marker position (without refinement) to a VTU file.\nThe position has already had global displacement subtracted.");
+                }
+            ImGui::TreePop();
+            }
         }
 
         ImGui::Separator(); /////////////////////////////////////////
