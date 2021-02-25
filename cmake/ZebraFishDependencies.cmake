@@ -72,14 +72,14 @@ if(NOT TARGET LBFGS)
 endif()
 
 # MMG
-zebra_download_mmg()
-option(BUILD_TESTING "Enable/Disable continuous integration" OFF)
-set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
-add_subdirectory(${ZEBRA_EXTERNAL}/mmg)
-add_library(mmg::mmg ALIAS libmmg_a)
-add_library(mmg::mmgs ALIAS libmmgs_a)
-add_library(mmg::mmg2d ALIAS libmmg2d_a)
-add_library(mmg::mmg3d ALIAS libmmg3d_a)
+#zebra_download_mmg()
+#option(BUILD_TESTING "Enable/Disable continuous integration" OFF)
+#set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+#add_subdirectory(${ZEBRA_EXTERNAL}/mmg)
+#add_library(mmg::mmg ALIAS libmmg_a)
+#add_library(mmg::mmgs ALIAS libmmgs_a)
+#add_library(mmg::mmg2d ALIAS libmmg2d_a)
+#add_library(mmg::mmg3d ALIAS libmmg3d_a)
 
 
 if(NOT TARGET tbb_static)

@@ -1,8 +1,8 @@
 set(SOURCES
-    remesh_adaptive.h
-    remesh_adaptive.cpp
-    MeshUtils.h
-    MeshUtils.cpp
+    #remesh_adaptive.h
+    #remesh_adaptive.cpp
+    #MeshUtils.h
+    #MeshUtils.cpp
     zebra-analysis.hpp
     zebra-analysis.cpp
 )
