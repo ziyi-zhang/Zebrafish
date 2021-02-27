@@ -177,7 +177,7 @@ private:
     bool showBackgroundImage;
     bool showTooltip;
     float lineWidth;
-    bool reverseColor;
+    bool invertColor;
     bool preLoadAllFrames;
 
     //////////////////////////////////////////////////

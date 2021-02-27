@@ -1082,7 +1082,7 @@ namespace zebrafish
                                           grad.setZero();
                                           return 1.0;
                                       }
-                                      cylinder::EvaluateCylinder(bsplineArray[prevFrameIdx + 1], DScalar(0, x(0)), DScalar(1, x(1)), markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2), DScalar(2, x(2)), cylinder::H, ans, reverseColor);
+                                      cylinder::EvaluateCylinder(bsplineArray[prevFrameIdx + 1], DScalar(0, x(0)), DScalar(1, x(1)), markerArray[prevFrameIdx].loc(ii, 2) + opticalFlowCorrection[prevFrameIdx](ii, 2), DScalar(2, x(2)), cylinder::H, ans, invertColor);
                                       grad.resize(3, 1);
                                       grad = ans.getGradient();
                                       return ans.getValue();

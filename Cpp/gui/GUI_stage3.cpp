@@ -97,7 +97,7 @@ void GUI::DrawStage3() {
                 ImGui::SetTooltip("The following array of radii will be searched\n[R_min R_min+R_gap R_min+2*R_gap ... R_max]");
             }
 
-            ImGui::Checkbox("Reverse color", &reverseColor);
+            ImGui::Checkbox("Reverse color", &invertColor);
             if (showTooltip && ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("By default the markers should have darker color. If checked, the program will search for light color markers.");
             }
@@ -234,7 +234,7 @@ void GUI::GridSearch() {
         [this/*.bsplineArray[0], .gridSampleInput, .gridSampleOutput*/](const tbb::blocked_range<int> &r) {
 
             for (int ii = r.begin(); ii != r.end(); ++ii) {
-                cylinder::EvaluateCylinder(bsplineArray[0], gridSampleInput(ii, 0), gridSampleInput(ii, 1), gridSampleInput(ii, 2), gridSampleInput(ii, 3), cylinder::H, gridSampleOutput(ii), reverseColor);
+                cylinder::EvaluateCylinder(bsplineArray[0], gridSampleInput(ii, 0), gridSampleInput(ii, 1), gridSampleInput(ii, 2), gridSampleInput(ii, 3), cylinder::H, gridSampleOutput(ii), invertColor);
             }
         });
     logger().info("<<<<<<<<<< After grid search <<<<<<<<<<");

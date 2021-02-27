@@ -1157,7 +1157,7 @@ namespace zebrafish
         showBackgroundImage = true;
         showTooltip = true;
         lineWidth = 4.0;
-        reverseColor = false;
+        invertColor = false;
         preLoadAllFrames = false;
 
         // image (imageData)
