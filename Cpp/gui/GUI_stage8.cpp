@@ -762,6 +762,7 @@ namespace zebrafish
                 {
                     for (int frame=0; frame!=currentLoadedFrames; frame++) {
                         polyfem::VTUWriter VTUwriter;
+                        VTUwriter.add_field("displacement", analysisPara.V[frame] - analysisPara.V[0]);
                         VTUwriter.write_mesh(analysisInputPath + "-frame" + std::to_string(frame) + ".markerDisp.vtu", analysisPara.V[frame], analysisPara.F);
                     }
                 }
