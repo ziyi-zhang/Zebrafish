@@ -397,9 +397,9 @@ namespace zebrafish
                     mises_res = mises_v;
                     suffix = "_below";
                 } else if (aboveCage && belowCage) {
-                    traction_force_res = (traction_force_v_flip - traction_force_v).array() / 2.0;
-                    stress_res = (stress_v_flip - stress_v).array() / 2.0;
-                    mises_res = (mises_v_flip - mises_v).array() / 2.0;
+                    traction_force_res = (traction_force_v_flip + traction_force_v).array() / 2.0;
+                    stress_res = (stress_v_flip + stress_v).array() / 2.0;
+                    mises_res = (mises_v_flip + mises_v).array() / 2.0;
                     suffix = "_avg";
                 } else {
                     std::cerr << "neither aboveCage or belowCage? impossible!" << std::endl;
