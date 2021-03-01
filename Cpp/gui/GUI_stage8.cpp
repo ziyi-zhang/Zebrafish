@@ -622,6 +622,23 @@ namespace zebrafish
                 ImGui::TreePop();
             }
 
+            //////////////////////////////////////////////////////////////////////////////////
+
+            static int analysisFrameBegin = 0;
+            static int analysisFrameEnd = currentLoadedFrames-1;
+            if (!analysisInputPath.empty()) {
+                ImGui::SliderInt("Start Frame", &analysisFrameBegin, 1, analysisFrameEnd);
+                if (showTooltip && ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Analysis starts from this frame.\nFrame 0 is the reference frame.");
+                }
+                ImGui::SliderInt("End Frame", &analysisFrameEnd, analysisFrameBegin, currentLoadedFrames-1);
+                if (showTooltip && ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Analysis ends at this frame.\nFrame 0 is the reference frame.");
+                }
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////
+
             static std::string runAnalysisStr = "";
             if (ImGui::Button("Run analysis"))
             {
@@ -655,7 +672,8 @@ namespace zebrafish
                                 analysisPara.markerRCMap,
                                 imgRows, imgCols, layerPerImg,
                                 resolutionX, resolutionY, resolutionZ,
-                                false, aboveCage, belowCage);
+                                false, aboveCage, belowCage, 
+                                analysisFrameBegin, analysisFrameEnd);
                         } else {
                             runAnalysisStr = "No cage";
                         }
