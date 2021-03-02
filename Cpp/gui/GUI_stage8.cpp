@@ -624,7 +624,7 @@ namespace zebrafish
 
             //////////////////////////////////////////////////////////////////////////////////
 
-            static int analysisFrameBegin = 0;
+            static int analysisFrameBegin = 1;
             static int analysisFrameEnd = currentLoadedFrames-1;
             if (!analysisInputPath.empty()) {
                 ImGui::SliderInt("Start Frame", &analysisFrameBegin, 1, analysisFrameEnd);

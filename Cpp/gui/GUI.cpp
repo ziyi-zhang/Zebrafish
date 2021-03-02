@@ -861,7 +861,7 @@ namespace zebrafish
             first_reach_here = false;
         }
 
-        if (!ImGui::Begin("Property Editor", &show_3DImage_viewer))
+        if (!ImGui::Begin("Property Editor", &show_property_editor))
         {
             ImGui::End();
             return;
@@ -875,8 +875,7 @@ namespace zebrafish
         ImGui::Separator();
         ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
-        switch (propertyListType)
-        {
+        switch (propertyListType) {
         case 0:
             // Grid Search & Optimization
             if (pointRecord.num == 0)
