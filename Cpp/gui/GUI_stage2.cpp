@@ -2,6 +2,7 @@
 #include <zebrafish/Bspline.h>
 #include <zebrafish/Logger.hpp>
 #include <zebrafish/Quantile.h>
+#include <zebrafish/TiffReader.h>
 
 
 namespace zebrafish {
@@ -138,6 +139,31 @@ void GUI::DrawStage2() {
         ImGui::SameLine();
         ImGui::Text("%s", bsplineStr.c_str());
     }
+
+    /*
+    if (ImGui::Button("Interp Img")) {
+        std::vector<Eigen::MatrixXd> img;
+        Eigen::VectorXd xArray = Eigen::VectorXd::LinSpaced(50, 1, 50);
+        Eigen::VectorXd yArray = Eigen::VectorXd::LinSpaced(50, 1, 50);
+        Eigen::VectorXd zArray = Eigen::VectorXd::LinSpaced(10, 30, 39);
+
+        const auto InterpImage = [&xArray, &yArray, &zArray, this, &img]() {
+            img.clear();
+            for (int iz=0; iz<zArray.size(); iz++) {
+                Eigen::MatrixXd slice(xArray.size(), yArray.size());
+                for (int ix=0; ix<xArray.size(); ix++)
+                    for (int iy=0; iy<yArray.size(); iy++) {
+                        slice(ix, iy) = bsplineArray[0].Interp3D(xArray(ix), yArray(iy), zArray(iz));
+                    }
+                img.push_back(slice);
+            }
+        };
+
+        InterpImage();
+        WriteTif("/Users/ziyizhang/Projects/tmp/interp_zebra.tif", img, 0, img.size()-1);
+        logger().info("Interp image saved to interp_zebra.tif");
+    }
+    */
 
     ImGui::Separator(); /////////////////////////////////////////
 
