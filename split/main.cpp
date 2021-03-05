@@ -9,7 +9,7 @@ using namespace zebrafish;
 
 int main(int argc, char const *argv[])
 {
-    const std::string path = "/Users/teseo/Downloads/C2-em3_13nov2020-3.tif";
+    const std::string path = argv[1];
 
     int layerPerImg, channelPerSlice, ttlFrames;
     bool ok = GetDescription(path, layerPerImg, channelPerSlice, ttlFrames);
