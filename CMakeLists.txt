@@ -270,3 +270,7 @@ if(ZEBRA_ANALYSIS_RUNNABLE)
   target_link_libraries(ZebraFish-Analysis_bin PUBLIC ZebraFish-Analysis)
   target_link_libraries(ZebraFish-Analysis_bin PUBLIC CLI11::CLI11)
 endif()
+
+
+add_executable(Zebra-Split split/main.cpp Cpp/utils/TiffReader.cpp)
+target_link_libraries(Zebra-Split PUBLIC ${PROJECT_NAME})
