@@ -143,9 +143,10 @@ void GUI::DrawStage2() {
     /*
     if (ImGui::Button("Interp Img")) {
         std::vector<Eigen::MatrixXd> img;
-        Eigen::VectorXd xArray = Eigen::VectorXd::LinSpaced(50, 1, 50);
-        Eigen::VectorXd yArray = Eigen::VectorXd::LinSpaced(50, 1, 50);
-        Eigen::VectorXd zArray = Eigen::VectorXd::LinSpaced(10, 30, 39);
+        Eigen::VectorXd xArray = Eigen::VectorXd::LinSpaced(imgRows-4, 2, imgRows-3);
+        Eigen::VectorXd yArray = Eigen::VectorXd::LinSpaced(imgCols-4, 2, imgCols-3);
+        // Eigen::VectorXd zArray = Eigen::VectorXd::LinSpaced(layerPerImg-4, layerBegin+2, layerEnd-2);
+        Eigen::VectorXd zArray = Eigen::VectorXd::LinSpaced(1, 4, 4);
 
         const auto InterpImage = [&xArray, &yArray, &zArray, this, &img]() {
             img.clear();
@@ -160,8 +161,9 @@ void GUI::DrawStage2() {
         };
 
         InterpImage();
-        WriteTif("/Users/ziyizhang/Projects/tmp/interp_zebra.tif", img, 0, img.size()-1);
-        logger().info("Interp image saved to interp_zebra.tif");
+        std::string outName = "/Users/ziyizhang/Projects/tmp/interp_zebra-" + std::to_string(bsp_xratio) + "-" + std::to_string(bsp_yratio) + ".tif";
+        WriteTif(outName, img, 0, img.size()-1);
+        logger().info("Interp image saved to {}", outName);
     }
     */
 

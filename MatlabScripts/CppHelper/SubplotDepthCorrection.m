@@ -45,24 +45,24 @@ function [] = SubplotDepthCorrection(mat)
     end
     sgtitle("Energy for markers optimized with different depths", 'FontSize', 15);
     
-    figure
-    N = size(mat, 1);
-    rows = floor(sqrt(N)*3/4);
-    cols = ceil(N / rows);
-    [ha, ~] = tight_subplot(rows, cols);
-    for i = 1:N
-        axes(ha(i));
-        
-        ttt = conv(newMat2(i, :), [-1, 2, -1], 'valid');
-        plot(2:size(newMat2, 2)-1, ttt);
-        ylimVec = [-6e-3, 6e-3];
-        ylim(ylimVec);
-        hold on
-        % two vertical lines
-        plot([minIdxLeft(i), minIdxLeft(i)], ylimVec, '--', 'Color', [0.9 0.1 0.1])
-        plot([minIdxRight(i), minIdxRight(i)], ylimVec, '--', 'Color', [0.9 0.1 0.1])
-    end
-    sgtitle("2nd Energy for markers optimized with different depths", 'FontSize', 15);
+%     figure
+%     N = size(mat, 1);
+%     rows = floor(sqrt(N)*3/4);
+%     cols = ceil(N / rows);
+%     [ha, ~] = tight_subplot(rows, cols);
+%     for i = 1:N
+%         axes(ha(i));
+%         
+%         ttt = conv(newMat2(i, :), [-1, 2, -1], 'valid');
+%         plot(2:size(newMat2, 2)-1, ttt);
+%         ylimVec = [-6e-3, 6e-3];
+%         ylim(ylimVec);
+%         hold on
+%         % two vertical lines
+%         plot([minIdxLeft(i), minIdxLeft(i)], ylimVec, '--', 'Color', [0.9 0.1 0.1])
+%         plot([minIdxRight(i), minIdxRight(i)], ylimVec, '--', 'Color', [0.9 0.1 0.1])
+%     end
+%     sgtitle("2nd Energy for markers optimized with different depths", 'FontSize', 15);
     %
 end
 
