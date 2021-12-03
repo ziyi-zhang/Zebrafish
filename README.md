@@ -5,10 +5,9 @@
 
   <h1 align="center"><a href="https://bnicolet.com/publications/Nicolet2021Large.html">Zebrafish Traction Force Microscopy</a></h1>
 
-  <!-- <a 
-    <img src="https://bnicolet.com/publications/images/Nicolet2021Large-teaser.jpg" alt="Logo" width="100%">
-  </a> -->
-  ![paraview visualization](resources/paraview-marker.pdf)
+  <a 
+    <img src="https://github.com/ziyi-zhang/Zebrafish/blob/master/resources/paraview-marker.jpg" alt="paraview-visualization" width="100%">
+  </a>
 
   <p align="center">
     Publish info, date.
@@ -29,7 +28,7 @@
 <br />
 <br />
 
-This repository contains a sample implementation of our algorithm to compute traction stresses.
+This repository contains a sample implementation of our algorithm to compute traction stresses. Please refer to the technical supplemental material for the detailed description and pseudo-code of our algorithm.
 
 ### Installing
 
@@ -49,6 +48,7 @@ This implementation mainly relies on the following code bases or tools. CMake sh
 - TinyTIFF: TIFF image format support
 - Hypre: linear system solver
 - LBFGS++: optimization implementation
+- tbb: cross-platform parallel computing support
 
 ## Repository structure
 
