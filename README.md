@@ -30,6 +30,8 @@
 
 This repository contains a sample implementation of our algorithm to compute traction stresses. Please refer to the technical supplemental material for the detailed description and pseudo-code of our algorithm.
 
+TODO: video here showing tracking
+
 ### Installing
 
 ```bash
