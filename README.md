@@ -41,7 +41,7 @@ cmake ..
 make -j
 ```
 
-The compilation is tested with Clang-12.
+The executables under the `resources` folder are compiled with Clang12 under both MacOS High Sierra and Ubuntu 2004.
 ## Dependencies
 
 This implementation mainly relies on the following code bases or tools. CMake should automatically download all external dependencies.
