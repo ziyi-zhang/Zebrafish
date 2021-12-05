@@ -3,7 +3,7 @@
 <br />
 <p align="center">
 
-  <h1 align="center"><a href="https://bnicolet.com/publications/Nicolet2021Large.html">Zebrafish Traction Force Microscopy</a></h1>
+  <h1 align="center"><a href="...">Zebrafish: 3D Traction Force Microscopy</a></h1>
 
   <a>
     <img src="https://github.com/ziyi-zhang/Zebrafish/blob/master/resources/paraview-marker.jpg" alt="paraview-visualization" width="100%">
@@ -64,9 +64,3 @@ The `MatlabScripts` folder contains the development and test code in MATLAB.
 The `Analysis` folder contains the post-analysis code. It takes the displacement as input and computes the desired forces or stresses.
 
 The `tests` folder contains the unit test of essential components.
-
-## License
-
-
-
-## Citation
