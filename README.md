@@ -5,7 +5,7 @@
 
   <h1 align="center"><a href="https://bnicolet.com/publications/Nicolet2021Large.html">Zebrafish Traction Force Microscopy</a></h1>
 
-  <a 
+  <a>
     <img src="https://github.com/ziyi-zhang/Zebrafish/blob/master/resources/paraview-marker.jpg" alt="paraview-visualization" width="100%">
   </a>
 
@@ -30,7 +30,7 @@
 
 This repository contains a sample implementation of our algorithm to compute traction stresses. Please refer to the technical supplemental material for the detailed description and pseudo-code of our algorithm.
 
-TODO: video here showing tracking
+![GUI](./resources/App.png)
 
 ### Installing
 
