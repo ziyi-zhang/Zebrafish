@@ -10,11 +10,11 @@
   </a>
 
   <p align="center">
-    Publish info, date.
+    Nature Cell Biology, 2022.
   </p>
 
   <p align="center">
-    <a href='...'>
+    <a href='https://www.nature.com/articles/s41556-022-00844-9'>
       <img src='https://img.shields.io/badge/Paper-PDF-red?style=flat-square' alt='Paper PDF'>
     </a>
   </p>
