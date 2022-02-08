@@ -163,7 +163,7 @@ if(ZEBRA_TOPLEVEL_PROJECT)
 
     set_target_properties(${PROJECT_NAME}_gui PROPERTIES MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0")
     set_target_properties(${PROJECT_NAME}_gui PROPERTIES MACOSX_BUNDLE_BUNDLE_VERSION "1.0.0")
-    # set_target_properties(${PROJECT_NAME}_gui PROPERTIES MACOSX_BUNDLE_COPYRIGHT "© 2020, ZebraFish")
+    set_target_properties(${PROJECT_NAME}_gui PROPERTIES MACOSX_BUNDLE_COPYRIGHT "© 2022, ZebraFish")
 
 
     # set_target_properties(${PROJECT_NAME}_gui PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/resources/MacOSXBundleInfo.plist.in)
