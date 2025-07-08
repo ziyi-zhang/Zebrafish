@@ -14,6 +14,9 @@ include(ZebraFishDownloadExternal)
 # Required libraries
 ################################################################################
 
+zebra_download_geogram()
+add_subdirectory(${ZEBRA_EXTERNAL}/geogram)
+
 #Polyfem
 zebra_download_polyfem()
 add_subdirectory(${ZEBRA_EXTERNAL}/polyfem)

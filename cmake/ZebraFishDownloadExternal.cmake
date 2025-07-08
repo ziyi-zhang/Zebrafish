@@ -97,6 +97,14 @@ function(zebra_download_tbb)
 endfunction()
 
 ## Polyfem MIT
+function(zebra_download_geogram)
+    zebra_download_project(geogram
+        GIT_REPOSITORY https://github.com/polyfem/geogram
+        GIT_TAG        c790c30daf05839fb4d64b83f2e1fababdf17622
+    )
+endfunction()
+
+## Polyfem MIT
 function(zebra_download_polyfem)
     zebra_download_project(polyfem
         GIT_REPOSITORY https://github.com/polyfem/polyfem.git

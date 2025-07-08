@@ -41,7 +41,7 @@ option(POLYSOLVE_WITH_SUPERLU          "Enable SuperLU library"            OFF)
 option(POLYSOLVE_WITH_MKL              "Enable MKL library"                OFF)
 option(POLYSOLVE_WITH_PARDISO          "Enable Pardiso library"            OFF)
 option(POLYSOLVE_WITH_HYPRE            "Enable hypre"                      ON)
-option(POLYSOLVE_WITH_AMGCL            "Use AMGCL"                         ON)
+option(POLYSOLVE_WITH_AMGCL            "Use AMGCL"                         OFF)
 option(POLYSOLVE_WITH_SPECTRA          "Enable computing spectrum"         OFF)
 
 
@@ -138,7 +138,7 @@ if(ZEBRA_TOPLEVEL_PROJECT)
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC ${PROJECT_NAME})
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC CLI11::CLI11)
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC igl::opengl igl::opengl_glfw igl::opengl_glfw_imgui)
-  target_link_libraries(${PROJECT_NAME}_gui PUBLIC polyfem igl::tetgen)
+  target_link_libraries(${PROJECT_NAME}_gui PUBLIC geogram polyfem igl::tetgen)
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC highfive)
   # target_link_libraries(${PROJECT_NAME}_gui PUBLIC mmg::mmg)
 
