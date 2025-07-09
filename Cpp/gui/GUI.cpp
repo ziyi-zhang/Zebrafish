@@ -546,8 +546,7 @@ void GUI::DrawMenuFile() {
   ImGui::MenuItem("New", NULL, false, false);
   if (ImGui::MenuItem("Load")) {
     // Only accept tif/tiff files
-    std::string filename =
-        FileDialog::openFileName("./.*", {"*.tif", "*.tiff"});
+    std::string filename = FileDialog::openFileName("", {"*.tif", "*.tiff"});
     if (!filename.empty()) {
       imagePath = filename;
       LoadPreviewImage(imagePath);
