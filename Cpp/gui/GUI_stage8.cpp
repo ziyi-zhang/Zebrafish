@@ -1286,8 +1286,8 @@ bool GUI::SaveImageToTIFF(bool saveMarkerImage, bool saveCellImage,
     std::vector<bool> channelVec(channelPerSlice, false);
     channelVec[cellChannel] = true;
     // Read all desired frame to "imgData"
-    ReadTif(imagePath, layerPerImg, channelVec, desiredFrames, cellImgData,
-            imageCrop.r0, imageCrop.c0, imageCrop.r1, imageCrop.c1);
+    ReadImage(imagePath, layerPerImg, channelVec, desiredFrames, cellImgData,
+              imageCrop.r0, imageCrop.c0, imageCrop.r1, imageCrop.c1);
   }
 
   for (int i = 0; i < currentLoadedFrames; i++) {

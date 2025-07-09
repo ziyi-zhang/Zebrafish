@@ -4,6 +4,7 @@
 
 #include <highfive/H5Easy.hpp>
 
+#include <filesystem>
 #include <iostream>
 #include <regex>
 #include <string>
@@ -48,8 +49,8 @@ bool read_mem_to_eigen(TinyTIFFReaderFile *tiffr, T *image,
 
 ////////////////////////////////////////////////////////////
 
-bool GetDescription(const std::string &path, int &layerPerImg, int &numChannel,
-                    int &ttlFrames) {
+bool GetTifDescription(const std::string &path, int &layerPerImg,
+                       int &numChannel, int &ttlFrames) {
 
   TinyTIFFReaderFile *tiffr = NULL;
   tiffr = TinyTIFFReader_open(path.c_str());
@@ -112,26 +113,6 @@ bool GetDescription(const std::string &path, int &layerPerImg, int &numChannel,
   }
 
   return false;
-}
-
-bool ReadTifFirstFrame(const std::string &path, const int layerPerImg,
-                       const int numChannel, image_t &img, int r0, int c0,
-                       int r1, int c1, int channelToLoad) {
-  /// This function only reads one channel from the first frame 3D image
-
-  std::vector<bool> channelVec(numChannel, false);
-  assert(channelToLoad < numChannel);
-  channelVec[channelToLoad] = true;
-
-  imageData_t imgData_;
-  bool ok;
-
-  ok = ReadTif(path, layerPerImg, channelVec, 1, imgData_, r0, c0, r1, c1);
-
-  logger().info(" exiting ReadTifFirstFrame() with status {}", ok);
-  if (ok)
-    img = imgData_[0];
-  return ok;
 }
 
 bool ReadTif(const std::string &path, const int layerPerImg,
@@ -254,6 +235,26 @@ bool ReadTif(const std::string &path, const int layerPerImg,
   return ok;
 }
 
+bool ReadTifFirstFrame(const std::string &path, const int layerPerImg,
+                       const int numChannel, image_t &img, int r0, int c0,
+                       int r1, int c1, int channelToLoad) {
+  /// This function only reads one channel from the first frame 3D image
+
+  std::vector<bool> channelVec(numChannel, false);
+  assert(channelToLoad < numChannel);
+  channelVec[channelToLoad] = true;
+
+  imageData_t imgData_;
+  bool ok;
+
+  ok = ReadTif(path, layerPerImg, channelVec, 1, imgData_, r0, c0, r1, c1);
+
+  logger().info(" exiting ReadTifFirstFrame() with status {}", ok);
+  if (ok)
+    img = imgData_[0];
+  return ok;
+}
+
 bool WriteTif(const std::string &path, const image_t &image, int sliceBegin,
               int sliceEnd) {
 
@@ -359,7 +360,7 @@ bool ReadHDF5FirstFrame(const std::string &path, const int layerPerImg,
   std::vector<std::vector<std::vector<int>>> data;
   dset.read(data);
 
-  img.resize(data.size());
+  img.reserve(data.size());
   for (const auto &slice : data) {
     Eigen::MatrixXd sliceMat(slice.size(), slice[0].size());
     for (size_t r = 0; r < slice.size(); ++r) {
@@ -393,6 +394,45 @@ bool ReadHDF5(const std::string &path, const int layerPerImg,
   throw std::runtime_error(
       "ReadHDF5 is not implemented yet. Please use ReadHDF5FirstFrame");
   return false;
+}
+
+bool isHdf5(const std::string &path) {
+  // Check if the file has a .hdf5 or .h5 extension
+  const auto ext = std::filesystem::path(path).extension().string();
+  return (ext == ".hdf5" || ext == ".h5");
+}
+
+bool GetImageDescription(const std::string &path, int &layerPerImg,
+                         int &numChannel, int &ttlFrames) {
+  if (isHdf5(path)) {
+    return GetDescriptionHDF5(path, layerPerImg, numChannel, ttlFrames);
+  } else {
+    return GetTifDescription(path, layerPerImg, numChannel, ttlFrames);
+  }
+}
+
+bool ReadImageFirstFrame(const std::string &path, const int layerPerImg,
+                         const int numChannel, image_t &img, int r0, int c0,
+                         int r1, int c1, int channelToLoad) {
+  if (isHdf5(path)) {
+    return ReadHDF5FirstFrame(path, layerPerImg, numChannel, img, r0, c0, r1,
+                              c1, channelToLoad);
+  } else {
+    return ReadTifFirstFrame(path, layerPerImg, numChannel, img, r0, c0, r1, c1,
+                             channelToLoad);
+  }
+}
+
+bool ReadImage(const std::string &path, const int layerPerImg,
+               const std::vector<bool> &channelVec, const int targetNumImg,
+               imageData_t &imgData, int r0, int c0, int r1, int c1) {
+  if (isHdf5(path)) {
+    return ReadHDF5(path, layerPerImg, channelVec, targetNumImg, imgData, r0,
+                    c0, r1, c1);
+  } else {
+    return ReadTif(path, layerPerImg, channelVec, targetNumImg, imgData, r0, c0,
+                   r1, c1);
+  }
 }
 
 } // namespace zebrafish

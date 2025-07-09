@@ -1027,50 +1027,23 @@ void GUI::NormalizeImage(image_t &image, double thres) {
 }
 
 void GUI::LoadPreviewImage(std::string path) {
-  const auto ext = std::filesystem::path(path).extension().string();
-  if (ext != ".hdf5" || ext != ".h5") {
-    GetDescriptionHDF5(path, layerPerImg, channelPerSlice, ttlFrames);
-    if (ReadHDF5FirstFrame(path, layerPerImg, channelPerSlice, imgData[0])) {
-
-      imgRows = imgData[0][0].rows();
-      imgCols = imgData[0][0].cols();
-      currentLoadedFrames = 1;
-      // In case the tiff image is very small
-      layerPerImg = imgData[0].size();
-      layerEnd = layerPerImg - 1;
-
-      previewQuantileBrightness = QuantileImage(imgData[0], 0.995, 0, layerEnd);
-      // we are modifying the image directly because the user must click "Apply"
-      // to proceed which will re-load the image
-      NormalizeImage(imgData[0], previewQuantileBrightness);
-    } else {
-      logger().error("Error open hdf5 image");
-      std::cerr << "Error open hdf5 image" << std::endl;
-    }
-
-  } else {
-    GetDescription(path, layerPerImg, channelPerSlice, ttlFrames);
-    if (ReadTifFirstFrame(path, layerPerImg, channelPerSlice, imgData[0])) {
-
-      imgRows = imgData[0][0].rows();
-      imgCols = imgData[0][0].cols();
-      currentLoadedFrames = 1;
-      // In case the tiff image is very small
-      layerPerImg = imgData[0].size();
-      layerEnd = layerPerImg - 1;
-
-      previewQuantileBrightness = QuantileImage(imgData[0], 0.995, 0, layerEnd);
-      // we are modifying the image directly because the user must click "Apply"
-      // to proceed which will re-load the image
-      NormalizeImage(imgData[0], previewQuantileBrightness);
-    } else {
-      logger().error("Error open tiff image");
-      std::cerr << "Error open tiff image" << std::endl;
-    }
+  GetImageDescription(path, layerPerImg, channelPerSlice, ttlFrames);
+  if (!ReadImageFirstFrame(path, layerPerImg, channelPerSlice, imgData[0])) {
+    logger().error("Error open image");
+    std::cerr << "Error open image" << std::endl;
   }
 
-  std::cout << layerPerImg << " layers, " << channelPerSlice << " channels, "
-            << ttlFrames << " frames." << std::endl;
+  imgRows = imgData[0][0].rows();
+  imgCols = imgData[0][0].cols();
+  currentLoadedFrames = 1;
+  // In case the tiff image is very small
+  layerPerImg = imgData[0].size();
+  layerEnd = layerPerImg - 1;
+
+  previewQuantileBrightness = QuantileImage(imgData[0], 0.995, 0, layerEnd);
+  // we are modifying the image directly because the user must click "Apply"
+  // to proceed which will re-load the image
+  NormalizeImage(imgData[0], previewQuantileBrightness);
 }
 
 void GUI::StateChangeReset() { MarkerDragReset(); }
