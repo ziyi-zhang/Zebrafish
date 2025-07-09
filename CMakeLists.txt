@@ -45,12 +45,6 @@ option(POLYSOLVE_WITH_AMGCL            "Use AMGCL"                         OFF)
 option(POLYSOLVE_WITH_SPECTRA          "Enable computing spectrum"         OFF)
 
 
-# option(POLYFEM_NO_UI "" ON)
-option(POLYFEM_WITH_APPS "" OFF)
-# option(POLYFEM_WITH_MISC "" OFF)
-option(POLYFEM_WITH_AMGCL "" OFF)
-
-
 option(ZEBRA_ANALYSIS_RUNNABLE         "Compile main analysis"             ON)
 
 
@@ -81,7 +75,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE warnings::all)
 target_link_libraries(${PROJECT_NAME} PUBLIC TinyTiff)
 
 #Polysolve
-target_link_libraries(${PROJECT_NAME} PUBLIC polysolve)
+target_link_libraries(${PROJECT_NAME} PUBLIC  polysolve::polysolve)
 
 #spdlog
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog::spdlog)
@@ -136,9 +130,10 @@ if(ZEBRA_TOPLEVEL_PROJECT)
   zebra_copy_headers(Cpp/gui/GUI.h Cpp/gui/FileDialog.h)
 
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC ${PROJECT_NAME})
+  target_link_libraries(${PROJECT_NAME}_gui PUBLIC polysolve::polysolve)
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC CLI11::CLI11)
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC igl::opengl igl::opengl_glfw igl::opengl_glfw_imgui)
-  target_link_libraries(${PROJECT_NAME}_gui PUBLIC geogram polyfem igl::tetgen)
+  target_link_libraries(${PROJECT_NAME}_gui PUBLIC geogram igl::tetgen)
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC highfive)
   # target_link_libraries(${PROJECT_NAME}_gui PUBLIC mmg::mmg)
 
@@ -251,7 +246,7 @@ add_subdirectory(analysis)
 
 
 target_link_libraries(ZebraFish-Analysis PRIVATE warnings::all)
-target_link_libraries(ZebraFish-Analysis PUBLIC polyfem igl::tetgen)
+target_link_libraries(ZebraFish-Analysis PUBLIC igl::tetgen)
 target_link_libraries(ZebraFish-Analysis PUBLIC highfive)
 # target_link_libraries(ZebraFish-Analysis PUBLIC mmg::mmg)
 

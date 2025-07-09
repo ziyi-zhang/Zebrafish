@@ -1,13 +1,12 @@
-#include <zebrafish/Cylinder.h>
-#include <zebrafish/Common.h>
 #include <zebrafish/Bspline.h>
+#include <zebrafish/Common.h>
+#include <zebrafish/Cylinder.h>
 #include <zebrafish/GUI.h>
 #include <zebrafish/Logger.hpp>
 
 #include <igl/unproject_onto_mesh.h>
-#include <vector>
 #include <set>
-
+#include <vector>
 
 namespace zebrafish {
 
@@ -15,984 +14,1060 @@ namespace zebrafish {
 // FIXME: standardize this
 int query(std::vector<int> &a, int i) {
 
-    if (a[i] != i)
-        a[i] = query(a, a[i]);
-    return a[i];
+  if (a[i] != i)
+    a[i] = query(a, a[i]);
+  return a[i];
 }
-
 
 void join(std::vector<int> &a, std::vector<int> &rank, int t1, int t2) {
 
-    int t1_ = query(a, t1);
-    int t2_ = query(a, t2);
-    
-    if (rank[t1_] < rank[t2_])
-        a[t1_] = t2_;
-    else if (rank[t1_] > rank[t2_])
-        a[t2_] = t1_;
-    else {
-        a[t1_] = t2_;
-        rank[t2_]++;
-    }
+  int t1_ = query(a, t1);
+  int t2_ = query(a, t2);
+
+  if (rank[t1_] < rank[t2_])
+    a[t1_] = t2_;
+  else if (rank[t1_] > rank[t2_])
+    a[t2_] = t1_;
+  else {
+    a[t1_] = t2_;
+    rank[t2_]++;
+  }
 }
 
-namespace {
-
-}  // anonymous namespace
+namespace {} // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Stage 5: Filter & Cluster
 
 void GUI::DrawStage5() {
 
-    if (stage4to5Flag) {
+  if (stage4to5Flag) {
 
-        UpdateCylEnergyHist();
-        UpdateCylRadiusHist();
-        UpdateCylIterHist();
-        stage4to5Flag = false;
+    UpdateCylEnergyHist();
+    UpdateCylRadiusHist();
+    UpdateCylIterHist();
+    stage4to5Flag = false;
+  }
+
+  // Visualize filtered cylinder points
+  static int filterPointSize = 5;
+  if (showCylFilterPoints) {
+
+    static float cylinderEnergyThres_cache = -1;
+    static float cylinderRadiusThres_cache = -1;
+    static int cylinderIterThres_cache = -1;
+    static bool cylFilterMembraneCheck_cache = false;
+    static bool membraneMaskCylApply_cache = membraneMaskCylApply;
+
+    if (cylinderEnergyThres != cylinderEnergyThres_cache ||
+        cylinderRadiusThres != cylinderRadiusThres_cache ||
+        cylinderIterThres != cylinderIterThres_cache ||
+        (!grid.skipMembrane) != cylFilterMembraneCheck_cache ||
+        membraneMaskCylApply != membraneMaskCylApply_cache) {
+      // Update the points to visualize when the three thresholds have changed
+
+      CylinderFilter();
+      UpdateCylPointLoc();
+
+      cylinderEnergyThres_cache = cylinderEnergyThres;
+      cylinderRadiusThres_cache = cylinderRadiusThres;
+      cylinderIterThres_cache = cylinderIterThres;
+      cylFilterMembraneCheck_cache = (!grid.skipMembrane);
+      membraneMaskCylApply_cache = membraneMaskCylApply;
     }
 
-    // Visualize filtered cylinder points
-    static int filterPointSize = 5;
-    if (showCylFilterPoints) {
+    viewer.data().point_size = filterPointSize;
+    Eigen::MatrixXd pointColor(1, 3);
+    pointColor << 0.87, 0.33, 0.33;
 
-        static float cylinderEnergyThres_cache = -1;
-        static float cylinderRadiusThres_cache = -1;
-        static int   cylinderIterThres_cache = -1;
-        static bool  cylFilterMembraneCheck_cache = false;
-        static bool  membraneMaskCylApply_cache = membraneMaskCylApply;
+    if (cylPointLoc.rows() > 0) {
+      // show optimized points
+      viewer.data().add_points(cylPointLoc, pointColor);
+    }
+  }
 
-        if (cylinderEnergyThres != cylinderEnergyThres_cache ||
-            cylinderRadiusThres != cylinderRadiusThres_cache ||
-            cylinderIterThres   != cylinderIterThres_cache   ||
-            (!grid.skipMembrane) != cylFilterMembraneCheck_cache || 
-            membraneMaskCylApply != membraneMaskCylApply_cache) {
-            // Update the points to visualize when the three thresholds have changed
+  // Visualize filtered cluster points
+  if (showClusterFilterPoints) {
 
-            CylinderFilter();
-            UpdateCylPointLoc();
+    viewer.data().point_size = filterPointSize;
+    Eigen::MatrixXd pointColor(1, 3);
+    pointColor << 0.99, 0.41, 0.01;
 
-            cylinderEnergyThres_cache = cylinderEnergyThres;
-            cylinderRadiusThres_cache = cylinderRadiusThres;
-            cylinderIterThres_cache   = cylinderIterThres;
-            cylFilterMembraneCheck_cache = (!grid.skipMembrane);
-            membraneMaskCylApply_cache = membraneMaskCylApply;
-        }
+    if (clusterPointLoc.rows() > 0) {
+      // show optimized cluster points
+      viewer.data().add_points(clusterPointLoc, pointColor);
+    }
+  }
 
-        viewer.data().point_size = filterPointSize;
-        Eigen::MatrixXd pointColor(1, 3);
-        pointColor << 0.87, 0.33, 0.33;
+  // Visualize mouse picked cluster
+  if (rejectActive && rejectHit) {
 
-        if (cylPointLoc.rows() > 0) {
-            // show optimized points
-            viewer.data().add_points(
-                cylPointLoc,
-                pointColor
-            );
-        }
+    Eigen::MatrixXd rejectLoc;
+    static const double deltaZ = 0.3;
+    int rejectHitNum = rejectHitIndex.rows();
+    rejectLoc.resize(rejectHitNum, 3);
+    for (int i = 0; i < rejectHitNum; i++) {
+      rejectLoc(i, 0) = clusterRecord.loc(rejectHitIndex(i), 1) + 0.5;
+      rejectLoc(i, 1) =
+          (imgRows - 0.5) - clusterRecord.loc(rejectHitIndex(i), 0);
+      rejectLoc(i, 2) = clusterRecord.loc(rejectHitIndex(i), 2) + deltaZ;
     }
 
-    // Visualize filtered cluster points
-    if (showClusterFilterPoints) {
+    Eigen::MatrixXd pointColor(1, 3);
+    pointColor << 0.0, 1.0, 1.0;
+    viewer.data().add_points(rejectLoc, pointColor);
+  }
 
-        viewer.data().point_size = filterPointSize;
-        Eigen::MatrixXd pointColor(1, 3);
-        pointColor << 0.99, 0.41, 0.01;
+  DrawReferenceDots();
+  DrawReferenceDots();
 
-        if (clusterPointLoc.rows() > 0) {
-            // show optimized cluster points
-            viewer.data().add_points(
-                clusterPointLoc,
-                pointColor
-            );
-        }
-    }
+  ImGui::Separator(); /////////////////////////////////////////
 
-    // Visualize mouse picked cluster
-    if (rejectActive && rejectHit) {
+  // ----------------------------------------------------------
 
-        Eigen::MatrixXd rejectLoc;
-        static const double deltaZ = 0.3;
-        int rejectHitNum = rejectHitIndex.rows();
-        rejectLoc.resize(rejectHitNum, 3);
-        for (int i=0; i<rejectHitNum; i++) {
-            rejectLoc(i, 0) = clusterRecord.loc(rejectHitIndex(i), 1) + 0.5;
-            rejectLoc(i, 1) = (imgRows-0.5) - clusterRecord.loc(rejectHitIndex(i), 0);
-            rejectLoc(i, 2) = clusterRecord.loc(rejectHitIndex(i), 2) + deltaZ;
-        }
+  if (ImGui::CollapsingHeader("Cylinder Filter",
+                              ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        Eigen::MatrixXd pointColor(1, 3);
-        pointColor << 0.0, 1.0, 1.0;
-        viewer.data().add_points(rejectLoc, pointColor);
-    }
+    ImVec2 before, after;
+    float ratio;
+    ImDrawList *drawList = ImGui::GetWindowDrawList();
+    // Histogram of cylinder energy
+    ImGui::Text("Histogram of energy");
 
-    DrawReferenceDots();DrawReferenceDots();
+    const float width = ImGui::GetWindowWidth() * 0.75f - 2;
+    ImGui::PushItemWidth(width + 2);
 
-    ImGui::Separator(); /////////////////////////////////////////
-    
-    // ----------------------------------------------------------
+    before = ImGui::GetCursorScreenPos();
+    ImGui::PlotHistogram("", cylEnergyHist.hist.data(),
+                         cylEnergyHist.hist.size(), 0, NULL, 0,
+                         cylEnergyHist.hist.maxCoeff(), ImVec2(0, 80));
+    after = ImGui::GetCursorScreenPos();
+    after.y -= ImGui::GetStyle().ItemSpacing.y;
 
-    if (ImGui::CollapsingHeader("Cylinder Filter", ImGuiTreeNodeFlags_DefaultOpen)) {
-
-        ImVec2 before, after;
-        float ratio;
-        ImDrawList *drawList = ImGui::GetWindowDrawList();
-        // Histogram of cylinder energy
-        ImGui::Text("Histogram of energy");
-
-        const float width = ImGui::GetWindowWidth() * 0.75f - 2;
-        ImGui::PushItemWidth(width + 2);
-
-        before = ImGui::GetCursorScreenPos();
-        ImGui::PlotHistogram("", cylEnergyHist.hist.data(), cylEnergyHist.hist.size(), 0, NULL, 0, cylEnergyHist.hist.maxCoeff(), ImVec2(0, 80));
-        after = ImGui::GetCursorScreenPos();
-        after.y -= ImGui::GetStyle().ItemSpacing.y;
-
-        ratio = ((cylinderEnergyThres-cylEnergyHist.minValue)/(cylEnergyHist.maxValue-cylEnergyHist.minValue));
-        ratio = std::min(1.0f, std::max(0.0f, ratio));
-        drawList->PushClipRectFullScreen();
-        drawList->AddLine(
-            ImVec2(before.x + width * ratio, before.y), 
-            ImVec2(before.x + width * ratio, after.y), 
-            IM_COL32(50, 205, 50, 255), 
-            2.0f
-        );
-        drawList->PopClipRect();
-        ImGui::PopItemWidth();
-        ImGui::SliderFloat(" ", &cylinderEnergyThres, cylEnergyHist.minValue, cylEnergyHist.maxValue);
-        if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Energy threshold. Cylinders with higher energy will be discarded.");
-        }
-
-        ImGui::Separator(); /////////////////////////////////////////
-
-        // Histogram of cylinder radius
-        ImGui::Text("Histogram of cylinder radius");
-
-        ImGui::PushItemWidth(width + 2);
-
-        before = ImGui::GetCursorScreenPos();
-        ImGui::PlotHistogram("", cylRadiusHist.hist.data(), cylRadiusHist.hist.size(), 0, NULL, 0, cylRadiusHist.hist.maxCoeff(), ImVec2(0, 80));
-        after = ImGui::GetCursorScreenPos();
-        after.y -= ImGui::GetStyle().ItemSpacing.y;
-
-        ratio = ((cylinderRadiusThres-cylRadiusHist.minValue)/(cylRadiusHist.maxValue-cylRadiusHist.minValue));
-        ratio = std::min(1.0f, std::max(0.0f, ratio));
-        drawList->PushClipRectFullScreen();
-        drawList->AddLine(
-            ImVec2(before.x + width * ratio, before.y), 
-            ImVec2(before.x + width * ratio, after.y), 
-            IM_COL32(50, 205, 50, 255), 
-            2.0f
-        );
-        drawList->PopClipRect();
-        ImGui::PopItemWidth();
-        ImGui::SliderFloat("  ", &cylinderRadiusThres, cylRadiusHist.minValue, cylRadiusHist.maxValue, "%.2f pixels");
-        if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Maximum radius. Cylinders with larger radii will be discarded.");
-        }
-        
-        ImGui::Separator(); /////////////////////////////////////////
-
-        if (ImGui::TreeNode("Advanced cylinder filter")) {
-
-            // Histogram of iterations
-            ImGui::Text("Histogram of optimization iterations");
-
-            ImGui::PushItemWidth(width + 2);
-
-            before = ImGui::GetCursorScreenPos();
-            ImGui::PlotHistogram("", cylIterHist.hist.data(), cylIterHist.hist.size(), 0, NULL, 0, cylIterHist.hist.maxCoeff(), ImVec2(0, 80));
-            after = ImGui::GetCursorScreenPos();
-            after.y -= ImGui::GetStyle().ItemSpacing.y;
-
-            ratio = ((cylinderIterThres-cylIterHist.minValue)/(cylIterHist.maxValue-cylIterHist.minValue));
-            ratio = std::min(1.0f, std::max(0.0f, ratio));
-            drawList->PushClipRectFullScreen();
-            drawList->AddLine(
-                ImVec2(before.x + width * ratio, before.y), 
-                ImVec2(before.x + width * ratio, after.y), 
-                IM_COL32(50, 205, 50, 255), 
-                2.0f
-            );
-            drawList->PopClipRect();
-            ImGui::PopItemWidth();
-            ImGui::SliderInt("   ", &cylinderIterThres, 1, optimMaxIt, "%d iterations");
-            if (showTooltip && ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Maximum iteration. Cylinders that failed to converge within the iteration limit will be discarded.");
-            }
-
-            ImGui::Separator(); /////////////////////////////////////////
-
-            ImGui::Checkbox("Skip membrane check", &(grid.skipMembrane));
-            if (showTooltip && ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Whether to force the optimized markers to be in the membrane area");
-            }
-
-            ImGui::Separator(); /////////////////////////////////////////
-            if (membraneMaskLoad) {
-                if (ImGui::Checkbox("Apply mask to cylinders", &membraneMaskCylApply)) {
-                    logger().debug(" <Checkbox> Apply Mask to Cylinders");
-                }
-            }
-
-            ImGui::TreePop();
-            ImGui::Separator();
-        }
+    ratio = ((cylinderEnergyThres - cylEnergyHist.minValue) /
+             (cylEnergyHist.maxValue - cylEnergyHist.minValue));
+    ratio = std::min(1.0f, std::max(0.0f, ratio));
+    drawList->PushClipRectFullScreen();
+    drawList->AddLine(ImVec2(before.x + width * ratio, before.y),
+                      ImVec2(before.x + width * ratio, after.y),
+                      IM_COL32(50, 205, 50, 255), 2.0f);
+    drawList->PopClipRect();
+    ImGui::PopItemWidth();
+    ImGui::SliderFloat(" ", &cylinderEnergyThres, cylEnergyHist.minValue,
+                       cylEnergyHist.maxValue);
+    if (showTooltip && ImGui::IsItemHovered()) {
+      ImGui::SetTooltip(
+          "Energy threshold. Cylinders with higher energy will be discarded.");
     }
 
     ImGui::Separator(); /////////////////////////////////////////
 
-    // ----------------------------------------------------------
+    // Histogram of cylinder radius
+    ImGui::Text("Histogram of cylinder radius");
 
-    if (ImGui::CollapsingHeader("Cluster Filter", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::PushItemWidth(width + 2);
 
-        if (ImGui::TreeNode("Advanced cluster")) {
+    before = ImGui::GetCursorScreenPos();
+    ImGui::PlotHistogram("", cylRadiusHist.hist.data(),
+                         cylRadiusHist.hist.size(), 0, NULL, 0,
+                         cylRadiusHist.hist.maxCoeff(), ImVec2(0, 80));
+    after = ImGui::GetCursorScreenPos();
+    after.y -= ImGui::GetStyle().ItemSpacing.y;
 
-            const float inputWidth = ImGui::GetWindowWidth() / 3.0;
-            ImGui::PushItemWidth(inputWidth);
-            ImGui::InputFloat("Cluster dist thres", &clusterDistThres);
-            ImGui::PopItemWidth();
-
-            ImGui::TreePop();
-            ImGui::Separator();
-        }
-
-        const float inputWidth = ImGui::GetWindowWidth() / 2.0;
-        ImGui::PushItemWidth(inputWidth);
-        if (ImGui::Button("Cluster")) {
-            
-            Cluster();
-            UpdateClusterPointLoc();
-            UpdateClusterSizeHist();
-
-            // apply cluster filter
-            ClusterFilter();
-            UpdateClusterPointLoc();
-            ClusterNearBorderWarn();
-
-            propertyListType = 1;
-            // update visualized points
-            showCylFilterPoints = false;
-            showClusterFilterPoints = true;
-            logger().debug("   <button> Cluster");
-        }
-        ImGui::PopItemWidth();
-        if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Cluster the cylinders into groups.\nNote re-cluster is necessary if cylinder filter has been changed.");
-        }
-        
-        ImGui::Separator(); /////////////////////////////////////////
-
-        // Histogram of cluster size
-        ImVec2 before, after;
-        ImDrawList *drawList = ImGui::GetWindowDrawList();
-        ImGui::Text("Histogram of cluster size in unit area");
-
-        const float width = ImGui::GetWindowWidth() * 0.75f - 2;
-        ImGui::PushItemWidth(width + 2);
-
-        before = ImGui::GetCursorScreenPos();
-        ImGui::PlotHistogram("", clusterSizeHist.hist.data(), clusterSizeHist.hist.size(), 0, NULL, 0, clusterSizeHist.hist.maxCoeff(), ImVec2(0, 80));
-        after = ImGui::GetCursorScreenPos();
-        after.y -= ImGui::GetStyle().ItemSpacing.y;
-
-        float ratio = ((float)(clusterSizeThres-clusterSizeHist.minValue)/(float)(clusterSizeHist.maxValue-clusterSizeHist.minValue));
-        ratio = std::min(1.0f, std::max(0.0f, ratio));
-        drawList->PushClipRectFullScreen();
-        drawList->AddLine(
-            ImVec2(before.x + width * ratio, before.y), 
-            ImVec2(before.x + width * ratio, after.y), 
-            IM_COL32(50, 205, 50, 255), 
-            2.0f
-        );
-        drawList->PopClipRect();
-        ImGui::PopItemWidth();
-        if (ImGui::SliderFloat("    ", &clusterSizeThres, clusterSizeHist.minValue, 4.0)) {
-            ClusterFilter();
-            UpdateClusterPointLoc();
-            ClusterNearBorderWarn();
-        }
-        if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Clusters consisted of fewer cylinders will be discarded.");
-        }
-        if (ImGui::InputFloat("clusterSizeThres", &clusterSizeThres, 0.0, 0.0, "%.2f")) {
-            ClusterFilter();
-            UpdateClusterPointLoc();
-            ClusterNearBorderWarn();
-        }
-        if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("To use a threshold value outside the slider limit");
-        }
-
-        ImGui::Separator(); /////////////////////////////////////////
-
-        // Mouse reject
-        ImGui::Checkbox("[Mouse] reject clusters", &rejectActive);
-        if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Manually reject unwanted clusters.\nClick this checkbox and move the cursor to the image. Selected clusters will be highlighted. Click the mouse to reject them.");
-        }
-
-        if (ImGui::TreeNode("Advanced mouse pick")) {
-
-            const float inputWidth = ImGui::GetWindowWidth() / 3.0;
-            ImGui::PushItemWidth(inputWidth);
-
-            std::vector<std::string> typeName{"Single cluster", "Area clusters"};
-            ImGui::Combo("Reject mode", &rejectMode, typeName);
-            if (showTooltip && ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Single cluster will only reject one nearest cluster at one mouse click.\nArea cluster will reject all adjacent clusters at one mouse click.");
-            }
-            ImGui::InputDouble("Mouse pick radius (squared)", &mousePickDistSquareThres, 0.0, 0.0, "%.2f");
-            if (showTooltip && ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Mouse pick will only highlight and reject clusters within the specified radius.\nNote the input should be the square of the threshold radius. The unit is in pixel squared.");
-            }
-
-            ImGui::PopItemWidth();
-            
-            ImGui::TreePop();
-            // ImGui::Separator();  // end of collapsing header
-        }
-    }  // collapsing header: cluster filter
-
-    ImGui::Separator(); /////////////////////////////////////////
-    ImGui::Separator(); /////////////////////////////////////////
-
-    if (ImGui::TreeNode("Advanced post-cluster")) {
-
-        const float inputWidth = ImGui::GetWindowWidth() / 3.0;
-        ImGui::PushItemWidth(inputWidth);
-
-        // 2nd round cluster
-        ImGui::InputFloat("Finalize cluster dist threshold", &finalizeClusterDistThres);
-        if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Clusters whose xy-plane distance smaller than this threshold will be grouped to calculate the final location of a marker.\nThe unit is in pixels.");
-        }
-        if (ImGui::Button("Finalize cluster locations")) {
-            FinalizeClusterLoc();
-            propertyListType = 2;
-            logger().debug("   <button> Finalize cluster locations");
-        }
-        // depth correction
-        static bool logEnergy = false;
-        ImGui::SliderFloat("DC gap", &depthCorrectionGap, 0, 0.3, "%.3f pixels");
-        if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Depth search gap in pixels");
-        }
-        ImGui::SliderInt("DC trial numbers", &depthCorrectionNum, 0, 50, "%d * gap");
-        if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Depth search trial numbers. A vertical interval of length [2*num+1]x[gap] pixels will be searched to determine whether the depth should be modified.");
-        }
-        ImGui::Checkbox("Second round DC", &secondRoundDepthCorrection);
-        if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Increase depth search precision but time-consuming");
-        }
-        ImGui::Checkbox("Log energy matrix", &logEnergy);
-        if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("[Debug purpose] whether log the energy for all depth trials");
-        }
-        if (ImGui::Button("Depth search")) {
-            // depth correction for the frame that was just updated
-            try {
-                MarkerRecursiveDepthCorrection(0, depthCorrectionNum, depthCorrectionGap, logEnergy, true);
-            } catch (const std::exception &e) {
-                logger().warn("  <button> Depth search: Fatal error. Ignore operation.");
-            }
-        }
-        if (showTooltip && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("[Warning] Do NOT click this button if you have never reached the next stage.");
-        }
-
-        ImGui::PopItemWidth();
-
-        ImGui::TreePop();
-        ImGui::Separator();
+    ratio = ((cylinderRadiusThres - cylRadiusHist.minValue) /
+             (cylRadiusHist.maxValue - cylRadiusHist.minValue));
+    ratio = std::min(1.0f, std::max(0.0f, ratio));
+    drawList->PushClipRectFullScreen();
+    drawList->AddLine(ImVec2(before.x + width * ratio, before.y),
+                      ImVec2(before.x + width * ratio, after.y),
+                      IM_COL32(50, 205, 50, 255), 2.0f);
+    drawList->PopClipRect();
+    ImGui::PopItemWidth();
+    ImGui::SliderFloat("  ", &cylinderRadiusThres, cylRadiusHist.minValue,
+                       cylRadiusHist.maxValue, "%.2f pixels");
+    if (showTooltip && ImGui::IsItemHovered()) {
+      ImGui::SetTooltip(
+          "Maximum radius. Cylinders with larger radii will be discarded.");
     }
 
-    if (ImGui::TreeNode("Advanced visualization  ")) {
+    ImGui::Separator(); /////////////////////////////////////////
 
-        const float inputWidth = ImGui::GetWindowWidth() / 3.0;
-        ImGui::PushItemWidth(inputWidth);
+    if (ImGui::TreeNode("Advanced cylinder filter")) {
 
-        ImGui::Checkbox("Show cylinder filtered locations", &showCylFilterPoints);
-        ImGui::Checkbox("Show cluster filtered locations", &showClusterFilterPoints);
-        ImGui::SliderInt("Point Size", &filterPointSize, 1, 30);
-        
-        ImGui::PopItemWidth();
+      // Histogram of iterations
+      ImGui::Text("Histogram of optimization iterations");
 
-        ImGui::TreePop();
-        ImGui::Separator();
+      ImGui::PushItemWidth(width + 2);
+
+      before = ImGui::GetCursorScreenPos();
+      ImGui::PlotHistogram("", cylIterHist.hist.data(), cylIterHist.hist.size(),
+                           0, NULL, 0, cylIterHist.hist.maxCoeff(),
+                           ImVec2(0, 80));
+      after = ImGui::GetCursorScreenPos();
+      after.y -= ImGui::GetStyle().ItemSpacing.y;
+
+      ratio = ((cylinderIterThres - cylIterHist.minValue) /
+               (cylIterHist.maxValue - cylIterHist.minValue));
+      ratio = std::min(1.0f, std::max(0.0f, ratio));
+      drawList->PushClipRectFullScreen();
+      drawList->AddLine(ImVec2(before.x + width * ratio, before.y),
+                        ImVec2(before.x + width * ratio, after.y),
+                        IM_COL32(50, 205, 50, 255), 2.0f);
+      drawList->PopClipRect();
+      ImGui::PopItemWidth();
+      ImGui::SliderInt("   ", &cylinderIterThres, 1, optimMaxIt,
+                       "%d iterations");
+      if (showTooltip && ImGui::IsItemHovered()) {
+        ImGui::SetTooltip(
+            "Maximum iteration. Cylinders that failed to converge within the "
+            "iteration limit will be discarded.");
+      }
+
+      ImGui::Separator(); /////////////////////////////////////////
+
+      ImGui::Checkbox("Skip membrane check", &(grid.skipMembrane));
+      if (showTooltip && ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Whether to force the optimized markers to be in the "
+                          "membrane area");
+      }
+
+      ImGui::Separator(); /////////////////////////////////////////
+      if (membraneMaskLoad) {
+        if (ImGui::Checkbox("Apply mask to cylinders", &membraneMaskCylApply)) {
+          logger().debug(" <Checkbox> Apply Mask to Cylinders");
+        }
+      }
+
+      ImGui::TreePop();
+      ImGui::Separator();
     }
+  }
+
+  ImGui::Separator(); /////////////////////////////////////////
+
+  // ----------------------------------------------------------
+
+  if (ImGui::CollapsingHeader("Cluster Filter",
+                              ImGuiTreeNodeFlags_DefaultOpen)) {
+
+    if (ImGui::TreeNode("Advanced cluster")) {
+
+      const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+      ImGui::PushItemWidth(inputWidth);
+      ImGui::InputFloat("Cluster dist thres", &clusterDistThres);
+      ImGui::PopItemWidth();
+
+      ImGui::TreePop();
+      ImGui::Separator();
+    }
+
+    const float inputWidth = ImGui::GetWindowWidth() / 2.0;
+    ImGui::PushItemWidth(inputWidth);
+    if (ImGui::Button("Cluster")) {
+
+      Cluster();
+      UpdateClusterPointLoc();
+      UpdateClusterSizeHist();
+
+      // apply cluster filter
+      ClusterFilter();
+      UpdateClusterPointLoc();
+      ClusterNearBorderWarn();
+
+      propertyListType = 1;
+      // update visualized points
+      showCylFilterPoints = false;
+      showClusterFilterPoints = true;
+      logger().debug("   <button> Cluster");
+    }
+    ImGui::PopItemWidth();
+    if (showTooltip && ImGui::IsItemHovered()) {
+      ImGui::SetTooltip("Cluster the cylinders into groups.\nNote re-cluster "
+                        "is necessary if cylinder filter has been changed.");
+    }
+
+    ImGui::Separator(); /////////////////////////////////////////
+
+    // Histogram of cluster size
+    ImVec2 before, after;
+    ImDrawList *drawList = ImGui::GetWindowDrawList();
+    ImGui::Text("Histogram of cluster size in unit area");
+
+    const float width = ImGui::GetWindowWidth() * 0.75f - 2;
+    ImGui::PushItemWidth(width + 2);
+
+    before = ImGui::GetCursorScreenPos();
+    ImGui::PlotHistogram("", clusterSizeHist.hist.data(),
+                         clusterSizeHist.hist.size(), 0, NULL, 0,
+                         clusterSizeHist.hist.maxCoeff(), ImVec2(0, 80));
+    after = ImGui::GetCursorScreenPos();
+    after.y -= ImGui::GetStyle().ItemSpacing.y;
+
+    float ratio =
+        ((float)(clusterSizeThres - clusterSizeHist.minValue) /
+         (float)(clusterSizeHist.maxValue - clusterSizeHist.minValue));
+    ratio = std::min(1.0f, std::max(0.0f, ratio));
+    drawList->PushClipRectFullScreen();
+    drawList->AddLine(ImVec2(before.x + width * ratio, before.y),
+                      ImVec2(before.x + width * ratio, after.y),
+                      IM_COL32(50, 205, 50, 255), 2.0f);
+    drawList->PopClipRect();
+    ImGui::PopItemWidth();
+    if (ImGui::SliderFloat("    ", &clusterSizeThres, clusterSizeHist.minValue,
+                           4.0)) {
+      ClusterFilter();
+      UpdateClusterPointLoc();
+      ClusterNearBorderWarn();
+    }
+    if (showTooltip && ImGui::IsItemHovered()) {
+      ImGui::SetTooltip(
+          "Clusters consisted of fewer cylinders will be discarded.");
+    }
+    if (ImGui::InputFloat("clusterSizeThres", &clusterSizeThres, 0.0, 0.0,
+                          "%.2f")) {
+      ClusterFilter();
+      UpdateClusterPointLoc();
+      ClusterNearBorderWarn();
+    }
+    if (showTooltip && ImGui::IsItemHovered()) {
+      ImGui::SetTooltip("To use a threshold value outside the slider limit");
+    }
+
+    ImGui::Separator(); /////////////////////////////////////////
+
+    // Mouse reject
+    ImGui::Checkbox("[Mouse] reject clusters", &rejectActive);
+    if (showTooltip && ImGui::IsItemHovered()) {
+      ImGui::SetTooltip(
+          "Manually reject unwanted clusters.\nClick this checkbox and move "
+          "the cursor to the image. Selected clusters will be highlighted. "
+          "Click the mouse to reject them.");
+    }
+
+    if (ImGui::TreeNode("Advanced mouse pick")) {
+
+      const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+      ImGui::PushItemWidth(inputWidth);
+
+      std::vector<std::string> typeName{"Single cluster", "Area clusters"};
+      ImGui::Combo("Reject mode", &rejectMode, typeName);
+      if (showTooltip && ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Single cluster will only reject one nearest cluster "
+                          "at one mouse click.\nArea cluster will reject all "
+                          "adjacent clusters at one mouse click.");
+      }
+      ImGui::InputDouble("Mouse pick radius (squared)",
+                         &mousePickDistSquareThres, 0.0, 0.0, "%.2f");
+      if (showTooltip && ImGui::IsItemHovered()) {
+        ImGui::SetTooltip(
+            "Mouse pick will only highlight and reject clusters within the "
+            "specified radius.\nNote the input should be the square of the "
+            "threshold radius. The unit is in pixel squared.");
+      }
+
+      ImGui::PopItemWidth();
+
+      ImGui::TreePop();
+      // ImGui::Separator();  // end of collapsing header
+    }
+  } // collapsing header: cluster filter
+
+  ImGui::Separator(); /////////////////////////////////////////
+  ImGui::Separator(); /////////////////////////////////////////
+
+  if (ImGui::TreeNode("Advanced post-cluster")) {
+
+    const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+    ImGui::PushItemWidth(inputWidth);
+
+    // 2nd round cluster
+    ImGui::InputFloat("Finalize cluster dist threshold",
+                      &finalizeClusterDistThres);
+    if (showTooltip && ImGui::IsItemHovered()) {
+      ImGui::SetTooltip("Clusters whose xy-plane distance smaller than this "
+                        "threshold will be grouped to calculate the final "
+                        "location of a marker.\nThe unit is in pixels.");
+    }
+    if (ImGui::Button("Finalize cluster locations")) {
+      FinalizeClusterLoc();
+      propertyListType = 2;
+      logger().debug("   <button> Finalize cluster locations");
+    }
+    // depth correction
+    static bool logEnergy = false;
+    ImGui::SliderFloat("DC gap", &depthCorrectionGap, 0, 0.3, "%.3f pixels");
+    if (showTooltip && ImGui::IsItemHovered()) {
+      ImGui::SetTooltip("Depth search gap in pixels");
+    }
+    ImGui::SliderInt("DC trial numbers", &depthCorrectionNum, 0, 50,
+                     "%d * gap");
+    if (showTooltip && ImGui::IsItemHovered()) {
+      ImGui::SetTooltip("Depth search trial numbers. A vertical interval of "
+                        "length [2*num+1]x[gap] pixels will be searched to "
+                        "determine whether the depth should be modified.");
+    }
+    ImGui::Checkbox("Second round DC", &secondRoundDepthCorrection);
+    if (showTooltip && ImGui::IsItemHovered()) {
+      ImGui::SetTooltip("Increase depth search precision but time-consuming");
+    }
+    ImGui::Checkbox("Log energy matrix", &logEnergy);
+    if (showTooltip && ImGui::IsItemHovered()) {
+      ImGui::SetTooltip(
+          "[Debug purpose] whether log the energy for all depth trials");
+    }
+    if (ImGui::Button("Depth search")) {
+      // depth correction for the frame that was just updated
+      try {
+        MarkerRecursiveDepthCorrection(0, depthCorrectionNum,
+                                       depthCorrectionGap, logEnergy, true);
+      } catch (const std::exception &e) {
+        logger().warn(
+            "  <button> Depth search: Fatal error. Ignore operation.");
+      }
+    }
+    if (showTooltip && ImGui::IsItemHovered()) {
+      ImGui::SetTooltip("[Warning] Do NOT click this button if you have never "
+                        "reached the next stage.");
+    }
+
+    ImGui::PopItemWidth();
+
+    ImGui::TreePop();
+    ImGui::Separator();
+  }
+
+  if (ImGui::TreeNode("Advanced visualization  ")) {
+
+    const float inputWidth = ImGui::GetWindowWidth() / 3.0;
+    ImGui::PushItemWidth(inputWidth);
+
+    ImGui::Checkbox("Show cylinder filtered locations", &showCylFilterPoints);
+    ImGui::Checkbox("Show cluster filtered locations",
+                    &showClusterFilterPoints);
+    ImGui::SliderInt("Point Size", &filterPointSize, 1, 30);
+
+    ImGui::PopItemWidth();
+
+    ImGui::TreePop();
+    ImGui::Separator();
+  }
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Cylidner Filter
 
 void GUI::CylinderFilter() {
 
-    const int N = pointRecord.num;
+  const int N = pointRecord.num;
 
-    for (int i=0; i<N; i++) {
+  for (int i = 0; i < N; i++) {
 
-        pointRecord.alive(i) = 
-            (pointRecord.optimization(i, 4) < cylinderEnergyThres) &&
-            (pointRecord.optimization(i, 3) < cylinderRadiusThres) &&
-            (pointRecord.optimization(i, 5) < cylinderIterThres);
+    pointRecord.alive(i) =
+        (pointRecord.optimization(i, 4) < cylinderEnergyThres) &&
+        (pointRecord.optimization(i, 3) < cylinderRadiusThres) &&
+        (pointRecord.optimization(i, 5) < cylinderIterThres);
 
-        if ((!grid.skipMembrane) && pointRecord.alive(i)) {
-            bool membrane = InMembraneArea(imgData[0], grid.membraneThres, pointRecord.grid_search(i, 0), pointRecord.grid_search(i, 1), pointRecord.grid_search(i, 2), pointRecord.grid_search(i, 3));
-            if (!membrane) {
-                pointRecord.alive(i) = false;
-                // DEBUG PURPOSE
-                // logger().debug("cyl membrane {}", i);
-                // DEBUG PURPOSE
-            }
-        }
-
-        if (membraneMaskCylApply && pointRecord.alive(i)) {
-            bool alive = PointInMaskArea(pointRecord.optimization(i, 0), pointRecord.optimization(i, 1), pointRecord.optimization(i, 2));
-            if (!alive) {
-                pointRecord.alive(i) = false;
-            }
-        }
+    if ((!grid.skipMembrane) && pointRecord.alive(i)) {
+      bool membrane = InMembraneArea(
+          imgData[0], grid.membraneThres, pointRecord.grid_search(i, 0),
+          pointRecord.grid_search(i, 1), pointRecord.grid_search(i, 2),
+          pointRecord.grid_search(i, 3));
+      if (!membrane) {
+        pointRecord.alive(i) = false;
+        // DEBUG PURPOSE
+        // logger().debug("cyl membrane {}", i);
+        // DEBUG PURPOSE
+      }
     }
-}
 
+    if (membraneMaskCylApply && pointRecord.alive(i)) {
+      bool alive = PointInMaskArea(pointRecord.optimization(i, 0),
+                                   pointRecord.optimization(i, 1),
+                                   pointRecord.optimization(i, 2));
+      if (!alive) {
+        pointRecord.alive(i) = false;
+      }
+    }
+  }
+}
 
 void GUI::UpdateCylPointLoc() {
 
-    const int N = pointRecord.num;
-    int M = 0, i, count;
-    Eigen::MatrixXd tempLoc;
+  const int N = pointRecord.num;
+  int M = 0, i, count;
+  Eigen::MatrixXd tempLoc;
 
-    for (i=0; i<N; i++)
-        if (pointRecord.alive(i)) M++;
-    if (M == 0) {
-        logger().warn("No cylinder is valid under the current filter");
+  for (i = 0; i < N; i++)
+    if (pointRecord.alive(i))
+      M++;
+  if (M == 0) {
+    logger().warn("No cylinder is valid under the current filter");
+  }
+
+  cylPointLoc.resize(M, 3);
+  tempLoc.resize(M, 3);
+
+  count = 0;
+  for (i = 0; i < N; i++)
+    if (pointRecord.alive(i)) {
+      tempLoc(count, 0) = pointRecord.optimization(i, 0);
+      tempLoc(count, 1) = pointRecord.optimization(i, 1);
+      tempLoc(count, 2) = pointRecord.optimization(i, 2);
+      count++;
     }
 
-    cylPointLoc.resize(M, 3);
-    tempLoc.resize(M, 3);
+  assert(count == M);
 
-    count = 0;
-    for (i=0; i<N; i++)
-        if (pointRecord.alive(i)) {
-            tempLoc(count, 0) = pointRecord.optimization(i, 0);
-            tempLoc(count, 1) = pointRecord.optimization(i, 1);
-            tempLoc(count, 2) = pointRecord.optimization(i, 2);
-            count++;
-        }
+  cylPointLoc.col(0) = tempLoc.col(1).array() + 0.5;
+  cylPointLoc.col(1) = (imgRows - 0.5) - tempLoc.col(0).array();
+  cylPointLoc.col(2) = tempLoc.col(2);
 
-    assert(count == M);
-
-    cylPointLoc.col(0) = tempLoc.col(1).array() + 0.5;
-    cylPointLoc.col(1) = (imgRows-0.5) - tempLoc.col(0).array();
-    cylPointLoc.col(2) = tempLoc.col(2);
-
-    logger().info("   [Visualization] Filtered points updated: total number = {}", M);
+  logger().info("   [Visualization] Filtered points updated: total number = {}",
+                M);
 }
-
 
 void GUI::UpdateCylEnergyHist() {
-// Note: only count cylinders with energy smaller than 0
-//       some cylinders failed to converge and thus have energy 1.0
+  // Note: only count cylinders with energy smaller than 0
+  //       some cylinders failed to converge and thus have energy 1.0
 
-    Eigen::MatrixXd energyCol = pointRecord.optimization.col(4);
-    double minValue = energyCol.minCoeff();
-    double maxValue = 0.0;
-    const int N = pointRecord.num;
-    assert(N > 0);
+  Eigen::MatrixXd energyCol = pointRecord.optimization.col(4);
+  double minValue = energyCol.minCoeff();
+  double maxValue = 0.0;
+  const int N = pointRecord.num;
+  assert(N > 0);
 
-    const double epsilon = 0.0001;  // to make sure every number lies inside
-    minValue -= epsilon;
-    const double gap = (maxValue - minValue) / double(histBars);
+  const double epsilon = 0.0001; // to make sure every number lies inside
+  minValue -= epsilon;
+  const double gap = (maxValue - minValue) / double(histBars);
 
-    cylEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
-    cylEnergyHist.minValue = minValue;
-    cylEnergyHist.maxValue = maxValue;
+  cylEnergyHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
+  cylEnergyHist.minValue = minValue;
+  cylEnergyHist.maxValue = maxValue;
 
-    int idx;
-    for (int i=0; i<N; i++) {
-        idx = std::floor((energyCol(i) - minValue)/gap);
-        if (idx >= histBars) continue;  // energy > 0.0
-        cylEnergyHist.hist(idx)++;
-    }
+  int idx;
+  for (int i = 0; i < N; i++) {
+    idx = std::floor((energyCol(i) - minValue) / gap);
+    if (idx >= histBars)
+      continue; // energy > 0.0
+    cylEnergyHist.hist(idx)++;
+  }
 }
-
 
 void GUI::UpdateCylRadiusHist() {
 
-    Eigen::MatrixXd radiusCol = pointRecord.optimization.col(3);
-    double minValue = 0.0;
-    double maxValue = 12.0;
-    const int N = pointRecord.num;
-    assert(N > 0);
+  Eigen::MatrixXd radiusCol = pointRecord.optimization.col(3);
+  double minValue = 0.0;
+  double maxValue = 12.0;
+  const int N = pointRecord.num;
+  assert(N > 0);
 
-    const double gap = (maxValue - minValue) / double(histBars);
+  const double gap = (maxValue - minValue) / double(histBars);
 
-    cylRadiusHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
-    cylRadiusHist.minValue = minValue;
-    cylRadiusHist.maxValue = maxValue;
+  cylRadiusHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
+  cylRadiusHist.minValue = minValue;
+  cylRadiusHist.maxValue = maxValue;
 
-    int idx;
-    for (int i=0; i<N; i++) {
-        idx = std::floor((radiusCol(i) - minValue)/gap);
-        if (idx >= histBars) idx = histBars - 1;
-        if (idx < 0) idx = 0;
-        cylRadiusHist.hist(idx)++;
-    }
+  int idx;
+  for (int i = 0; i < N; i++) {
+    idx = std::floor((radiusCol(i) - minValue) / gap);
+    if (idx >= histBars)
+      idx = histBars - 1;
+    if (idx < 0)
+      idx = 0;
+    cylRadiusHist.hist(idx)++;
+  }
 }
-
 
 void GUI::UpdateCylIterHist() {
 
-    Eigen::MatrixXd iterCol = pointRecord.optimization.col(5);
-    double minValue = iterCol.minCoeff();
-    double maxValue = iterCol.maxCoeff();
-    const int N = pointRecord.num;
-    assert(N > 0);
+  Eigen::MatrixXd iterCol = pointRecord.optimization.col(5);
+  double minValue = iterCol.minCoeff();
+  double maxValue = iterCol.maxCoeff();
+  const int N = pointRecord.num;
+  assert(N > 0);
 
-    const double epsilon = 0.0001;  // to make sure every number lies inside
-    maxValue += epsilon;
-    minValue -= epsilon;
-    const double gap = (maxValue - minValue) / double(histBars);
+  const double epsilon = 0.0001; // to make sure every number lies inside
+  maxValue += epsilon;
+  minValue -= epsilon;
+  const double gap = (maxValue - minValue) / double(histBars);
 
-    cylIterHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
-    cylIterHist.minValue = minValue;
-    cylIterHist.maxValue = maxValue;
+  cylIterHist.minValue = minValue;
+  cylIterHist.maxValue = maxValue;
 
-    for (int i=0; i<N; i++) {
-        cylIterHist.hist( std::floor((iterCol(i) - minValue)/gap) )++;
-    }
+  Eigen::VectorXi tmp(histBars);
+  tmp.setZero(histBars);
+  for (int i = 0; i < N; i++) {
+    tmp[std::floor((iterCol(i) - minValue) / gap)] += 1;
+  }
+  cylIterHist.hist = tmp.cast<float>();
 }
 
 // ---------------------------------------------------------------
 // cluster
 
 void GUI::Cluster() {
-// First round cluster: cluster optimized cylinders into groups
-// Note: This step may take a few seconds
+  // First round cluster: cluster optimized cylinders into groups
+  // Note: This step may take a few seconds
 
-    const int N = pointRecord.num;  // total number of cylinders
-    int M = 0;  // number of alive cylinders
-    int i, j, count;
-    Eigen::MatrixXd opt_temp, x_temp, x_sorted, sortIdx, belongIdx;
+  const int N = pointRecord.num; // total number of cylinders
+  int M = 0;                     // number of alive cylinders
+  int i, j, count;
+  Eigen::MatrixXd opt_temp, x_temp, x_sorted, belongIdx;
+  Eigen::MatrixXi sortIdx;
 
-    // determine the number of alive cylinders
-    for (i=0; i<N; i++)
-        if (pointRecord.alive(i))
-            M++;
-    opt_temp.resize(M, 5);
-    x_temp.resize(M, 1);
+  // determine the number of alive cylinders
+  for (i = 0; i < N; i++)
+    if (pointRecord.alive(i))
+      M++;
+  opt_temp.resize(M, 5);
+  x_temp.resize(M, 1);
 
-    // copy xyzr-energy sub-matrix
-    count = 0;
-    for (i=0; i<N; i++)
-        if (pointRecord.alive(i)) {
-            x_temp(count) = pointRecord.optimization(i, 0);  // x
-            opt_temp(count, 0) = pointRecord.optimization(i, 0);  // x
-            opt_temp(count, 1) = pointRecord.optimization(i, 1);  // y
-            opt_temp(count, 2) = pointRecord.optimization(i, 2);  // z
-            opt_temp(count, 3) = pointRecord.optimization(i, 3);  // r
-            opt_temp(count, 4) = pointRecord.optimization(i, 4);  // energy
-            count++;
-        }
-
-    // sort x
-    igl::sort(x_temp, 1, true, x_sorted, sortIdx);
-
-    // prepare union-find set
-    /// FIXME: standardize this
-    std::vector<int> clusterSet, setRank;
-    clusterSet.reserve(M);
-    setRank.reserve(M);
-    for (i=0; i<M; i++) {
-        clusterSet[i] = i;
-        setRank[i] = 0;
+  // copy xyzr-energy sub-matrix
+  count = 0;
+  for (i = 0; i < N; i++)
+    if (pointRecord.alive(i)) {
+      x_temp(count) = pointRecord.optimization(i, 0);      // x
+      opt_temp(count, 0) = pointRecord.optimization(i, 0); // x
+      opt_temp(count, 1) = pointRecord.optimization(i, 1); // y
+      opt_temp(count, 2) = pointRecord.optimization(i, 2); // z
+      opt_temp(count, 3) = pointRecord.optimization(i, 3); // r
+      opt_temp(count, 4) = pointRecord.optimization(i, 4); // energy
+      count++;
     }
 
-    // cluster
-    double dist_square;
-    for (i=0; i<M; i++)
-        for (j=i+1; j<M; j++) {
+  // sort x
+  igl::sort(x_temp, 1, true, x_sorted, sortIdx);
 
-            // early stop
-            if (x_sorted(i) - x_sorted(j) > clusterDistThres) continue;
-            // if not same layer
-            if (opt_temp(sortIdx(i), 2) != opt_temp(sortIdx(j), 2)) continue;
+  // prepare union-find set
+  /// FIXME: standardize this
+  std::vector<int> clusterSet, setRank;
+  clusterSet.reserve(M);
+  setRank.reserve(M);
+  for (i = 0; i < M; i++) {
+    clusterSet[i] = i;
+    setRank[i] = 0;
+  }
 
-            // dist_square = x^2 + y^2
-            dist_square = (opt_temp(sortIdx(i), 0) - opt_temp(sortIdx(j), 0))*(opt_temp(sortIdx(i), 0) - opt_temp(sortIdx(j), 0)) +
-                          (opt_temp(sortIdx(i), 1) - opt_temp(sortIdx(j), 1))*(opt_temp(sortIdx(i), 1) - opt_temp(sortIdx(j), 1));
+  // cluster
+  double dist_square;
+  for (i = 0; i < M; i++)
+    for (j = i + 1; j < M; j++) {
 
-            if (dist_square < clusterDistThres*clusterDistThres)
-                join(clusterSet, setRank, sortIdx(i), sortIdx(j));
-        }
+      // early stop
+      if (x_sorted(i) - x_sorted(j) > clusterDistThres)
+        continue;
+      // if not same layer
+      if (opt_temp(int(sortIdx(i)), 2) != opt_temp(int(sortIdx(j)), 2))
+        continue;
 
-    // calculate belongIdx
-    int numClusters;
-    std::set<int> clusters;
-    belongIdx.resize(M, 1);
-    for (i=0; i<M; i++) {
-        belongIdx(i) = query(clusterSet, i);
-        clusters.insert(belongIdx(i));
-    }
-    numClusters = clusters.size();
+      // dist_square = x^2 + y^2
+      dist_square =
+          (opt_temp(int(sortIdx(i)), 0) - opt_temp(int(sortIdx(j)), 0)) *
+              (opt_temp(int(sortIdx(i)), 0) - opt_temp(int(sortIdx(j)), 0)) +
+          (opt_temp(int(sortIdx(i)), 1) - opt_temp(int(sortIdx(j)), 1)) *
+              (opt_temp(int(sortIdx(i)), 1) - opt_temp(int(sortIdx(j)), 1));
 
-    // prepare clusterRecord
-    clusterRecord.num = numClusters;
-    clusterRecord.alive.resize(numClusters, 1);
-    clusterRecord.loc = Eigen::MatrixXd::Zero(numClusters, 4);
-    clusterRecord.energy = Eigen::MatrixXd::Zero(numClusters, 1);
-    clusterRecord.size = Eigen::MatrixXi::Zero(numClusters, 1);
-    for (i=0; i<numClusters; i++)
-        clusterRecord.alive(i) = true;
-
-    // fill in data
-    count = 0;
-    for (int clusterAlias : clusters) {
-
-        for (i=0; i<M; i++) {
-
-            if (belongIdx(i) != clusterAlias) continue;
-            clusterRecord.loc(count, 0) += opt_temp(i, 0);  // x
-            clusterRecord.loc(count, 1) += opt_temp(i, 1);  // y
-            clusterRecord.loc(count, 2) += opt_temp(i, 2);  // z
-            clusterRecord.loc(count, 3) += opt_temp(i, 3);  // r
-            clusterRecord.energy(count)    += opt_temp(i, 4);  // energy
-            clusterRecord.size(count)++;  // size
-        }
-        // next cluster
-        count++;
-    }
-    for (i=0; i<numClusters; i++) {
-
-        clusterRecord.loc(i, 0) /= clusterRecord.size(i);  // x
-        clusterRecord.loc(i, 1) /= clusterRecord.size(i);  // y
-        clusterRecord.loc(i, 2) /= clusterRecord.size(i);  // z
-        clusterRecord.loc(i, 3) /= clusterRecord.size(i);  // r
-        clusterRecord.energy(i) /= clusterRecord.size(i);  // energy
+      if (dist_square < clusterDistThres * clusterDistThres)
+        join(clusterSet, setRank, sortIdx(i), sortIdx(j));
     }
 
-    logger().info("[Cluster] #(Alive Cylinders) = {} | #Cluster = {}", M, numClusters);
+  // calculate belongIdx
+  int numClusters;
+  std::set<int> clusters;
+  belongIdx.resize(M, 1);
+  for (i = 0; i < M; i++) {
+    belongIdx(i) = query(clusterSet, i);
+    clusters.insert(belongIdx(i));
+  }
+  numClusters = clusters.size();
+
+  // prepare clusterRecord
+  clusterRecord.num = numClusters;
+  clusterRecord.alive.resize(numClusters, 1);
+  clusterRecord.loc = Eigen::MatrixXd::Zero(numClusters, 4);
+  clusterRecord.energy = Eigen::MatrixXd::Zero(numClusters, 1);
+  clusterRecord.size = Eigen::MatrixXi::Zero(numClusters, 1);
+  for (i = 0; i < numClusters; i++)
+    clusterRecord.alive(i) = true;
+
+  // fill in data
+  count = 0;
+  for (int clusterAlias : clusters) {
+
+    for (i = 0; i < M; i++) {
+
+      if (belongIdx(i) != clusterAlias)
+        continue;
+      clusterRecord.loc(count, 0) += opt_temp(i, 0); // x
+      clusterRecord.loc(count, 1) += opt_temp(i, 1); // y
+      clusterRecord.loc(count, 2) += opt_temp(i, 2); // z
+      clusterRecord.loc(count, 3) += opt_temp(i, 3); // r
+      clusterRecord.energy(count) += opt_temp(i, 4); // energy
+      clusterRecord.size(count)++;                   // size
+    }
+    // next cluster
+    count++;
+  }
+  for (i = 0; i < numClusters; i++) {
+
+    clusterRecord.loc(i, 0) /= clusterRecord.size(i); // x
+    clusterRecord.loc(i, 1) /= clusterRecord.size(i); // y
+    clusterRecord.loc(i, 2) /= clusterRecord.size(i); // z
+    clusterRecord.loc(i, 3) /= clusterRecord.size(i); // r
+    clusterRecord.energy(i) /= clusterRecord.size(i); // energy
+  }
+
+  logger().info("[Cluster] #(Alive Cylinders) = {} | #Cluster = {}", M,
+                numClusters);
 }
-
 
 void GUI::ClusterFilter() {
 
-    const int N = clusterRecord.num;
-    double areaCorrectionFactor;  // if a cylidner has a small radius, the cluster size will be smaller
+  const int N = clusterRecord.num;
+  double areaCorrectionFactor; // if a cylidner has a small radius, the cluster
+                               // size will be smaller
 
-    for (int i=0; i<N; i++) {
+  for (int i = 0; i < N; i++) {
 
-        areaCorrectionFactor = double(clusterRecord.loc(i, 3) * clusterRecord.loc(i, 3));
-        clusterRecord.alive(i) = 
-            clusterRecord.size(i) / areaCorrectionFactor >= clusterSizeThres;
-    }
+    areaCorrectionFactor =
+        double(clusterRecord.loc(i, 3) * clusterRecord.loc(i, 3));
+    clusterRecord.alive(i) =
+        clusterRecord.size(i) / areaCorrectionFactor >= clusterSizeThres;
+  }
 }
-
 
 void GUI::UpdateClusterPointLoc() {
 
-    const int N = clusterRecord.num;
-    int M = 0, i, count;
-    Eigen::MatrixXd tempLoc;
+  const int N = clusterRecord.num;
+  int M = 0, i, count;
+  Eigen::MatrixXd tempLoc;
 
-    for (i=0; i<N; i++)
-        if (clusterRecord.alive(i)) M++;
-    if (M == 0) return;
+  for (i = 0; i < N; i++)
+    if (clusterRecord.alive(i))
+      M++;
+  if (M == 0)
+    return;
 
-    clusterPointLoc.resize(M, 3);
-    tempLoc.resize(M, 3);
+  clusterPointLoc.resize(M, 3);
+  tempLoc.resize(M, 3);
 
-    count = 0;
-    for (i=0; i<N; i++)
-        if (clusterRecord.alive(i)) {
-            tempLoc(count, 0) = clusterRecord.loc(i, 0);
-            tempLoc(count, 1) = clusterRecord.loc(i, 1);
-            tempLoc(count, 2) = clusterRecord.loc(i, 2);
-            count++;
-        }
+  count = 0;
+  for (i = 0; i < N; i++)
+    if (clusterRecord.alive(i)) {
+      tempLoc(count, 0) = clusterRecord.loc(i, 0);
+      tempLoc(count, 1) = clusterRecord.loc(i, 1);
+      tempLoc(count, 2) = clusterRecord.loc(i, 2);
+      count++;
+    }
 
-    assert(count == M);
+  assert(count == M);
 
-    clusterPointLoc.col(0) = tempLoc.col(1).array() + 0.5;
-    clusterPointLoc.col(1) = (imgRows-0.5) - tempLoc.col(0).array();
-    clusterPointLoc.col(2) = tempLoc.col(2);
+  clusterPointLoc.col(0) = tempLoc.col(1).array() + 0.5;
+  clusterPointLoc.col(1) = (imgRows - 0.5) - tempLoc.col(0).array();
+  clusterPointLoc.col(2) = tempLoc.col(2);
 
-    logger().info("   [Visualization] Filtered clusters updated: total number = {}", M);
+  logger().info(
+      "   [Visualization] Filtered clusters updated: total number = {}", M);
 }
-
 
 void GUI::UpdateClusterSizeHist() {
 
-    Eigen::Matrix<int, Eigen::Dynamic, 1> sizeCol = clusterRecord.size;
-    const int N = clusterRecord.num;
-    assert(N > 0);
-    Eigen::Matrix<double, Eigen::Dynamic, 1> sizePerArea(N, 1);
-    for (int i=0; i<N; i++) {
-        sizePerArea(i) = double(sizeCol(i)) / (double(clusterRecord.loc(i, 3) * clusterRecord.loc(i, 3)));
-    }
-    int minValue = sizePerArea.minCoeff();
-    int maxValue = sizePerArea.maxCoeff();
+  Eigen::Matrix<int, Eigen::Dynamic, 1> sizeCol = clusterRecord.size;
+  const int N = clusterRecord.num;
+  assert(N > 0);
+  Eigen::Matrix<double, Eigen::Dynamic, 1> sizePerArea(N, 1);
+  for (int i = 0; i < N; i++) {
+    sizePerArea(i) =
+        double(sizeCol(i)) /
+        (double(clusterRecord.loc(i, 3) * clusterRecord.loc(i, 3)));
+  }
+  int minValue = sizePerArea.minCoeff();
+  int maxValue = sizePerArea.maxCoeff();
 
-    const double gap = (double)(maxValue - minValue) / double(histBars);
+  const double gap = (double)(maxValue - minValue) / double(histBars);
 
-    clusterSizeHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
-    clusterSizeHist.minValue = minValue;
-    clusterSizeHist.maxValue = maxValue;
+  clusterSizeHist.hist = Eigen::MatrixXf::Zero(histBars, 1);
+  clusterSizeHist.minValue = minValue;
+  clusterSizeHist.maxValue = maxValue;
 
-    int idx;
-    for (int i=0; i<N; i++) {
-        idx = std::floor((double)(sizePerArea(i) - minValue)/gap);
-        if (idx >= histBars) idx = histBars - 1;
-        if (idx < 0) idx = 0;
-        clusterSizeHist.hist(idx)++;
-    }
+  int idx;
+  for (int i = 0; i < N; i++) {
+    idx = std::floor((double)(sizePerArea(i) - minValue) / gap);
+    if (idx >= histBars)
+      idx = histBars - 1;
+    if (idx < 0)
+      idx = 0;
+    clusterSizeHist.hist(idx)++;
+  }
 }
 
-
 void GUI::FinalizeClusterLoc() {
-// Second round of cluster
-// Do another round of cluster to get "markerRecord" from "clusterRecord"
-/// FIXME: the code is very similar to "Cluster" but not identical
-/// FIXME: The variables in this function is NOT properly named (copied from "Cluster")
+  // Second round of cluster
+  // Do another round of cluster to get "markerRecord" from "clusterRecord"
+  /// FIXME: the code is very similar to "Cluster" but not identical
+  /// FIXME: The variables in this function is NOT properly named (copied from
+  /// "Cluster")
 
-    const int N = clusterRecord.num;  // total number of clusters
-    int M = 0;  // number of alive clusters
-    int i, j, count;
-    Eigen::MatrixXd opt_temp, x_temp, x_sorted, sortIdx, belongIdx;
+  const int N = clusterRecord.num; // total number of clusters
+  int M = 0;                       // number of alive clusters
+  int i, j, count;
+  Eigen::MatrixXd opt_temp, x_temp, x_sorted, belongIdx;
+  Eigen::MatrixXi sortIdx;
 
-    // determine the number of alive clusters
-    for (i=0; i<N; i++)
-        if (clusterRecord.alive(i))
-            M++;
-    opt_temp.resize(M, 6);
-    x_temp.resize(M, 1);
+  // determine the number of alive clusters
+  for (i = 0; i < N; i++)
+    if (clusterRecord.alive(i))
+      M++;
+  opt_temp.resize(M, 6);
+  x_temp.resize(M, 1);
 
-    // copy xyzr-energy-size sub-matrix
-    count = 0;
-    for (i=0; i<N; i++)
-        if (clusterRecord.alive(i)) {
-            x_temp(count) = clusterRecord.loc(i, 0);  // x
-            opt_temp(count, 0) = clusterRecord.loc(i, 0);  // x
-            opt_temp(count, 1) = clusterRecord.loc(i, 1);  // y
-            opt_temp(count, 2) = clusterRecord.loc(i, 2);  // z
-            opt_temp(count, 3) = clusterRecord.loc(i, 3);  // r
-            opt_temp(count, 4) = clusterRecord.energy(i);  // energy
-            opt_temp(count, 5) = clusterRecord.size(i);  // size
-            count++;
-        }
-
-    // sort x
-    igl::sort(x_temp, 1, true, x_sorted, sortIdx);
-
-    // prepare union-find set
-    /// FIXME: standardize this
-    std::vector<int> clusterSet, setRank;
-    clusterSet.reserve(M);
-    setRank.reserve(M);
-    for (i=0; i<M; i++) {
-        clusterSet[i] = i;
-        setRank[i] = 0;
+  // copy xyzr-energy-size sub-matrix
+  count = 0;
+  for (i = 0; i < N; i++)
+    if (clusterRecord.alive(i)) {
+      x_temp(count) = clusterRecord.loc(i, 0);      // x
+      opt_temp(count, 0) = clusterRecord.loc(i, 0); // x
+      opt_temp(count, 1) = clusterRecord.loc(i, 1); // y
+      opt_temp(count, 2) = clusterRecord.loc(i, 2); // z
+      opt_temp(count, 3) = clusterRecord.loc(i, 3); // r
+      opt_temp(count, 4) = clusterRecord.energy(i); // energy
+      opt_temp(count, 5) = clusterRecord.size(i);   // size
+      count++;
     }
 
-    // cluster
-    double dist_square;
-    for (i=0; i<M; i++)
-        for (j=i+1; j<M; j++) {
+  // sort x
+  igl::sort(x_temp, 1, true, x_sorted, sortIdx);
 
-            // early stop
-            if (x_sorted(i) - x_sorted(j) > finalizeClusterDistThres) continue;
-            // dont care about depth layer
+  // prepare union-find set
+  /// FIXME: standardize this
+  std::vector<int> clusterSet, setRank;
+  clusterSet.reserve(M);
+  setRank.reserve(M);
+  for (i = 0; i < M; i++) {
+    clusterSet[i] = i;
+    setRank[i] = 0;
+  }
 
-            // dist_square = x^2 + y^2
-            dist_square = (opt_temp(sortIdx(i), 0) - opt_temp(sortIdx(j), 0))*(opt_temp(sortIdx(i), 0) - opt_temp(sortIdx(j), 0)) +
-                          (opt_temp(sortIdx(i), 1) - opt_temp(sortIdx(j), 1))*(opt_temp(sortIdx(i), 1) - opt_temp(sortIdx(j), 1));
+  // cluster
+  double dist_square;
+  for (i = 0; i < M; i++)
+    for (j = i + 1; j < M; j++) {
 
-            if (dist_square < finalizeClusterDistThres*finalizeClusterDistThres)
-                join(clusterSet, setRank, sortIdx(i), sortIdx(j));
-        }
+      // early stop
+      if (x_sorted(i) - x_sorted(j) > finalizeClusterDistThres)
+        continue;
+      // dont care about depth layer
 
-    // calculate belongIdx
-    int numClusters;
-    std::set<int> clusters;
-    belongIdx.resize(M, 1);
-    for (i=0; i<M; i++) {
-        belongIdx(i) = query(clusterSet, i);
-        clusters.insert(belongIdx(i));
-    }
-    numClusters = clusters.size();
+      // dist_square = x^2 + y^2
+      dist_square =
+          (opt_temp(int(sortIdx(i)), 0) - opt_temp(int(sortIdx(j)), 0)) *
+              (opt_temp(int(sortIdx(i)), 0) - opt_temp(int(sortIdx(j)), 0)) +
+          (opt_temp(int(sortIdx(i)), 1) - opt_temp(int(sortIdx(j)), 1)) *
+              (opt_temp(int(sortIdx(i)), 1) - opt_temp(int(sortIdx(j)), 1));
 
-    // prepare markerRecord
-    markerRecord_t markerFirstFrame;
-    markerFirstFrame.num = numClusters;
-    markerFirstFrame.loc = Eigen::MatrixXd::Zero(numClusters, 4);
-    markerFirstFrame.energy = Eigen::MatrixXd::Zero(numClusters, 1);
-    markerFirstFrame.size = Eigen::MatrixXi::Zero(numClusters, 1);
-
-    // fill in data
-    count = 0;
-    for (int clusterAlias : clusters) {
-
-        for (i=0; i<M; i++) {
-
-            if (belongIdx(i) != clusterAlias) continue;
-            int clusterSize = opt_temp(i, 5);
-            markerFirstFrame.loc(count, 0) += opt_temp(i, 0) * clusterSize;  // x
-            markerFirstFrame.loc(count, 1) += opt_temp(i, 1) * clusterSize;  // y
-            markerFirstFrame.loc(count, 2) += opt_temp(i, 2) * clusterSize;  // z
-            markerFirstFrame.loc(count, 3) += opt_temp(i, 3) * clusterSize;  // r
-            markerFirstFrame.size(count)   += clusterSize;  // size
-        }
-        // next cluster
-        count++;
-    }
-    for (i=0; i<numClusters; i++) {
-
-        markerFirstFrame.loc(i, 0) /= markerFirstFrame.size(i);  // x
-        markerFirstFrame.loc(i, 1) /= markerFirstFrame.size(i);  // y
-        markerFirstFrame.loc(i, 2) /= markerFirstFrame.size(i);  // z
-        markerFirstFrame.loc(i, 3) /= markerFirstFrame.size(i);  // r
-
-        // calculate energy (directly)
-        cylinder::EvaluateCylinder(bsplineArray[0], markerFirstFrame.loc(i, 0), markerFirstFrame.loc(i, 1), markerFirstFrame.loc(i, 2), markerFirstFrame.loc(i, 3), cylinder::H, markerFirstFrame.energy(i), invertColor);
+      if (dist_square < finalizeClusterDistThres * finalizeClusterDistThres)
+        join(clusterSet, setRank, sortIdx(i), sortIdx(j));
     }
 
-    // push to "markerArray"
-    markerArray.clear();
-    markerArray.push_back(markerFirstFrame);
+  // calculate belongIdx
+  int numClusters;
+  std::set<int> clusters;
+  belongIdx.resize(M, 1);
+  for (i = 0; i < M; i++) {
+    belongIdx(i) = query(clusterSet, i);
+    clusters.insert(belongIdx(i));
+  }
+  numClusters = clusters.size();
 
-    logger().info("[Finalize Cluster] #(Alive clusters) = {} | #Markers = {}", M, numClusters);
+  // prepare markerRecord
+  markerRecord_t markerFirstFrame;
+  markerFirstFrame.num = numClusters;
+  markerFirstFrame.loc = Eigen::MatrixXd::Zero(numClusters, 4);
+  markerFirstFrame.energy = Eigen::MatrixXd::Zero(numClusters, 1);
+  markerFirstFrame.size = Eigen::MatrixXi::Zero(numClusters, 1);
+
+  // fill in data
+  count = 0;
+  for (int clusterAlias : clusters) {
+
+    for (i = 0; i < M; i++) {
+
+      if (belongIdx(i) != clusterAlias)
+        continue;
+      int clusterSize = opt_temp(i, 5);
+      markerFirstFrame.loc(count, 0) += opt_temp(i, 0) * clusterSize; // x
+      markerFirstFrame.loc(count, 1) += opt_temp(i, 1) * clusterSize; // y
+      markerFirstFrame.loc(count, 2) += opt_temp(i, 2) * clusterSize; // z
+      markerFirstFrame.loc(count, 3) += opt_temp(i, 3) * clusterSize; // r
+      markerFirstFrame.size(count) += clusterSize;                    // size
+    }
+    // next cluster
+    count++;
+  }
+  for (i = 0; i < numClusters; i++) {
+
+    markerFirstFrame.loc(i, 0) /= markerFirstFrame.size(i); // x
+    markerFirstFrame.loc(i, 1) /= markerFirstFrame.size(i); // y
+    markerFirstFrame.loc(i, 2) /= markerFirstFrame.size(i); // z
+    markerFirstFrame.loc(i, 3) /= markerFirstFrame.size(i); // r
+
+    // calculate energy (directly)
+    cylinder::EvaluateCylinder(
+        bsplineArray[0], markerFirstFrame.loc(i, 0), markerFirstFrame.loc(i, 1),
+        markerFirstFrame.loc(i, 2), markerFirstFrame.loc(i, 3), cylinder::H,
+        markerFirstFrame.energy(i), invertColor);
+  }
+
+  // push to "markerArray"
+  markerArray.clear();
+  markerArray.push_back(markerFirstFrame);
+
+  logger().info("[Finalize Cluster] #(Alive clusters) = {} | #Markers = {}", M,
+                numClusters);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // mouse reject
 
 void GUI::MouseSelectCluster(const Eigen::Vector2f &mouse) {
-/// called by "MouseMoveCallback"
+  /// called by "MouseMoveCallback"
 
-    static int fid;
-    static Eigen::Vector3f bc;
-    static double x, y;
-    static bool hit;
+  static int fid;
+  static Eigen::Vector3f bc;
+  static double x, y;
+  static bool hit;
 
-    hit = igl::unproject_onto_mesh(
-        Eigen::Vector2f(mouse(0), viewer.core().viewport(3)-mouse(1)), 
-        viewer.core().view, 
-        viewer.core().proj,
-        viewer.core().viewport, 
-        V_texture, 
-        F_texture, 
-        fid, 
-        bc);
+  hit = igl::unproject_onto_mesh(
+      Eigen::Vector2f(mouse(0), viewer.core().viewport(3) - mouse(1)),
+      viewer.core().view, viewer.core().proj, viewer.core().viewport, V_texture,
+      F_texture, fid, bc);
 
-    if (hit) {
-        // has hit
+  if (hit) {
+    // has hit
 
-        // FIXME: why minus 0.5?
-        y =                 (V_texture(F_texture(fid, 0), 0) * bc(0) + V_texture(F_texture(fid, 1), 0) * bc(1) + V_texture(F_texture(fid, 2), 0) * bc(2)) - 0.5;
-        x = imgRows - 0.5 - (V_texture(F_texture(fid, 0), 1) * bc(0) + V_texture(F_texture(fid, 1), 1) * bc(1) + V_texture(F_texture(fid, 2), 1) * bc(2));
+    // FIXME: why minus 0.5?
+    y = (V_texture(F_texture(fid, 0), 0) * bc(0) +
+         V_texture(F_texture(fid, 1), 0) * bc(1) +
+         V_texture(F_texture(fid, 2), 0) * bc(2)) -
+        0.5;
+    x = imgRows - 0.5 -
+        (V_texture(F_texture(fid, 0), 1) * bc(0) +
+         V_texture(F_texture(fid, 1), 1) * bc(1) +
+         V_texture(F_texture(fid, 2), 1) * bc(2));
 
-        if (rejectMode == REJECT_SINGLE) {
-            // search for the nearest cluster
-            double dist_square, minDistSquare;
-            minDistSquare = mousePickDistSquareThres;  // reset
-            for (int i=0; i<clusterRecord.num; i++) {
+    if (rejectMode == REJECT_SINGLE) {
+      // search for the nearest cluster
+      double dist_square, minDistSquare;
+      minDistSquare = mousePickDistSquareThres; // reset
+      for (int i = 0; i < clusterRecord.num; i++) {
 
-                if (!clusterRecord.alive(i)) continue;
-                dist_square = (clusterRecord.loc(i, 0)-x)*(clusterRecord.loc(i, 0)-x) + (clusterRecord.loc(i, 1)-y)*(clusterRecord.loc(i, 1)-y);
-                if (dist_square >= mousePickDistSquareThres) continue;
-                if (dist_square < minDistSquare) {
-                    // find a new nearest cluster
+        if (!clusterRecord.alive(i))
+          continue;
+        dist_square =
+            (clusterRecord.loc(i, 0) - x) * (clusterRecord.loc(i, 0) - x) +
+            (clusterRecord.loc(i, 1) - y) * (clusterRecord.loc(i, 1) - y);
+        if (dist_square >= mousePickDistSquareThres)
+          continue;
+        if (dist_square < minDistSquare) {
+          // find a new nearest cluster
 
-                    minDistSquare = dist_square;
-                    rejectHitIndex.resize(1, 1);
-                    rejectHitIndex(0) = i;
-                }
-            }
-            // update rejectHit
-            rejectHit = minDistSquare < mousePickDistSquareThres;
-        } else if (rejectMode == REJECT_AREA) {
-            // search for all near clusters
-            Eigen::VectorXi tempIndex(clusterRecord.num, 1);
-            double dist_square;
-            int hitCount = 0;
-            for (int i=0; i<clusterRecord.num; i++) {
-
-                if (!clusterRecord.alive(i)) continue;
-                dist_square = (clusterRecord.loc(i, 0)-x)*(clusterRecord.loc(i, 0)-x) + (clusterRecord.loc(i, 1)-y)*(clusterRecord.loc(i, 1)-y);
-                if (dist_square >= mousePickDistSquareThres) continue;
-                // find a cluster that is close enough
-
-                tempIndex(hitCount) = i;
-                hitCount++;
-            }
-            rejectHitIndex = tempIndex.block(0, 0, hitCount, 1);
-            // update rejectHit
-            rejectHit = hitCount > 0;
+          minDistSquare = dist_square;
+          rejectHitIndex.resize(1, 1);
+          rejectHitIndex(0) = i;
         }
-        
-            // DEBUG PURPOSE
-            // if (rejectHit) {
-            //     logger().debug("reject hit: {} {} {}", clusterRecord.loc(rejectHitIndex(0), 0), clusterRecord.loc(rejectHitIndex(0), 1), clusterRecord.loc(rejectHitIndex(0), 2));
-            //     logger().debug("minDist = {}", minDistSquare);
-            // }
-    } else {
+      }
+      // update rejectHit
+      rejectHit = minDistSquare < mousePickDistSquareThres;
+    } else if (rejectMode == REJECT_AREA) {
+      // search for all near clusters
+      Eigen::VectorXi tempIndex(clusterRecord.num, 1);
+      double dist_square;
+      int hitCount = 0;
+      for (int i = 0; i < clusterRecord.num; i++) {
 
-        // update rejectHit
-        rejectHit = false;
+        if (!clusterRecord.alive(i))
+          continue;
+        dist_square =
+            (clusterRecord.loc(i, 0) - x) * (clusterRecord.loc(i, 0) - x) +
+            (clusterRecord.loc(i, 1) - y) * (clusterRecord.loc(i, 1) - y);
+        if (dist_square >= mousePickDistSquareThres)
+          continue;
+        // find a cluster that is close enough
+
+        tempIndex(hitCount) = i;
+        hitCount++;
+      }
+      rejectHitIndex = tempIndex.block(0, 0, hitCount, 1);
+      // update rejectHit
+      rejectHit = hitCount > 0;
     }
-}
 
+    // DEBUG PURPOSE
+    // if (rejectHit) {
+    //     logger().debug("reject hit: {} {} {}",
+    //     clusterRecord.loc(rejectHitIndex(0), 0),
+    //     clusterRecord.loc(rejectHitIndex(0), 1),
+    //     clusterRecord.loc(rejectHitIndex(0), 2)); logger().debug("minDist =
+    //     {}", minDistSquare);
+    // }
+  } else {
+
+    // update rejectHit
+    rejectHit = false;
+  }
+}
 
 void GUI::MouseRejectCluster() {
-/// called by "MouseDownCallback"
+  /// called by "MouseDownCallback"
 
-    if (!rejectHit) return;
+  if (!rejectHit)
+    return;
 
-    const int hitCount = rejectHitIndex.rows();
-    for (int i=0; i<hitCount; i++) {
-        clusterRecord.alive(rejectHitIndex(i)) = false;
-    }
+  const int hitCount = rejectHitIndex.rows();
+  for (int i = 0; i < hitCount; i++) {
+    clusterRecord.alive(rejectHitIndex(i)) = false;
+  }
 
-    rejectHit = false;
-    UpdateClusterPointLoc();
-    ClusterNearBorderWarn();
-    logger().info("Mouse pick rejected {} clusters", hitCount);
+  rejectHit = false;
+  UpdateClusterPointLoc();
+  ClusterNearBorderWarn();
+  logger().info("Mouse pick rejected {} clusters", hitCount);
 }
-
 
 bool GUI::ClusterNearBorderWarn() {
 
-    const int N = clusterRecord.num;
-    int i;
-    const int xgap = 8;
-    const int ygap = 8;
-    const int zgap = 2;
+  const int N = clusterRecord.num;
+  int i;
+  const int xgap = 8;
+  const int ygap = 8;
+  const int zgap = 2;
 
-    for (i=0; i<N; i++)
-        if (clusterRecord.alive(i)) {
-            int x = clusterRecord.loc(i, 0);
-            int y = clusterRecord.loc(i, 1);
-            int z = clusterRecord.loc(i, 2);
-            if (x<xgap || imgRows-x<xgap) {
-                logger().warn("Cluster {} too close to the border (x-axis). Consider deleting them or crop a larger area.", i);
-                return false;
-            }
-            if (y<ygap || imgCols-y<ygap) {
-                logger().warn("Cluster {} too close to the border (y-axis). Consider deleting them or crop a larger area.", i);
-                return false;
-            }
-            if (z-layerBegin<zgap || layerEnd-z<zgap) {
-                logger().warn("Cluster {} too close to the border (depth z-axis). Consider deleting them or crop a larger area.", i);
-                return false;
-            }
-        }
+  for (i = 0; i < N; i++)
+    if (clusterRecord.alive(i)) {
+      int x = clusterRecord.loc(i, 0);
+      int y = clusterRecord.loc(i, 1);
+      int z = clusterRecord.loc(i, 2);
+      if (x < xgap || imgRows - x < xgap) {
+        logger().warn("Cluster {} too close to the border (x-axis). Consider "
+                      "deleting them or crop a larger area.",
+                      i);
+        return false;
+      }
+      if (y < ygap || imgCols - y < ygap) {
+        logger().warn("Cluster {} too close to the border (y-axis). Consider "
+                      "deleting them or crop a larger area.",
+                      i);
+        return false;
+      }
+      if (z - layerBegin < zgap || layerEnd - z < zgap) {
+        logger().warn("Cluster {} too close to the border (depth z-axis). "
+                      "Consider deleting them or crop a larger area.",
+                      i);
+        return false;
+      }
+    }
 
-    return true;
+  return true;
 }
 
-}  // namespace zebrafish
+} // namespace zebrafish

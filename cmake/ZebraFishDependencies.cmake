@@ -8,18 +8,22 @@
 # Download and update 3rd_party libraries
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 list(REMOVE_DUPLICATES CMAKE_MODULE_PATH)
+
+include(polysolve)
+
 include(ZebraFishDownloadExternal)
 
 ################################################################################
 # Required libraries
 ################################################################################
 
-zebra_download_geogram()
-add_subdirectory(${ZEBRA_EXTERNAL}/geogram)
+# zebra_download_geogram()
+# add_subdirectory(${ZEBRA_EXTERNAL}/geogram)
+include(geogram)
 
 #Polyfem
-zebra_download_polyfem()
-add_subdirectory(${ZEBRA_EXTERNAL}/polyfem)
+# zebra_download_polyfem()
+# add_subdirectory(${ZEBRA_EXTERNAL}/polyfem)
 
 # HighFive
 if(NOT TARGET highfive)
@@ -36,6 +40,7 @@ if(NOT TARGET igl)
   zebra_download_libigl()
   add_subdirectory(${ZEBRA_EXTERNAL}/libigl EXCLUDE_FROM_ALL)
 endif()
+# include(libigl)
 
 
 if(NOT TARGET TinyTiff)
@@ -54,10 +59,10 @@ if(NOT TARGET TinyTiff)
   target_include_directories(TinyTiff SYSTEM INTERFACE ${ZEBRA_EXTERNAL}/TinyTIFF)
 endif()
 
-if(NOT TARGET polysolve)
-  zebra_download_polysolve()
-  add_subdirectory(${ZEBRA_EXTERNAL}/polysolve)
-endif()
+# if(NOT TARGET polysolve)
+#   zebra_download_polysolve()
+#   add_subdirectory(${ZEBRA_EXTERNAL}/polysolve)
+# endif()
 
 
 # spdlog

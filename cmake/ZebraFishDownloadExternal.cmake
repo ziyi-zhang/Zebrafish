@@ -65,7 +65,7 @@ endfunction()
 function(zebra_download_polysolve)
     zebra_download_project(polysolve
         GIT_REPOSITORY     https://github.com/polyfem/polysolve.git
-        GIT_TAG            b288fe7d52a758fe3594e711bd801530f440ff53
+        GIT_TAG            71271fb4e231e42fa2cf764c5bf354c81856b105
     )
 endfunction()
 
@@ -96,13 +96,25 @@ function(zebra_download_tbb)
     )
 endfunction()
 
-## Polyfem MIT
-function(zebra_download_geogram)
-    zebra_download_project(geogram
-        GIT_REPOSITORY https://github.com/polyfem/geogram
-        GIT_TAG        c790c30daf05839fb4d64b83f2e1fababdf17622
-    )
-endfunction()
+# option(GEOGRAM_WITH_GRAPHICS "Viewers and geogram_gfx library" OFF)
+# option(GEOGRAM_WITH_LEGACY_NUMERICS "Legacy numerical libraries" OFF)
+# option(GEOGRAM_WITH_HLBFGS "Non-linear solver (Yang Liu's HLBFGS)" ON)
+# option(GEOGRAM_WITH_TETGEN "Tetrahedral mesher (Hang Si's TetGen)" OFF)
+# option(GEOGRAM_WITH_TRIANGLE "Triangle mesher (Jonathan Shewchuk's triangle)" OFF)
+# option(GEOGRAM_WITH_EXPLORAGRAM "Experimental code (hexahedral meshing vpipeline and optimal transport)" OFF)
+# option(GEOGRAM_WITH_LUA "Built-in LUA interpreter" OFF)
+# option(GEOGRAM_LIB_ONLY "Libraries only (no example programs/no viewer)" ON)
+# option(GEOGRAM_WITH_FPG "Predicate generator (Sylvain Pion's FPG)" OFF)
+# option(GEOGRAM_USE_SYSTEM_GLFW3 "Use the version of GLFW3 installed in the system if found" OFF)
+
+
+# ## Polyfem MIT
+# function(zebra_download_geogram)
+#     zebra_download_project(geogram
+#         GIT_REPOSITORY https://github.com/polyfem/geogram
+#         GIT_TAG        c790c30daf05839fb4d64b83f2e1fababdf17622
+#     )
+# endfunction()
 
 ## Polyfem MIT
 function(zebra_download_polyfem)
