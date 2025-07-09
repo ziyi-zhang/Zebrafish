@@ -391,9 +391,67 @@ bool ReadHDF5FirstFrame(const std::string &path, const int layerPerImg,
 bool ReadHDF5(const std::string &path, const int layerPerImg,
               const std::vector<bool> &channelVec, const int targetNumImg,
               imageData_t &imgData, int r0, int c0, int r1, int c1) {
-  throw std::runtime_error(
-      "ReadHDF5 is not implemented yet. Please use ReadHDF5FirstFrame");
-  return false;
+  using namespace HighFive;
+
+  int channel = -1;
+  for (int i = 0; i < channelVec.size(); ++i) {
+    if (channelVec[i]) {
+      channel = i;
+      break;
+    }
+  }
+  assert(channel >= 0);
+
+  imgData.resize(targetNumImg);
+  std::vector<std::vector<std::vector<int>>> data;
+
+  File file(path, File::ReadOnly);
+
+  for (int i = 0; i < targetNumImg; i++) {
+    const auto g0 = file.getGroup("/t" + std::to_string(i));
+    const auto dset = g0.getDataSet("channel" + std::to_string(channel));
+    const auto dims = dset.getDimensions();
+    if (dims.size() != 3) {
+      logger().error("ERROR reading HDF5 file: expected 3D dataset");
+      std::cerr << "ERROR reading HDF5 file: expected 3D dataset" << std::endl;
+      return false;
+    }
+    data.clear();
+    dset.read(data);
+
+    auto &img = imgData[i];
+    img.reserve(data.size());
+
+    for (const auto &slice : data) {
+      Eigen::MatrixXd sliceMat(slice.size(), slice[0].size());
+      for (size_t r = 0; r < slice.size(); ++r) {
+        for (size_t c = 0; c < slice[r].size(); ++c) {
+          sliceMat(r, c) = static_cast<double>(slice[r][c]);
+        }
+      }
+
+      // Crop the image if needed
+      if (r0 >= 0 && c0 >= 0 && r1 >= 0 && c1 >= 0) {
+        const int rows = sliceMat.rows();
+        const int cols = sliceMat.cols();
+        if (r0 >= r1 || c0 >= c1 || r1 >= rows || c1 >= cols) {
+          img.push_back(sliceMat);
+          logger().error(
+              "Crop error: r0={} c0={} r1={} c1={} imgRows={} imgCols={}", r0,
+              c0, r1, c1, rows, cols);
+        } else
+          img.push_back(sliceMat.block(r0, c0, r1 - r0 + 1, c1 - c0 + 1));
+      } else {
+        img.push_back(sliceMat);
+      }
+    }
+
+    if (i % 50 == 0) {
+      logger().trace("Processed {} slices / {} slices", i, targetNumImg);
+    }
+  }
+
+  return true;
 }
 
 bool isHdf5(const std::string &path) {
