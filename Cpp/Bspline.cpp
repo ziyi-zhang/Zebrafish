@@ -277,7 +277,7 @@ void bspline::SolveLeastSquare(
     // Deprecated eigen solver:
     // Eigen::SimplicialCholesky<Eigen::SparseMatrix<double> >
     // chol(AtransposeA); controlPoints = chol.solve(vectorY);
-    const std::string solverName = "AccelerateLDLT";
+    const std::string solverName = "Eigen::AccelerateLDLT";
     auto solver = polysolve::linear::Solver::create(solverName, "");
     const nlohmann::json params = {{"max_iter", solverMaxIt},
                                    {"conv_tol", solverConvTol},
