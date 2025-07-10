@@ -13,7 +13,7 @@
 #include <cmath>
 #include <iostream>
 #include <math.h>
-#include <polysolve/linear/Solver.hpp>
+// #include <polysolve/linear/Solver.hpp>
 #include <string>
 #include <vector>
 
@@ -262,34 +262,36 @@ void bspline::SolveLeastSquare(
 
   switch (leastSquareMethod) {
   case 1: {
-    logger().info(
-        "Least square using method 1: Normal Function + Hypre Solver");
-    // calculate control points based on least square
-    logger().info("Calculating A'*A and A'*y...");
-    AtransposeA = (Atranspose * A).pruned(); // A' * A
-    vectorY.resize(N);
-    vectorY = Atranspose * inputPts; // A' * y
-    logger().debug("A' * A size = {} * {}", AtransposeA.rows(),
-                   AtransposeA.cols());
-    logger().debug("A'A: # non-zero elements = {}", AtransposeA.nonZeros());
+    // logger().info(
+    //     "Least square using method 1: Normal Function + Hypre Solver");
+    // // calculate control points based on least square
+    // logger().info("Calculating A'*A and A'*y...");
+    // AtransposeA = (Atranspose * A).pruned(); // A' * A
+    // vectorY.resize(N);
+    // vectorY = Atranspose * inputPts; // A' * y
+    // logger().debug("A' * A size = {} * {}", AtransposeA.rows(),
+    //                AtransposeA.cols());
+    // logger().debug("A'A: # non-zero elements = {}", AtransposeA.nonZeros());
 
-    // solve linear system for control points
-    // Deprecated eigen solver:
-    // Eigen::SimplicialCholesky<Eigen::SparseMatrix<double> >
-    // chol(AtransposeA); controlPoints = chol.solve(vectorY);
-    const std::string solverName = "Eigen::AccelerateLDLT";
-    auto solver = polysolve::linear::Solver::create(solverName, "");
-    const nlohmann::json params = {{"max_iter", solverMaxIt},
-                                   {"conv_tol", solverConvTol},
-                                   {"tolerance", solverTol}};
-    solver->set_parameters(params);
-    logger().info("Analyzing matrix pattern...");
-    solver->analyze_pattern(AtransposeA, AtransposeA.rows());
-    logger().info("Factorizing matrix...");
-    solver->factorize(AtransposeA);
-    logger().info("Solving linear system...");
-    controlPoints.resize(num, 1);
-    solver->solve(vectorY, controlPoints);
+    // // solve linear system for control points
+    // // Deprecated eigen solver:
+    // // Eigen::SimplicialCholesky<Eigen::SparseMatrix<double> >
+    // // chol(AtransposeA); controlPoints = chol.solve(vectorY);
+    // const std::string solverName = "Eigen::AccelerateLDLT";
+    // auto solver = polysolve::linear::Solver::create(solverName, "");
+    // const nlohmann::json params = {{"max_iter", solverMaxIt},
+    //                                {"conv_tol", solverConvTol},
+    //                                {"tolerance", solverTol}};
+    // solver->set_parameters(params);
+    // logger().info("Analyzing matrix pattern...");
+    // solver->analyze_pattern(AtransposeA, AtransposeA.rows());
+    // logger().info("Factorizing matrix...");
+    // solver->factorize(AtransposeA);
+    // logger().info("Solving linear system...");
+    // controlPoints.resize(num, 1);
+    // solver->solve(vectorY, controlPoints);
+    throw std::runtime_error(
+        "Polysolve solver is deprecated. Please use method 2: LSCG instead.");
     break;
   }
   case 2: {

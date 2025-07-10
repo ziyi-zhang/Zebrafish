@@ -9,7 +9,7 @@
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 list(REMOVE_DUPLICATES CMAKE_MODULE_PATH)
 
-include(polysolve)
+# include(polysolve)
 
 include(ZebraFishDownloadExternal)
 

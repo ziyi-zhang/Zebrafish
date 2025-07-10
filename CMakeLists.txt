@@ -9,6 +9,10 @@ else()
     set(ZEBRA_TOPLEVEL_PROJECT OFF)
 endif()
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 # project-options
 OPTION(ZEBRA_WITH_UNIT_TESTS "Enable unit test"  ON)
 
@@ -35,14 +39,14 @@ option(LIBIGL_WITH_PREDICATES        "Use exact predicates"         OFF)
 ################################################################################
 
 
-option(POLYSOLVE_WITH_CHOLMOD          "Enable Cholmod library"            OFF)
-option(POLYSOLVE_WITH_UMFPACK          "Enable UmfPack library"            OFF)
-option(POLYSOLVE_WITH_SUPERLU          "Enable SuperLU library"            OFF)
-option(POLYSOLVE_WITH_MKL              "Enable MKL library"                OFF)
-option(POLYSOLVE_WITH_PARDISO          "Enable Pardiso library"            OFF)
-option(POLYSOLVE_WITH_HYPRE            "Enable hypre"                      ON)
-option(POLYSOLVE_WITH_AMGCL            "Use AMGCL"                         OFF)
-option(POLYSOLVE_WITH_SPECTRA          "Enable computing spectrum"         OFF)
+# option(POLYSOLVE_WITH_CHOLMOD          "Enable Cholmod library"            OFF)
+# option(POLYSOLVE_WITH_UMFPACK          "Enable UmfPack library"            OFF)
+# option(POLYSOLVE_WITH_SUPERLU          "Enable SuperLU library"            OFF)
+# option(POLYSOLVE_WITH_MKL              "Enable MKL library"                OFF)
+# option(POLYSOLVE_WITH_PARDISO          "Enable Pardiso library"            OFF)
+# option(POLYSOLVE_WITH_HYPRE            "Enable hypre"                      ON)
+# option(POLYSOLVE_WITH_AMGCL            "Use AMGCL"                         OFF)
+# option(POLYSOLVE_WITH_SPECTRA          "Enable computing spectrum"         OFF)
 
 
 option(ZEBRA_ANALYSIS_RUNNABLE         "Compile main analysis"             ON)
@@ -75,7 +79,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE warnings::all)
 target_link_libraries(${PROJECT_NAME} PUBLIC TinyTiff)
 
 #Polysolve
-target_link_libraries(${PROJECT_NAME} PUBLIC  polysolve::polysolve)
+# target_link_libraries(${PROJECT_NAME} PUBLIC  polysolve::polysolve)
 
 #spdlog
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog::spdlog)
@@ -130,7 +134,7 @@ if(ZEBRA_TOPLEVEL_PROJECT)
   zebra_copy_headers(Cpp/gui/GUI.h Cpp/gui/FileDialog.h)
 
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC ${PROJECT_NAME})
-  target_link_libraries(${PROJECT_NAME}_gui PUBLIC polysolve::polysolve)
+  # target_link_libraries(${PROJECT_NAME}_gui PUBLIC polysolve::polysolve)
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC CLI11::CLI11)
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC igl::opengl igl::opengl_glfw igl::opengl_glfw_imgui)
   target_link_libraries(${PROJECT_NAME}_gui PUBLIC geogram igl::tetgen)
